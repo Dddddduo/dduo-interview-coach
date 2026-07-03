@@ -16,5 +16,12 @@ Thumbs.db
 outputs/*
 !outputs/.gitkeep
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
 # Node (if any)
 node_modules/

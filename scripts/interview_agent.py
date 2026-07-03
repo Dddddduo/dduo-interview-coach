@@ -33,6 +33,15 @@ except ImportError:
     print("❌ 请先安装 anthropic SDK: pip install anthropic")
     sys.exit(1)
 
+# 题库管理器（同项目内 import）
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+try:
+    from question_manager import QuestionManager, classify_question, auto_tag, estimate_difficulty
+    HAS_QM = True
+except ImportError:
+    HAS_QM = False
+
 # ============================================================
 # Agent System Prompts — 每个 Agent 的角色定义
 # ============================================================
@@ -262,6 +271,38 @@ class InterviewCoach:
         )
         return doc
 
+    def archive_results(self, results: list[dict], source: str = "") -> list[dict]:
+        """阶段 4：将答题结果归档到题库"""
+        if not HAS_QM:
+            print("\n⚠️  question_manager 不可用，跳过题库归档")
+            return []
+
+        print("\n📚 归档到题库...")
+        mgr = QuestionManager()
+        entries = []
+
+        for r in results:
+            question = r["question"]
+            answer = r["answer"]
+            cat = classify_question(question)
+            tags = auto_tag(question)
+            diff = estimate_difficulty(question)
+
+            try:
+                entry = mgr.add(
+                    question=question,
+                    answer=answer,
+                    category=cat,
+                    tags=tags,
+                    difficulty=diff,
+                    source=source or "interview_agent",
+                )
+                entries.append(entry)
+            except Exception as e:
+                print(f"  ❌ 归档失败 [{r['index']}]: {e}")
+
+        return entries
+
     def _parse_review(self, text: str) -> dict:
         """尝试从审查输出中提取 JSON"""
         try:
@@ -364,6 +405,14 @@ def main():
         "--skip-review", action="store_true",
         help="跳过质量审查（更快但质量无保证）"
     )
+    parser.add_argument(
+        "--no-archive", action="store_true",
+        help="不归档到题库（仅生成文档）"
+    )
+    parser.add_argument(
+        "--source", default="interview_agent",
+        help="题目来源标记 (默认: interview_agent)"
+    )
 
     args = parser.parse_args()
 
@@ -437,6 +486,12 @@ def main():
 
     # 组装 & 输出
     doc = coach.assemble(results)
+
+    # 归档到题库
+    if not args.no_archive:
+        archive_entries = coach.archive_results(results, source=args.source)
+        if archive_entries:
+            print(f"  📚 已归档 {len(archive_entries)} 道题到题库 (questions/database/)")
 
     if args.no_save:
         print("\n" + doc)

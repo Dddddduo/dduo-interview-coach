@@ -4,6 +4,14 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-orange)](https://claude.com/claude-code)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
+[![Pages](https://img.shields.io/badge/GitHub-Pages-blue)](https://ddddduo.github.io/dduo-interview-coach/)
+
+## 是什么？
+
+**Interview Coach** 是一个 AI 面试备考系统。输入面试题 → 自动深度解答 → 质量审查 → **自动归档到题库** → 生成文档 → 推送到 GitHub。
+
+🌐 **在线题库浏览**: [ddddduo.github.io/dduo-interview-coach/questions.html](https://ddddduo.github.io/dduo-interview-coach/questions.html)
 
 ## 是什么？
 
@@ -123,10 +131,37 @@ Agent 会自动：
 
 | 脚本 | 用途 | 运行方式 |
 |------|------|----------|
-| `interview_agent.py` | 核心 Agent：调用 Anthropic API 深度答题 | `python scripts/interview_agent.py "题目"` |
-| `batch_process.py` | 从 JSON 文件批量处理题目 | `python scripts/batch_process.py questions.json` |
-| `memory_trainer.py` | 交互式记忆训练（闪卡/填空/随机挑战） | `python scripts/memory_trainer.py outputs/*.md` |
-| `md_to_pdf.py` | Markdown → 精美排版 PDF | `python scripts/md_to_pdf.py outputs/*.md` |
+| `interview_agent.py` | **核心 Agent**：答题 + 审查 + 自动归档题库 | `python scripts/interview_agent.py "题目"` |
+| `batch_process.py` | **批量处理器**：从 JSON 题库批量答题 | `python scripts/batch_process.py questions.json` |
+| `question_manager.py` | **题库管理**：增删查改、分类、标签、去重 | `python scripts/question_manager.py add -q "题" -a "答"` |
+| `memory_trainer.py` | **记忆训练**：闪卡/填空/随机挑战 3 模式 | `python scripts/memory_trainer.py --mode random outputs/*.md` |
+| `md_to_pdf.py` | **文档导出**：Markdown → 精美排版 PDF | `python scripts/md_to_pdf.py outputs/*.md` |
+| `generate_site.py` | **站点生成**：同步题库数据到 GitHub Pages | `python scripts/generate_site.py` |
+
+## 📚 题库沉淀系统
+
+答完的每一道题，都会**自动归档**到 `questions/database/` 目录：
+
+```
+questions/
+├── index.json              # 题库索引（被网页端动态加载）
+├── database/
+│   ├── java/               # JVM、并发、集合...
+│   ├── mysql/              # 索引、事务、SQL优化...
+│   ├── redis/              # 缓存策略、数据结构...
+│   ├── spring/             # IoC、AOP、SpringBoot...
+│   ├── distributed/        # CAP、消息队列、微服务...
+│   ├── os/                 # 进程线程、内存管理...
+│   ├── network/            # TCP/IP、HTTP、DNS...
+│   ├── behavioral/         # 项目经历、团队协作...
+│   └── ...                 # 13 个分类
+```
+
+- **自动分类** — 根据题目关键词自动匹配到对应分类
+- **自动标签** — 识别技术关键词（如 JVM、并发、索引）
+- **自动难度** — 判断基础/中级/进阶
+- **去重检查** — 避免重复归档
+- **网页浏览** — GitHub Pages 上可搜索、筛选、按分类查看
 
 ```bash
 # 独立运行（不需要 Claude Code，只需要 Anthropic API Key）

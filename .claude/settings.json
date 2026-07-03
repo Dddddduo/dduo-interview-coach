@@ -5,12 +5,38 @@
   "permissions": {
     "allow": [
       "Bash(git *)",
-      "Bash(cd ~/Documents/projects/interview-coach *)",
+      "Bash(cd *)",
       "Bash(mkdir *)",
+      "Bash(chmod *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(pip *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(sed *)",
+      "Bash(date *)",
+      "Bash(wc *)",
+      "Bash(curl *)",
+      "Bash(export *)",
+      "Bash(which *)",
+      "Bash(source *)",
+      "Bash(./scripts/*)",
+      "Bash(${CLAUDE_PLUGIN_ROOT}/*)",
       "WebSearch",
       "WebFetch",
       "WebSearch(*)",
-      "WebFetch(*)"
+      "WebFetch(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)"
     ]
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

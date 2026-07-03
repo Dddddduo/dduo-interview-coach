@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "project": "Interview Coach — 面经题库",
+    "last_updated": "2026-07-04T02:46:47",
+    "total_questions": 3
+  },
+  "categories": {
+    "java": {
+      "name": "Java",
+      "icon": "☕",
+      "description": "Java 核心、JVM、并发编程",
+      "count": 0
+    },
+    "python": {
+      "name": "Python",
+      "icon": "🐍",
+      "description": "Python 语言特性与框架",
+      "count": 0
+    },
+    "go": {
+      "name": "Go / Golang",
+      "icon": "🔷",
+      "description": "Go 语言、并发模型",
+      "count": 0
+    },
+    "mysql": {
+      "name": "MySQL / 数据库",
+      "icon": "🗄️",
+      "description": "MySQL、索引、事务、SQL 优化",
+      "count": 1
+    },
+    "redis": {
+      "name": "Redis / 缓存",
+      "icon": "⚡",
+      "description": "Redis 数据结构、缓存策略",
+      "count": 0
+    },
+    "spring": {
+      "name": "Spring 框架",
+      "icon": "🍃",
+      "description": "Spring Boot、Spring Cloud",
+      "count": 0
+    },
+    "distributed": {
+      "name": "分布式系统",
+      "icon": "🌐",
+      "description": "分布式理论、微服务、消息队列",
+      "count": 1
+    },
+    "os": {
+      "name": "操作系统",
+      "icon": "💻",
+      "description": "进程线程、内存管理、文件系统",
+      "count": 1
+    },
+    "network": {
+      "name": "计算机网络",
+      "icon": "🌍",
+      "description": "TCP/IP、HTTP、网络安全",
+      "count": 0
+    },
+    "behavioral": {
+      "name": "行为面试",
+      "icon": "🎯",
+      "description": "项目经历、团队协作、职业规划",
+      "count": 0
+    },
+    "system-design": {
+      "name": "系统设计",
+      "icon": "🏗️",
+      "description": "架构设计、高并发、高可用",
+      "count": 0
+    },
+    "frontend": {
+      "name": "前端开发",
+      "icon": "🎨",
+      "description": "JS/TS、React、Vue、浏览器",
+      "count": 0
+    },
+    "devops": {
+      "name": "DevOps / 运维",
+      "icon": "🔧",
+      "description": "CI/CD、Docker、K8s",
+      "count": 0
+    }
+  },
+  "difficulty_levels": {
+    "easy": {
+      "name": "基础",
+      "color": "#3fb950"
+    },
+    "medium": {
+      "name": "中级",
+      "color": "#d2991d"
+    },
+    "hard": {
+      "name": "进阶",
+      "color": "#f85149"
+    }
+  },
+  "questions": [
+    {
+      "id": "q0001",
+      "question": "请解释MySQL的索引底层数据结构，为什么选用B+树而不是红黑树或Hash？",
+      "category": "mysql",
+      "tags": [
+        "磁盘IO",
+        "数据结构",
+        "MySQL",
+        "B+树",
+        "索引"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/请解释MySQL的索引底层数据结构为什么选用B树而不是红黑树或Hash.md",
+      "created": "2026-07-04 02:46:47",
+      "source": "示例归档",
+      "hash": "bdb6bf9b"
+    },
+    {
+      "id": "q0002",
+      "question": "进程和线程的区别是什么？请从资源分配和执行调度的角度分析",
+      "category": "os",
+      "tags": [
+        "进程",
+        "并发",
+        "操作系统",
+        "Linux",
+        "线程"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/os/进程和线程的区别是什么请从资源分配和执行调度的角度分析.md",
+      "created": "2026-07-04 02:46:47",
+      "source": "示例归档",
+      "hash": "4354132a"
+    },
+    {
+      "id": "q0003",
+      "question": "什么是 CAP 理论？在分布式系统中如何权衡？",
+      "category": "distributed",
+      "tags": [
+        "CAP",
+        "分布式",
+        "一致性",
+        "可用性",
+        "BASE"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/distributed/什么是-CAP-理论在分布式系统中如何权衡.md",
+      "created": "2026-07-04 02:46:47",
+      "source": "示例归档",
+      "hash": "8986daa7"
+    }
+  ]
+}

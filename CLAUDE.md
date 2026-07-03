@@ -2,50 +2,72 @@
 
 ## 项目概述
 
-Interview Coach 是一个基于 **Harness Engineering（驾驭工程）** 的 Claude Code 面试解答 Agent 项目。通过多 Agent 协作、Workflow 编排和自动质量门控，将面试题转化为深度解答文档并自动推送到 GitHub。
+Interview Coach — 基于 **Harness Engineering（驾驭工程）** 的 AI 面试备考系统。
+
+核心能力：输入面试题 → 深度解答 → 质量审查 → **自动归档题库** → 生成文档 → Git 推送。
 
 ## 核心架构
 
-- **3 个专用 Agent**: `interview-answerer` (答题), `quality-reviewer` (审查), `doc-assembler` (组装)
-- **1 个 Skill**: `/面经助手` — 用户入口，编排全流程
-- **6 阶段 Workflow**: 解析 → 并行答题 → 审查 → 组装 → 落盘 → 推送
+```
+/面经助手 (Skill 统一入口)
+    ├── 阶段1: 题目解析 & 分类
+    ├── 阶段2: 并行答题 (interview-answerer × N)
+    ├── 阶段3: 质量审查 (quality-reviewer × N)
+    ├── 阶段4: 文档组装 (doc-assembler)
+    ├── 阶段5: 题库归档 (question_manager.py)
+    └── 阶段6: 落盘 & 推送 (git)
+```
+
+### 3 个 Agent
+
+| Agent | 模型 | 职责 |
+|-------|------|------|
+| `interview-answerer` | Opus | 深度解答单题：记忆法 + 原理拆解 + 答题思路 |
+| `quality-reviewer` | Sonnet | 15 项清单审查，FAIL → 自动重答 |
+| `doc-assembler` | Sonnet | 组装最终 Markdown 文档 |
+
+### 6 个 Python 脚本
+
+| 脚本 | 职责 |
+|------|------|
+| `interview_agent.py` | 核心：独立运行的 AI Agent（调用 Anthropic API） |
+| `batch_process.py` | 批量答题 |
+| `question_manager.py` | 题库增删查改、分类标签 |
+| `memory_trainer.py` | 交互式记忆训练 |
+| `md_to_pdf.py` | Markdown → PDF |
+| `generate_site.py` | 同步题库数据到 docs/ |
+
+## 题库系统
+
+- `questions/index.json` — 主索引（被网页端动态加载）
+- `questions/database/{category}/{slug}.md` — 每道题独立归档
+- 13 个分类，自动分类 + 自动标签 + 自动难度判断
+- 网页端：`docs/questions.html` + `docs/questions.js` 动态渲染
 
 ## 技术约定
 
-### Agent 定义规范
-- Agent 文件位于 `.claude/agents/*.md`
-- 使用 YAML frontmatter: `name`, `description`, `model`, `color`, `tools`
+### Agent 定义
+- `.claude/agents/*.md` — YAML frontmatter + system prompt
 - `description` 必须包含 "Use this agent when..." 格式
-- 所有 Agent 继承项目 effort level (`max`)
 
-### Skill 定义规范
-- Skill 文件位于 `.claude/skills/<name>/SKILL.md`
-- Frontmatter 包含: `user-invocable: true`, `allowed-tools`
-- Skill body 是完整的执行指令，必须包含所有阶段的详细说明
-- 使用 `$ARGUMENTS` 捕获用户输入
-
-### 输出规范
-- 文档输出到 `outputs/` 目录
-- 文件命名: `面经解答-YYYYMMDD-HHMM.md`
-- 每道题必须包含: 联想记忆法 → 深度解答 → 回答思路（顺序不可变）
-- 深度解答必须按 "是什么→为什么→怎么用→注意事项" 展开
+### Skill 定义
+- `.claude/skills/<name>/SKILL.md` — frontmatter + 执行指令
+- `/面经助手` 是唯一用户入口
 
 ### Git 规范
-- Commit message 格式: `docs: 添加面经解答 — YYYY-MM-DD HH:MM`
-- 只 push `outputs/` 目录下的变化
+- Git 身份：`zhudaoyang` / `1732446549@qq.com`
+- Commit: `docs: 面经解答 + 题库更新 — YYYY-MM-DD HH:MM`
 - Branch: `main`
+
+### 输出规范
+- 文档：`outputs/面经解答-YYYYMMDD-HHMM.md`
+- 题库：`questions/database/{category}/{slug}.md`
+- 每道题必含：🧠 联想记忆法 → 📖 深度解答 → 🗺️ 回答思路
 
 ## Harness Engineering 关键原则
 
-1. **关注点分离**: 答题、审查、组装三个职责分离到独立 Agent
-2. **质量内建**: 审查是流程的强制阶段，不是事后补救
-3. **失败快速恢复**: 审查不合格自动重答，最多 2 次
-4. **确定性编排**: Workflow 控制流是确定的，不是模型自主决定的
-5. **可观测性**: 每个阶段有明确的输出，方便调试和追溯
-
-## 开发注意事项
-
-- 修改 Agent system prompt 后要重新测试答题质量
-- quality-reviewer 的检查清单是质量的最后防线，修改需谨慎
-- 不要直接在 SKILL.md 中展开大段内容，将详细逻辑放到 Agent 定义中
-- 新增 Agent 能力时，同步更新 README 的架构图和 Agent 体系表
+1. **关注点分离** — 答题、审查、归档三个职责独立
+2. **质量内建** — 审查是强制阶段，不是事后补救
+3. **自动沉淀** — 每道题自动归档到题库，不需要手动操作
+4. **数据驱动** — index.json 驱动网页端展示
+5. **确定性编排** — Skill 定义 6 阶段，不依赖模型自主决策
