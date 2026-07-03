@@ -70,8 +70,8 @@
 
 ```bash
 # 1. 克隆仓库
-git clone git@github.com:Dddddduo/interview-coach.git
-cd interview-coach
+git clone git@github.com:Dddddduo/MyLover-gc.git
+cd MyLover-gc
 
 # 2. 安装 Agent 和 Skill 到 Claude Code
 # 将 .claude/ 目录下的内容链接或复制到你的项目或全局配置中
