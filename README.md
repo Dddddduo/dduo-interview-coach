@@ -119,12 +119,40 @@ Agent 会自动：
   └── 过渡话术
 ```
 
+## Python 脚本（可独立运行，无需 Claude Code）
+
+| 脚本 | 用途 | 运行方式 |
+|------|------|----------|
+| `interview_agent.py` | 核心 Agent：调用 Anthropic API 深度答题 | `python scripts/interview_agent.py "题目"` |
+| `batch_process.py` | 从 JSON 文件批量处理题目 | `python scripts/batch_process.py questions.json` |
+| `memory_trainer.py` | 交互式记忆训练（闪卡/填空/随机挑战） | `python scripts/memory_trainer.py outputs/*.md` |
+| `md_to_pdf.py` | Markdown → 精美排版 PDF | `python scripts/md_to_pdf.py outputs/*.md` |
+
+```bash
+# 独立运行（不需要 Claude Code，只需要 Anthropic API Key）
+export ANTHROPIC_API_KEY='your-key'
+pip install -r requirements.txt
+
+# 答一道题
+python scripts/interview_agent.py "什么是CAP理论？"
+
+# 批量答题（从JSON题库）
+python scripts/batch_process.py examples/questions-example.json
+
+# 记忆训练
+python scripts/memory_trainer.py --mode random outputs/*.md
+
+# 导出 PDF
+python scripts/md_to_pdf.py outputs/*.md
+```
+
 ## 项目结构
 
 ```
 interview-coach/
 ├── README.md                           # 本文件
 ├── CLAUDE.md                           # Claude Code 项目文档
+├── requirements.txt                    # Python 依赖
 ├── .gitignore
 ├── .claude/
 │   ├── settings.json                   # 项目级 harness 配置
@@ -136,9 +164,17 @@ interview-coach/
 │       └── interview-coach/
 │           └── SKILL.md                # /面经助手 Skill 入口
 ├── scripts/
+│   ├── interview_agent.py              # 核心：独立运行的 AI Agent
+│   ├── batch_process.py                # 批量题目处理器
+│   ├── memory_trainer.py               # 交互式记忆训练器
+│   ├── md_to_pdf.py                    # Markdown → PDF 转换器
 │   └── push-output.sh                  # Git 自动推送脚本
+├── docs/                               # GitHub Pages
+│   ├── index.html                      # Landing Page
+│   └── sample.html                     # 示例输出页
 ├── outputs/                            # 生成的文档
 └── examples/
+    ├── questions-example.json          # 示例题库
     └── sample-output.md                # 示例输出
 ```
 

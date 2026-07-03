@@ -1,0 +1,13 @@
+# Interview Coach — Python 依赖
+# ================================
+
+# 核心：Anthropic API（独立运行 Agent 必需）
+anthropic>=0.39.0
+
+# Markdown → PDF 转换
+markdown>=3.5
+weasyprint>=62.0       # 推荐：专业排版引擎
+pygments>=2.17         # 代码语法高亮
+
+# 可选：更好的终端体验
+# rich>=13.0           # 彩色终端输出
