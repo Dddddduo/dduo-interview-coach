@@ -355,106 +355,107 @@ graph LR
 
 ---
 
-## 🚀 开箱即用
+## 🚀 本地安装与使用
+
+### 第一步：克隆项目
 
 ```bash
-# 1. 克隆
 git clone git@github.com:Dddddduo/dduo-interview-coach.git
 cd dduo-interview-coach
-
-# 2. 一键安装
 bash setup.sh
+```
 
-# 3. 启动 Claude Code
-claude
+`setup.sh` 会自动：检查 Python/Git → 安装依赖 → 初始化站点数据。
 
-# 4. 开始使用
+### 第二步（二选一）
+
+**A. Claude Code Skill（推荐 — 全自动答题→归档→推送）**
+
+```bash
+claude                          # 在项目目录启动 Claude Code
+```
+
+然后输入：
+```
 /面经助手
 第1题：请解释 JVM 的内存模型，堆、栈、方法区各自的职责
-第2题：MySQL 索引底层为什么用 B+ 树？
+第2题：MySQL 索引底层为什么用 B+ 树？从磁盘 I/O 角度分析
+第3题：Redis 缓存穿透、击穿、雪崩是什么？如何解决？
 ```
 
-**setup.sh 做了什么**:
+Agent 自动完成：解析题目 → 并行答题 → 质量审查 → 文档组装 → 落盘 → **归档题库** → **生成网页** → **Git推送**。
 
-```mermaid
-graph LR
-    S1["检查 Python"] --> S2["检查 Git+Remote"]
-    S2 --> S3["pip install 依赖"]
-    S3 --> S4["检查 API Key"]
-    S4 --> S5["generate_site.py<br/>初始化站点"]
-    S5 --> DONE["✅ 就绪"]
+**B. Python 独立脚本（无需 Claude Code，只需 API Key）**
+
+```bash
+export ANTHROPIC_API_KEY='sk-ant-...'
+
+# 答一道题（自动归档）
+python scripts/interview_agent.py "什么是 CAP 理论？"
+
+# 答完手动推送
+bash scripts/push-output.sh
 ```
 
-### 两种使用方式
+### 第三步：查看结果
 
-| | Claude Code Skill | Python 独立脚本 |
-|---|---|---|
-| **启动** | `claude` → `/面经助手` | `python scripts/interview_agent.py` |
-| **需要** | Claude Code | `ANTHROPIC_API_KEY` |
-| **归档** | 自动 | 自动（--no-archive 关闭） |
-| **审查** | 自动 | 自动（--skip-review 关闭） |
-| **推送** | 自动 | 手动 git push |
+| 在哪里看 | 路径/URL |
+|----------|----------|
+| 📄 答题文档 | `outputs/面经解答-*.md` |
+| 📚 题库归档 | `questions/database/{分类}/` |
+| 🌐 本地网页 | 浏览器打开 `docs/index.html` |
+| 🚀 线上网页 | `https://dddddduo.github.io/dduo-interview-coach/` |
 
 ---
 
-## 📖 使用方式
+## 📖 全部使用方式
 
-### 主入口：Claude Code Skill
+### /面经助手（Claude Code）
 
 ```
 /面经助手
-第1题：请解释 CAP 理论，在分布式系统中如何权衡？
-第2题：Redis 缓存穿透、击穿、雪崩分别是什么？如何解决？
-第3题：描述你在项目中遇到的最大技术挑战及解决方案
+第1题：你的第一道面试题...
+第2题：你的第二道面试题...
 ```
 
-### 题库管理
+全自动 10 阶段流程。答题质量有 `quality-reviewer` agent 把关，不合格自动重答。
 
-```bash
-python scripts/question_manager.py stats          # 统计
-python scripts/question_manager.py search "CAP"   # 搜索
-python scripts/question_manager.py export         # 导出全部题库
-```
+### Python 脚本速查
 
-### 记忆训练
+| 想做什么 | 命令 |
+|---------|------|
+| 答一道题 | `python scripts/interview_agent.py "题目"` |
+| 批量答题 | `python scripts/batch_process.py questions.json` |
+| 题库统计 | `python scripts/question_manager.py stats` |
+| 搜索题库 | `python scripts/question_manager.py search "关键词"` |
+| 闪卡记忆 | `python scripts/memory_trainer.py outputs/*.md` |
+| 填空测验 | `python scripts/memory_trainer.py --mode cloze outputs/*.md` |
+| 随机挑战 | `python scripts/memory_trainer.py --mode random --rounds 10 outputs/*.md` |
+| 导出 CSV | `python scripts/export_anki.py csv` |
+| 导出 PDF | `python scripts/md_to_pdf.py outputs/*.md` |
+| 知识图谱 | `python scripts/knowledge_graph.py analyze` |
+| 学习统计 | `python scripts/progress_tracker.py overview` |
+| 写学习日志 | `python scripts/daily_journal.py write -i` |
+| 连续打卡 | `python scripts/daily_journal.py streak` |
+| 生成测验 | `python scripts/quiz_generator.py generate -n 5` |
+| 全文搜索 | `python scripts/search_index.py search "B+树"` |
+| 同步站点 | `python scripts/sync_manager.py sync-all` |
+| 数据备份 | `python scripts/sync_manager.py backup` |
+| API 服务 | `python scripts/api_server.py` (访问 localhost:8765) |
+| CLI 工具箱 | `python scripts/cli_toolkit.py stats` |
 
-```bash
-# 闪卡模式
-python scripts/memory_trainer.py outputs/*.md
+### 网页功能速查
 
-# 填空模式
-python scripts/memory_trainer.py --mode cloze outputs/*.md
+| 页面 | 功能 | 本地打开 |
+|------|------|---------|
+| 🏠 仪表盘 | 统计 + 今日复习 + 分类图 + 搜索 + 标签云 | `open docs/index.html` |
+| 📚 题库 | 3 视图 + 筛选 + 搜索 + 排序 | `open docs/questions.html` |
+| 📅 每日复习 | 打卡 + 30 天月历 + 进度条 + 笔记 | `open docs/daily.html` |
+| 🧠 知识图谱 | 知识点节点 + 关联 + 映射 | `open docs/knowledge.html` |
+| 📊 学习统计 | 总览 + 时间线 + 分类详情 + 建议 | `open docs/stats.html` |
+| 📄 示例输出 | 完整解答示例 | `open docs/sample.html` |
 
-# 随机挑战 (20轮)
-python scripts/memory_trainer.py --mode random --rounds 20 outputs/*.md
-```
-
-### 批量处理
-
-```bash
-# 准备题库 JSON
-cat > my_questions.json << 'EOF'
-{
-  "title": "我的面试题集",
-  "questions": [
-    "第一道题...",
-    "第二道题..."
-  ]
-}
-EOF
-
-python scripts/batch_process.py my_questions.json
-```
-
-### 网页端
-
-启用 GitHub Pages（Settings → Pages → Source: `main` `/docs` → Save）后：
-
-| 页面 | URL |
-|------|-----|
-| 🏠 首页 | `https://ddddduo.github.io/dduo-interview-coach/` |
-| 📚 题库浏览器 | `.../questions.html` |
-| 📅 每日复习 | `.../daily.html` |
+> **本地打开网页**：所有网页是纯静态 HTML/CSS/JS，直接双击或用 `open` 命令即可。数据从 `docs/data.json` 加载。
 | 📄 示例输出 | `.../sample.html` |
 | 📖 题目阅读 | `.../q/q0001.html` |
 
