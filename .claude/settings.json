@@ -1,0 +1,16 @@
+{
+  "env": {
+    "CLAUDE_CODE_EFFORT_LEVEL": "max"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(cd ~/Documents/projects/interview-coach *)",
+      "Bash(mkdir *)",
+      "WebSearch",
+      "WebFetch",
+      "WebSearch(*)",
+      "WebFetch(*)"
+    ]
+  }
+}
