@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日复习 — Interview Coach</title>
+    <style>
+        :root {
+            --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+            --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+            --green: #3fb950; --orange: #d2991d; --purple: #a371f7; --red: #f85149;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        .topbar-inner { max-width: 900px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .topbar h1 { font-size: 1.2rem; }
+        .topbar nav { display: flex; gap: 4px; }
+        .topbar nav a {
+            padding: 6px 14px; border-radius: 6px; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.85rem; transition: all 0.15s;
+        }
+        .topbar nav a:hover { color: var(--text); }
+        .topbar nav a.active { color: var(--accent); background: rgba(88,166,255,0.1); }
+
+        /* Hero */
+        .hero { text-align: center; padding: 36px 0 20px; }
+        .hero h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .hero .streak-big {
+            display: inline-block; padding: 10px 28px; border-radius: 12px;
+            background: rgba(63,185,80,0.1); border: 1px solid var(--green);
+            font-size: 1.6rem; font-weight: 700; color: var(--green); margin-top: 8px;
+        }
+        .hero .sub { color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px; }
+
+        /* Progress ring */
+        .progress-section { margin: 24px 0; }
+        .progress-bar-wrap {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px 20px;
+        }
+        .progress-bar-wrap .label-row {
+            display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;
+        }
+        .progress-bar {
+            height: 8px; border-radius: 4px; background: var(--border); overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--green), var(--accent));
+            transition: width 0.5s ease;
+        }
+
+        /* Calendar */
+        .calendar { display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0; }
+        .cal-day {
+            width: 36px; height: 36px; border-radius: 6px; display: flex;
+            align-items: center; justify-content: center; font-size: 0.72rem;
+            font-weight: 600; cursor: default;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            transition: all 0.15s;
+        }
+        .cal-day.reviewed { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
+        .cal-day.missed { background: rgba(248,81,73,0.1); border-color: var(--red); color: var(--red); }
+        .cal-day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+        .cal-day.future { opacity: 0.4; }
+
+        /* Review list */
+        .review-section { margin: 24px 0; }
+        .review-section h3 { font-size: 1.05rem; margin-bottom: 12px; }
+        .review-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px 20px; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 14px; transition: all 0.15s;
+        }
+        .review-card:hover { border-color: var(--accent); }
+        .review-card.done { opacity: 0.6; }
+        .review-card.done .rc-question { text-decoration: line-through; }
+        .rc-check {
+            width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border);
+            flex-shrink: 0; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; transition: all 0.15s; font-size: 0.75rem;
+        }
+        .rc-check.checked { background: var(--green); border-color: var(--green); color: #fff; }
+        .rc-body { flex: 1; min-width: 0; }
+        .rc-question { font-size: 0.9rem; line-height: 1.4; }
+        .rc-question a { color: inherit; text-decoration: none; }
+        .rc-question a:hover { color: var(--accent); }
+        .rc-meta { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        .rc-link a { color: var(--accent); text-decoration: none; font-size: 0.8rem; white-space: nowrap; }
+
+        /* Date tabs */
+        .date-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0; }
+        .date-tab {
+            padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: 0.8rem; white-space: nowrap; transition: all 0.15s;
+        }
+        .date-tab:hover { border-color: var(--accent); }
+        .date-tab.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--accent); }
+
+        /* Empty */
+        .empty { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
+
+        /* Footer */
+        .site-footer { text-align: center; padding: 28px; color: var(--text-secondary); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
+        .site-footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .calendar { gap: 3px; }
+            .cal-day { width: 30px; height: 30px; font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-inner">
+        <h1>📅 每日复习</h1>
+        <nav>
+            <a href="index.html">🏠 首页</a>
+            <a href="questions.html">📚 题库</a>
+            <a href="daily.html" class="active">📅 每日复习</a>
+            <a href="sample.html">📄 示例</a>
+        </nav>
+    </div>
+</div>
+
+<div class="container">
+    <!-- 今日概览 -->
+    <div class="hero">
+        <h2>🔥 复习连续打卡</h2>
+        <div class="streak-big" id="streak-num">0 天</div>
+        <p class="sub" id="streak-sub"></p>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="progress-section">
+        <div class="progress-bar-wrap">
+            <div class="label-row">
+                <span>📊 今日复习进度</span>
+                <span id="progress-text">0 / 0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 月历 -->
+    <h3 style="font-size:1rem;margin-bottom:8px;">📆 最近 30 天</h3>
+    <div class="calendar" id="calendar"></div>
+
+    <!-- 日期标签 -->
+    <div class="date-tabs" id="date-tabs"></div>
+
+    <!-- 复习列表 -->
+    <div class="review-section">
+        <h3 id="review-list-title">📋 今日待复习</h3>
+        <div id="review-list"></div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <p><a href="https://github.com/Dddddduo/dduo-interview-coach">Interview Coach</a> — Harness Engineering</p>
+</footer>
+
+<script src="daily.js"></script>
+</body>
+</html>

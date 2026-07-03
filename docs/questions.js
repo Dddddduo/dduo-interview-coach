@@ -1,56 +1,62 @@
 /**
- * 题库浏览器 — 动态加载、分类、搜索、标签过滤
- * ================================================
- * 从 questions/index.json 加载数据，纯前端渲染。
+ * 题库浏览器 — 动态渲染引擎
+ * ================================
+ * 从 data.json 加载数据，支持列表/日期分组两种视图、分类筛选、
+ * 难度过滤、全文搜索、标签云、每日复习追踪。
  */
 
-const QuestionBrowser = {
+const QB = {
   data: null,
-  activeCategory: 'all',
-  activeDifficulty: 'all',
-  searchQuery: '',
-  activeTag: null,
+  state: {
+    view: 'list',           // 'list' | 'daily'
+    category: 'all',
+    difficulty: 'all',
+    search: '',
+    tag: null,
+  },
 
   async init() {
-    await this.loadData();
-    this.renderAll();
+    await this.load();
+    if (!this.data) return;
+    this.renderStats();
+    this.renderCategories();
+    this.renderDifficulty();
+    this.renderContent();
+    this.renderTagCloud();
     this.bindEvents();
   },
 
-  async loadData() {
+  async load() {
     try {
-      const resp = await fetch('../questions/index.json');
+      const resp = await fetch('data.json?' + Date.now());
       this.data = await resp.json();
     } catch (e) {
-      // GitHub Pages fallback — try relative to docs/
       try {
         const resp = await fetch('index.json');
         this.data = await resp.json();
       } catch (e2) {
-        document.getElementById('app').innerHTML =
-          '<p style="text-align:center;padding:40px;">⚠️ 题库数据加载失败</p>';
+        document.getElementById('content').innerHTML =
+          '<div class="empty"><div class="empty-icon">📭</div><p>题库数据加载失败</p><p style="font-size:0.85rem;color:var(--text-secondary);">请先运行 <code>python scripts/generate_site.py</code></p></div>';
       }
     }
   },
 
-  // ==========================================
-  // 过滤逻辑
-  // ==========================================
+  // ============================================================
+  // 过滤
+  // ============================================================
 
-  get filteredQuestions() {
+  getFiltered() {
     if (!this.data) return [];
-    let qs = this.data.questions || [];
-    if (this.activeCategory !== 'all') {
-      qs = qs.filter(q => q.category === this.activeCategory);
-    }
-    if (this.activeDifficulty !== 'all') {
-      qs = qs.filter(q => q.difficulty === this.activeDifficulty);
-    }
-    if (this.activeTag) {
-      qs = qs.filter(q => (q.tags || []).includes(this.activeTag));
-    }
-    if (this.searchQuery) {
-      const kw = this.searchQuery.toLowerCase();
+    let qs = [...(this.data.questions || [])];
+
+    if (this.state.category !== 'all')
+      qs = qs.filter(q => q.category === this.state.category);
+    if (this.state.difficulty !== 'all')
+      qs = qs.filter(q => q.difficulty === this.state.difficulty);
+    if (this.state.tag)
+      qs = qs.filter(q => (q.tags || []).includes(this.state.tag));
+    if (this.state.search) {
+      const kw = this.state.search.toLowerCase();
       qs = qs.filter(q =>
         q.question.toLowerCase().includes(kw) ||
         (q.tags || []).some(t => t.toLowerCase().includes(kw)) ||
@@ -60,201 +66,236 @@ const QuestionBrowser = {
     return qs;
   },
 
-  // ==========================================
+  // ============================================================
   // 渲染
-  // ==========================================
-
-  renderAll() {
-    this.renderStats();
-    this.renderCategoryNav();
-    this.renderQuestionList();
-    this.renderTagCloud();
-  },
+  // ============================================================
 
   renderStats() {
-    const meta = this.data.meta || {};
-    const qs = this.data.questions || [];
-    const cats = this.data.categories || {};
-    const el = document.getElementById('stats');
+    const el = document.getElementById('stats-bar');
     if (!el) return;
-
-    const catCount = Object.keys(cats).length;
-    const tagCount = new Set(qs.flatMap(q => q.tags || [])).size;
+    const qs = this.data.questions || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const todayReviewed = JSON.parse(localStorage.getItem('reviewed_' + today) || '[]');
+    const streak = this.calcStreak();
 
     el.innerHTML = `
-      <div class="stat-card">
-        <div class="stat-num">${qs.length}</div>
-        <div class="stat-label">总题数</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">${catCount}</div>
-        <div class="stat-label">分类</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">${tagCount}</div>
-        <div class="stat-label">标签</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">${meta.last_updated ? meta.last_updated.slice(0,10) : 'N/A'}</div>
-        <div class="stat-label">最近更新</div>
-      </div>
+      <div class="stat-pill">📝 <strong>${qs.length}</strong> 题</div>
+      <div class="stat-pill">📂 <strong>${Object.keys(this.data.cat_stats || {}).length}</strong> 分类</div>
+      <div class="stat-pill">✅ 今日已复习 <strong>${todayReviewed.length}</strong> 题</div>
+      ${streak > 0 ? `<div class="stat-pill streak">🔥 连续 <strong>${streak}</strong> 天</div>` : ''}
     `;
   },
 
-  renderCategoryNav() {
-    const cats = this.data.categories || {};
-    const el = document.getElementById('category-nav');
+  calcStreak() {
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+      const key = 'reviewed_' + d.toISOString().slice(0, 10);
+      const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+      if (reviewed.length > 0) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    return streak;
+  },
+
+  renderCategories() {
+    const el = document.getElementById('cat-pills');
     if (!el) return;
-
-    const total = (this.data.questions || []).length;
-    let html = `<button class="cat-btn ${this.activeCategory === 'all' ? 'active' : ''}"
-                      onclick="QuestionBrowser.selectCategory('all')">
-                  📋 全部 <span class="count">${total}</span>
-                </button>`;
-
+    const cats = this.data.categories || {};
+    const qs = this.data.questions || [];
+    let html = `<button class="cat-pill ${this.state.category === 'all' ? 'active' : ''}"
+                      onclick="QB.setFilter('category','all')">📋 全部 <span class="count">${qs.length}</span></button>`;
     for (const [key, cat] of Object.entries(cats)) {
-      const count = (this.data.questions || []).filter(q => q.category === key).length;
+      const count = qs.filter(q => q.category === key).length;
       if (count === 0) continue;
-      html += `<button class="cat-btn ${this.activeCategory === key ? 'active' : ''}"
-                       onclick="QuestionBrowser.selectCategory('${key}')">
-                 ${cat.icon || '📌'} ${cat.name} <span class="count">${count}</span>
-               </button>`;
+      html += `<button class="cat-pill ${this.state.category === key ? 'active' : ''}"
+                       onclick="QB.setFilter('category','${key}')">${cat.icon || ''} ${cat.name} <span class="count">${count}</span></button>`;
+    }
+    el.innerHTML = html;
+  },
+
+  renderDifficulty() {
+    const el = document.getElementById('diff-row');
+    if (!el) return;
+    const diffs = [
+      { key: 'all',  label: '全部', color: '#8b949e' },
+      { key: 'easy', label: '基础', color: '#3fb950' },
+      { key: 'medium', label: '中级', color: '#d2991d' },
+      { key: 'hard', label: '进阶', color: '#f85149' },
+    ];
+    el.innerHTML = '<span class="label">难度：</span>' + diffs.map(d => `
+      <button class="view-btn ${this.state.difficulty === d.key ? 'active' : ''}"
+              style="${this.state.difficulty===d.key?`border-color:${d.color};color:${d.color};`:''}"
+              onclick="QB.setFilter('difficulty','${d.key}')">
+        <span class="diff-dot" style="background:${d.color};"></span>${d.label}
+      </button>
+    `).join('');
+  },
+
+  renderContent() {
+    const el = document.getElementById('content');
+    if (!el) return;
+    const qs = this.getFiltered();
+    document.getElementById('search-info').textContent =
+      qs.length !== (this.data.questions || []).length ? `筛选结果：${qs.length} 道题` : '';
+
+    if (qs.length === 0) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div>
+        <p>没有匹配的题目</p><p style="font-size:0.85rem;color:var(--text-secondary);">换个筛选条件试试</p></div>`;
+      return;
+    }
+
+    if (this.state.view === 'daily') {
+      this.renderDailyView(qs);
+    } else {
+      this.renderListView(qs);
+    }
+  },
+
+  renderListView(qs) {
+    const el = document.getElementById('content');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayReviewed = JSON.parse(localStorage.getItem('reviewed_' + todayStr) || '[]');
+    const cats = this.data.categories || {};
+    const diffs = { easy: '基础', medium: '中级', hard: '进阶' };
+
+    const cards = qs.map(q => {
+      const cat = cats[q.category] || {};
+      const diffLabel = diffs[q.difficulty] || q.difficulty;
+      const diffColor = { easy: '#3fb950', medium: '#d2991d', hard: '#f85149' }[q.difficulty] || '#888';
+      const tags = (q.tags || []).slice(0, 4).map(t => `<span class="card-tag">${t}</span>`).join('');
+      const isReviewed = todayReviewed.includes(q.id);
+
+      return `<a href="q/${q.id}.html" class="card">
+        <span class="card-id">${q.id}</span>
+        <div class="card-body">
+          <div class="card-question">${this.esc(q.question)}</div>
+          <div class="card-meta">
+            <span class="card-cat">${cat.icon || ''} ${cat.name || q.category}</span>
+            <span class="card-diff" style="color:${diffColor}">● ${diffLabel}</span>
+            <span style="color:var(--text-secondary);font-size:0.72rem;">${q.created ? q.created.slice(0,10) : ''}</span>
+          </div>
+          <div class="card-tags">${tags}</div>
+        </div>
+        <span class="card-review ${isReviewed ? '' : 'pending'}">${isReviewed ? '✅' : '○'}</span>
+      </a>`;
+    }).join('');
+
+    el.innerHTML = `<div class="card-grid">${cards}</div>
+      <div style="text-align:center;color:var(--text-secondary);font-size:0.82rem;padding:16px;">共 ${qs.length} 道题</div>`;
+  },
+
+  renderDailyView(qs) {
+    const el = document.getElementById('content');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const cats = this.data.categories || {};
+    const diffs = { easy: '基础', medium: '中级', hard: '进阶' };
+
+    // 按日期分组
+    const groups = {};
+    for (const q of qs) {
+      const date = (q.created || '').slice(0, 10) || 'unknown';
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(q);
+    }
+
+    const sortedDates = Object.keys(groups).sort().reverse();
+    const todayReviewed = JSON.parse(localStorage.getItem('reviewed_' + todayStr) || '[]');
+
+    let html = '';
+    for (const date of sortedDates) {
+      const qsDate = groups[date];
+      let badgeClass = 'date-older', badgeLabel = date;
+      if (date === todayStr) { badgeClass = 'date-today'; badgeLabel = '📅 今天'; }
+      else if (date === yesterdayStr) { badgeClass = 'date-yesterday'; badgeLabel = '📅 昨天'; }
+
+      html += `<div class="date-group">
+        <div class="date-head">
+          <span class="date-badge ${badgeClass}">${badgeLabel}</span>
+          <span style="font-size:0.8rem;color:var(--text-secondary);">${date} · ${qsDate.length} 题</span>
+        </div>
+        <div class="card-grid">`;
+
+      for (const q of qsDate) {
+        const cat = cats[q.category] || {};
+        const diffColor = { easy: '#3fb950', medium: '#d2991d', hard: '#f85149' }[q.difficulty] || '#888';
+        const diffLabel = diffs[q.difficulty] || q.difficulty;
+        const tags = (q.tags || []).slice(0, 4).map(t => `<span class="card-tag">${t}</span>`).join('');
+        const isReviewed = todayReviewed.includes(q.id);
+
+        html += `<a href="q/${q.id}.html" class="card">
+          <span class="card-id">${q.id}</span>
+          <div class="card-body">
+            <div class="card-question">${this.esc(q.question)}</div>
+            <div class="card-meta">
+              <span class="card-cat">${cat.icon || ''} ${cat.name || q.category}</span>
+              <span class="card-diff" style="color:${diffColor}">● ${diffLabel}</span>
+            </div>
+            <div class="card-tags">${tags}</div>
+          </div>
+          <span class="card-review ${isReviewed ? '' : 'pending'}">${isReviewed ? '✅ 已复习' : '○ 待复习'}</span>
+        </a>`;
+      }
+
+      html += `</div></div>`;
     }
 
     el.innerHTML = html;
   },
 
-  renderQuestionList() {
-    const el = document.getElementById('question-list');
-    if (!el) return;
-
-    const qs = this.filteredQuestions;
-    const diffs = this.data.difficulty_levels || {};
-    const cats = this.data.categories || {};
-
-    if (qs.length === 0) {
-      el.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <p>还没有题目，快去答题吧！</p>
-          <p style="font-size:0.85rem;color:var(--text-secondary);">
-            运行 <code>/面经助手</code> 或 <code>python scripts/interview_agent.py "题目"</code>
-          </p>
-        </div>`;
-      return;
-    }
-
-    // 难度筛选按钮
-    const diffFilter = `
-      <div class="diff-filter">
-        <span style="color:var(--text-secondary);font-size:0.85rem;">难度：</span>
-        <button class="diff-btn ${this.activeDifficulty === 'all' ? 'active' : ''}"
-                onclick="QuestionBrowser.selectDifficulty('all')">全部</button>
-        ${Object.entries(diffs).map(([k, v]) => `
-          <button class="diff-btn ${this.activeDifficulty === k ? 'active' : ''}"
-                  style="color:${v.color};${this.activeDifficulty===k?`border-color:${v.color};background:${v.color}22;`:''}"
-                  onclick="QuestionBrowser.selectDifficulty('${k}')">${v.name}</button>
-        `).join('')}
-        ${this.activeTag ? `<span style="margin-left:12px;font-size:0.85rem;">
-          🏷️ <code style="cursor:pointer;color:var(--accent);" onclick="QuestionBrowser.clearTag()">${this.activeTag} ✕</code>
-        </span>` : ''}
-      </div>`;
-
-    const cards = qs.map(q => {
-      const cat = cats[q.category] || {};
-      const diff = diffs[q.difficulty] || {};
-      const tags = (q.tags || []).map(t =>
-        `<span class="tag" onclick="QuestionBrowser.filterByTag('${t}')">${t}</span>`
-      ).join('');
-
-      return `
-        <div class="question-card">
-          <div class="qc-header">
-            <span class="qc-id">${q.id}</span>
-            <span class="qc-cat">${cat.icon || ''} ${cat.name || q.category}</span>
-            <span class="qc-diff" style="color:${diff.color || '#888'}">● ${diff.name || q.difficulty}</span>
-            ${q.created ? `<span class="qc-date">${q.created.slice(0,10)}</span>` : ''}
-          </div>
-          <div class="qc-question">${this.escapeHtml(q.question)}</div>
-          <div class="qc-tags">${tags}</div>
-          ${q.file ? `<div class="qc-file">📄 <a href="../${q.file}" target="_blank">查看完整答案</a></div>` : ''}
-        </div>`;
-    }).join('');
-
-    el.innerHTML = diffFilter + `<div class="question-cards">${cards}</div>
-      <div class="result-count">共 ${qs.length} 道题</div>`;
-  },
-
   renderTagCloud() {
     const el = document.getElementById('tag-cloud');
     if (!el) return;
+    const tags = this.data.top_tags || [];
+    if (tags.length === 0) { el.innerHTML = ''; return; }
 
-    const tagCounts = {};
-    for (const q of (this.data.questions || [])) {
-      for (const t of (q.tags || [])) {
-        tagCounts[t] = (tagCounts[t] || 0) + 1;
-      }
-    }
-
-    const maxCount = Math.max(...Object.values(tagCounts), 1);
-    const tags = Object.entries(tagCounts)
-      .sort((a, b) => b[1] - a[1]);
-
-    el.innerHTML = tags.map(([tag, count]) => {
-      const size = 0.75 + (count / maxCount) * 1.0;
-      const opacity = 0.5 + (count / maxCount) * 0.5;
-      return `<span class="tag-cloud-item"
-                    style="font-size:${size.toFixed(2)}rem;opacity:${opacity.toFixed(2)};"
-                    onclick="QuestionBrowser.filterByTag('${tag}')"
-                    title="${tag} (${count}题)">${tag}</span>`;
+    const maxCount = Math.max(...tags.map(t => t.count), 1);
+    el.innerHTML = tags.map(t => {
+      const size = 0.75 + (t.count / maxCount) * 0.9;
+      return `<span class="tcloud-item ${this.state.tag===t.tag?'active':''}"
+                    style="font-size:${size.toFixed(2)}rem;"
+                    onclick="QB.setFilter('tag','${t.tag}')"
+                    title="${t.tag} (${t.count}题)">${t.tag}</span>`;
     }).join(' ');
   },
 
-  // ==========================================
-  // 事件
-  // ==========================================
+  // ============================================================
+  // 交互
+  // ============================================================
+
+  setFilter(type, value) {
+    if (type === 'category') { this.state.category = value; this.state.tag = null; }
+    else if (type === 'difficulty') this.state.difficulty = value;
+    else if (type === 'tag') { this.state.tag = value; this.state.category = 'all'; }
+
+    this.renderCategories();
+    this.renderDifficulty();
+    this.renderContent();
+    this.renderTagCloud();
+  },
 
   bindEvents() {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchQuery = e.target.value.trim();
-        this.renderQuestionList();
+    document.getElementById('search').addEventListener('input', (e) => {
+      this.state.search = e.target.value.trim();
+      this.renderContent();
+    });
+
+    document.querySelectorAll('.view-btn[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.state.view = btn.dataset.view;
+        document.querySelectorAll('.view-btn[data-view]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.renderContent();
       });
-    }
+    });
   },
 
-  selectCategory(cat) {
-    this.activeCategory = cat;
-    this.activeTag = null;
-    this.renderCategoryNav();
-    this.renderQuestionList();
-  },
-
-  selectDifficulty(diff) {
-    this.activeDifficulty = diff;
-    this.renderQuestionList();
-  },
-
-  filterByTag(tag) {
-    this.activeTag = tag;
-    this.activeCategory = 'all';
-    this.activeDifficulty = 'all';
-    this.renderCategoryNav();
-    this.renderQuestionList();
-  },
-
-  clearTag() {
-    this.activeTag = null;
-    this.renderQuestionList();
-  },
-
-  escapeHtml(text) {
+  esc(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-  }
+  },
 };
 
-// 启动
-document.addEventListener('DOMContentLoaded', () => QuestionBrowser.init());
+document.addEventListener('DOMContentLoaded', () => QB.init());

@@ -6,185 +6,198 @@
     <title>题库浏览器 — Interview Coach</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --bg-secondary: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent: #58a6ff;
-            --accent-green: #3fb950;
-            --accent-orange: #d2991d;
-            --accent-purple: #a371f7;
-            --accent-red: #f85149;
+            --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+            --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+            --green: #3fb950; --orange: #d2991d; --purple: #a371f7; --red: #f85149;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
         .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
 
         /* Header */
-        header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 32px 0 20px;
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 10; }
+        .topbar-inner { max-width: 960px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .topbar h1 { font-size: 1.2rem; white-space: nowrap; }
+        .topbar nav { display: flex; gap: 4px; flex-wrap: wrap; }
+        .topbar nav a {
+            padding: 6px 14px; border-radius: 6px; text-decoration: none;
+            color: var(--text-secondary); font-size: 0.85rem; transition: all 0.15s;
         }
-        header h1 { font-size: 1.5rem; margin-bottom: 4px; }
-        header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
-        .header-nav { display: flex; gap: 16px; margin-top: 8px; }
-        .header-nav a { padding: 4px 0; border-bottom: 2px solid transparent; }
-        .header-nav a.active { border-bottom-color: var(--accent); color: var(--text); }
+        .topbar nav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .topbar nav a.active { color: var(--accent); background: rgba(88,166,255,0.1); }
 
-        /* Stats */
-        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
-        .stat-card {
-            background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 8px; padding: 16px; text-align: center;
+        /* Stats bar */
+        .stats-mini { display: flex; gap: 8px; margin: 20px 0; flex-wrap: wrap; }
+        .stat-pill {
+            padding: 6px 14px; border-radius: 20px; background: var(--bg-secondary);
+            border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-secondary);
         }
-        .stat-num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-        .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+        .stat-pill strong { color: var(--text); }
+        .stat-pill.streak { border-color: var(--green); color: var(--green); }
 
         /* Search */
-        .search-bar { margin: 20px 0; }
-        .search-bar input {
-            width: 100%; padding: 10px 16px; border-radius: 8px;
+        .search-wrap { position: relative; margin: 16px 0; }
+        .search-wrap input {
+            width: 100%; padding: 12px 16px 12px 40px; border-radius: 10px;
             border: 1px solid var(--border); background: var(--bg-secondary);
-            color: var(--text); font-size: 0.95rem; outline: none;
+            color: var(--text); font-size: 0.95rem; outline: none; transition: border-color 0.2s;
         }
-        .search-bar input:focus { border-color: var(--accent); }
-        .search-bar input::placeholder { color: var(--text-secondary); }
+        .search-wrap input:focus { border-color: var(--accent); }
+        .search-wrap .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-info { font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px; }
 
-        /* Categories */
-        .cat-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
-        .cat-btn {
-            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-            background: var(--bg-secondary); color: var(--text);
-            cursor: pointer; font-size: 0.82rem; transition: all 0.15s;
+        /* View toggle */
+        .view-toggle { display: flex; gap: 4px; margin: 16px 0; }
+        .view-btn {
+            padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: 0.82rem; transition: all 0.15s;
         }
-        .cat-btn:hover { border-color: var(--accent); }
-        .cat-btn.active { background: rgba(88,166,255,0.15); border-color: var(--accent); color: var(--accent); }
-        .cat-btn .count { color: var(--text-secondary); font-size: 0.75rem; margin-left: 2px; }
+        .view-btn:hover { border-color: var(--accent); color: var(--text); }
+        .view-btn.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--accent); }
+
+        /* Category pills */
+        .cat-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+        .cat-pill {
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+            background: var(--bg-secondary); color: var(--text-secondary);
+            cursor: pointer; font-size: 0.8rem; transition: all 0.15s; white-space: nowrap;
+        }
+        .cat-pill:hover { border-color: var(--accent); }
+        .cat-pill.active { background: rgba(88,166,255,0.12); border-color: var(--accent); color: var(--accent); }
+        .cat-pill .count { font-size: 0.7rem; opacity: 0.7; }
 
         /* Difficulty filter */
-        .diff-filter { display: flex; align-items: center; gap: 6px; margin: 16px 0; flex-wrap: wrap; }
-        .diff-btn {
-            padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border);
-            background: transparent; color: var(--text-secondary);
-            cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
+        .diff-row { display: flex; gap: 6px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+        .diff-row .label { font-size: 0.8rem; color: var(--text-secondary); margin-right: 4px; }
+        .diff-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px;
         }
-        .diff-btn:hover { border-color: var(--accent); }
-        .diff-btn.active { border-color: currentColor; font-weight: 600; }
 
-        /* Question Cards */
-        .question-cards { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
-        .question-card {
+        /* Date groups */
+        .date-group { margin: 28px 0; }
+        .date-head {
+            font-size: 0.95rem; font-weight: 600; color: var(--text);
+            padding: 8px 0; margin-bottom: 10px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .date-head .date-badge {
+            padding: 2px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+        }
+        .date-today { background: rgba(63,185,80,0.15); color: var(--green); }
+        .date-yesterday { background: rgba(210,153,29,0.15); color: var(--orange); }
+        .date-older { background: var(--bg-secondary); color: var(--text-secondary); }
+
+        /* Cards */
+        .card-grid { display: flex; flex-direction: column; gap: 8px; }
+        .card {
             background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 8px; padding: 16px 20px; transition: border-color 0.15s;
+            border-radius: 10px; padding: 16px 20px; cursor: pointer;
+            transition: all 0.2s; text-decoration: none; color: inherit;
+            display: flex; align-items: flex-start; gap: 14px;
         }
-        .question-card:hover { border-color: var(--accent); }
-        .qc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
-        .qc-id {
-            background: rgba(88,166,255,0.12); color: var(--accent);
-            padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
-            font-family: monospace;
+        .card:hover { border-color: var(--accent); transform: translateX(4px); }
+        .card:active { transform: scale(0.995); }
+        .card-id {
+            flex-shrink: 0; background: rgba(88,166,255,0.1); color: var(--accent);
+            padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+            font-family: monospace; margin-top: 2px;
         }
-        .qc-cat { font-size: 0.8rem; color: var(--text-secondary); }
-        .qc-diff { font-size: 0.78rem; font-weight: 600; }
-        .qc-date { font-size: 0.75rem; color: var(--text-secondary); margin-left: auto; }
-        .qc-question { font-size: 0.95rem; font-weight: 500; margin-bottom: 8px; line-height: 1.5; }
-        .qc-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-        .tag {
-            display: inline-block; padding: 2px 8px; border-radius: 4px;
-            background: rgba(163,113,247,0.1); color: var(--accent-purple);
-            font-size: 0.72rem; cursor: pointer; transition: all 0.15s;
+        .card-body { flex: 1; min-width: 0; }
+        .card-question { font-size: 0.93rem; font-weight: 500; line-height: 1.5; margin-bottom: 6px; }
+        .card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .card-cat { font-size: 0.75rem; color: var(--text-secondary); }
+        .card-diff { font-size: 0.72rem; font-weight: 600; }
+        .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+        .card-tag {
+            padding: 1px 7px; border-radius: 3px; font-size: 0.68rem;
+            background: rgba(163,113,247,0.08); color: var(--purple);
         }
-        .tag:hover { background: rgba(163,113,247,0.25); }
-        .qc-file { margin-top: 8px; font-size: 0.8rem; }
-        .qc-file a { color: var(--accent-green); text-decoration: none; }
-        .result-count { text-align: center; color: var(--text-secondary); font-size: 0.82rem; padding: 12px; }
+        .card-review {
+            flex-shrink: 0; padding: 4px 10px; border-radius: 4px;
+            font-size: 0.7rem; background: rgba(63,185,80,0.1); color: var(--green);
+        }
+        .card-review.pending { background: transparent; color: var(--text-secondary); }
 
-        /* Tag Cloud */
-        .section-title {
-            font-size: 1.05rem; margin: 28px 0 12px; padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
+        /* Tag cloud */
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; }
+        .tcloud-item {
+            padding: 3px 10px; border-radius: 12px; cursor: pointer; font-size: 0.78rem;
+            background: rgba(163,113,247,0.06); color: var(--purple); transition: all 0.15s;
         }
-        .tag-cloud-wrap {
-            background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 8px; padding: 20px; line-height: 2;
-        }
-        .tag-cloud-item {
-            display: inline-block; margin: 2px 6px; cursor: pointer;
-            color: var(--accent-purple); transition: color 0.15s;
-        }
-        .tag-cloud-item:hover { color: var(--accent); }
+        .tcloud-item:hover { background: rgba(163,113,247,0.2); }
+        .tcloud-item.active { background: rgba(163,113,247,0.2); color: #d2a8ff; }
 
-        /* Empty State */
-        .empty-state {
-            text-align: center; padding: 48px 20px; color: var(--text-secondary);
-        }
-        .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
-        .empty-state code {
-            background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px;
-            font-size: 0.85em;
+        /* Empty */
+        .empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+        .empty code {
+            background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px; font-size: 0.85em;
         }
 
         /* Footer */
-        footer {
-            text-align: center; padding: 32px 0; color: var(--text-secondary);
-            font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 40px;
-        }
-        footer a { color: var(--accent); text-decoration: none; }
+        .site-footer { text-align: center; padding: 28px; color: var(--text-secondary); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
+        .site-footer a { color: var(--accent); text-decoration: none; }
 
         @media (max-width: 600px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .qc-header { flex-direction: column; align-items: flex-start; gap: 4px; }
-            .qc-date { margin-left: 0; }
+            .card { flex-direction: column; gap: 8px; }
+            .card-id { align-self: flex-start; }
         }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="container">
+<div class="topbar">
+    <div class="topbar-inner">
         <h1>📚 题库浏览器</h1>
-        <a href="index.html">← 返回首页</a>
-        <div class="header-nav">
+        <nav>
             <a href="index.html">🏠 首页</a>
-            <a href="questions.html" class="active">📚 题库浏览</a>
-            <a href="sample.html">📄 示例输出</a>
-        </div>
+            <a href="questions.html" class="active">📚 题库</a>
+            <a href="daily.html">📅 每日复习</a>
+            <a href="sample.html">📄 示例</a>
+        </nav>
     </div>
-</header>
-
-<div class="container">
-    <!-- 统计 -->
-    <div id="stats" class="stats-row"></div>
-
-    <!-- 搜索 -->
-    <div class="search-bar">
-        <input type="text" id="search-input" placeholder="🔍 搜索题目、标签、分类...">
-    </div>
-
-    <!-- 分类导航 -->
-    <div id="category-nav" class="cat-nav"></div>
-
-    <!-- 题目列表 -->
-    <div id="app">
-        <div id="question-list"></div>
-    </div>
-
-    <!-- 标签云 -->
-    <h3 class="section-title">🏷️ 标签云</h3>
-    <div id="tag-cloud" class="tag-cloud-wrap"></div>
 </div>
 
-<footer>
-    <div class="container">
-        <p><a href="https://github.com/Dddddduo/dduo-interview-coach">Interview Coach</a> — Harness Engineering Architecture</p>
+<div class="container">
+    <!-- 统计条 -->
+    <div class="stats-mini" id="stats-bar"></div>
+
+    <!-- 搜索 -->
+    <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" placeholder="搜索题目、标签、分类...">
     </div>
+    <div class="search-info" id="search-info"></div>
+
+    <!-- 视图切换 -->
+    <div class="view-toggle">
+        <button class="view-btn active" data-view="list">📋 列表视图</button>
+        <button class="view-btn" data-view="daily">📅 按日期分组</button>
+    </div>
+
+    <!-- 分类 -->
+    <div class="cat-pills" id="cat-pills"></div>
+
+    <!-- 难度 -->
+    <div class="diff-row" id="diff-row">
+        <span class="label">难度：</span>
+    </div>
+
+    <!-- 内容区域 -->
+    <div id="content"></div>
+
+    <!-- 标签云 -->
+    <div class="tag-cloud" id="tag-cloud-wrap">
+        <span style="font-size:0.82rem;color:var(--text-secondary);">🏷️ 标签云：</span>
+        <span id="tag-cloud"></span>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <p><a href="https://github.com/Dddddduo/dduo-interview-coach">Interview Coach</a> — Harness Engineering</p>
 </footer>
 
 <script src="questions.js"></script>
