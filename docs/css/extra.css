@@ -1,0 +1,177 @@
+/* ============================================================
+   Interview Coach — Extra Styles & Animations
+   ============================================================ */
+
+/* ---- Keyframe Animations ---- */
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeInLeft { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes fadeInRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes scaleIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes shimmer { 0%{background-position:-1000px 0} 100%{background-position:1000px 0} }
+@keyframes rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes typing { from{width:0} to{width:100%} }
+@keyframes blink { 50%{border-color:transparent} }
+
+/* ---- Animation Classes ---- */
+.anim-fade-in { animation:fadeIn 0.4s ease forwards; }
+.anim-fade-in-left { animation:fadeInLeft 0.4s ease forwards; }
+.anim-fade-in-right { animation:fadeInRight 0.4s ease forwards; }
+.anim-scale-in { animation:scaleIn 0.3s ease forwards; }
+.anim-slide-down { animation:slideDown 0.3s ease forwards; }
+.anim-slide-up { animation:slideUp 0.3s ease forwards; }
+.anim-pulse { animation:pulse 2s ease infinite; }
+.anim-spin { animation:rotate 1s linear infinite; }
+.anim-bounce { animation:bounce 0.5s ease infinite; }
+
+/* ---- Stagger children ---- */
+.stagger > *:nth-child(1) { animation-delay:0s }
+.stagger > *:nth-child(2) { animation-delay:0.05s }
+.stagger > *:nth-child(3) { animation-delay:0.1s }
+.stagger > *:nth-child(4) { animation-delay:0.15s }
+.stagger > *:nth-child(5) { animation-delay:0.2s }
+.stagger > *:nth-child(6) { animation-delay:0.25s }
+.stagger > *:nth-child(7) { animation-delay:0.3s }
+.stagger > *:nth-child(8) { animation-delay:0.35s }
+.stagger > *:nth-child(9) { animation-delay:0.4s }
+.stagger > *:nth-child(10) { animation-delay:0.45s }
+
+/* ---- Shimmer loading ---- */
+.shimmer {
+  background:linear-gradient(90deg,var(--bg-2) 0%,var(--bg-3) 50%,var(--bg-2) 100%);
+  background-size:1000px 100%; animation:shimmer 2s ease infinite;
+  border-radius:var(--radius-sm);
+}
+
+/* ---- Gradient text ---- */
+.text-gradient {
+  background:linear-gradient(135deg,var(--accent),var(--purple),var(--green));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.text-gradient-fire {
+  background:linear-gradient(135deg,var(--orange),var(--red),var(--pink));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* ---- Glass effect ---- */
+.glass {
+  background:rgba(22,27,34,0.8); backdrop-filter:blur(12px);
+  border:1px solid rgba(48,54,61,0.5);
+}
+
+/* ---- Hover lift ---- */
+.hover-lift { transition:transform var(--transition),box-shadow var(--transition); }
+.hover-lift:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+
+/* ---- Focus ring ---- */
+.focus-ring:focus-visible {
+  outline:2px solid var(--accent); outline-offset:2px; border-radius:var(--radius-sm);
+}
+
+/* ---- Truncate ---- */
+.truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.truncate-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.truncate-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+/* ---- Divider variants ---- */
+.divider-dot { border:none; border-top:2px dotted var(--border); margin:24px 0; }
+.divider-dashed { border:none; border-top:1px dashed var(--border); margin:24px 0; }
+
+/* ---- Status dots ---- */
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+.status-online { background:var(--green); }
+.status-away { background:var(--orange); }
+.status-offline { background:var(--text-3); }
+
+/* ---- Badge pill ---- */
+.badge-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;
+}
+
+/* ---- Notification bubble ---- */
+.notif-bubble {
+  position:relative;
+}
+.notif-bubble::after {
+  content:attr(data-count); position:absolute; top:-6px; right:-6px;
+  min-width:18px; height:18px; border-radius:9px; background:var(--red);
+  color:#fff; font-size:0.65rem; font-weight:700;
+  display:flex; align-items:center; justify-content:center; padding:0 4px;
+}
+.notif-bubble[data-count="0"]::after { display:none; }
+
+/* ---- Scroll to top ---- */
+.scroll-top {
+  position:fixed; bottom:24px; right:24px; width:44px; height:44px;
+  border-radius:50%; background:var(--accent); color:#fff; border:none;
+  cursor:pointer; font-size:1.2rem; display:flex; align-items:center;
+  justify-content:center; box-shadow:var(--shadow-lg); z-index:50;
+  transition:all var(--transition); opacity:0; pointer-events:none;
+}
+.scroll-top.visible { opacity:1; pointer-events:all; }
+.scroll-top:hover { transform:translateY(-2px); }
+
+/* ---- Data highlight ---- */
+.highlight-new { background:linear-gradient(135deg,rgba(63,185,80,0.08),transparent); border-left:3px solid var(--green); }
+.highlight-hot { background:linear-gradient(135deg,rgba(248,81,73,0.08),transparent); border-left:3px solid var(--red); }
+
+/* ---- Print ---- */
+@media print {
+  .sidebar,.topbar-mobile,.btn,.toast { display:none!important; }
+  .main-content { padding:0; max-width:100%; }
+  body { background:#fff; color:#000; font-size:12pt; }
+  a { color:#000; text-decoration:underline; }
+  .card,.q-card { border:1px solid #ccc; box-shadow:none; break-inside:avoid; }
+}
+
+/* ---- Accessibility ---- */
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; }
+}
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+
+/* ---- Color utilities ---- */
+.text-accent { color:var(--accent); }
+.text-green { color:var(--green); }
+.text-orange { color:var(--orange); }
+.text-purple { color:var(--purple); }
+.text-red { color:var(--red); }
+.text-muted { color:var(--text-2); }
+.text-dim { color:var(--text-3); }
+.bg-subtle { background:var(--bg-2); }
+.bg-accent-subtle { background:rgba(88,166,255,0.06); }
+
+/* ---- Spacing utilities ---- */
+.m-0{margin:0}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}.mt-8{margin-top:32px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}
+.p-1{padding:4px}.p-2{padding:8px}.p-3{padding:12px}.p-4{padding:16px}.p-6{padding:24px}
+.gap-1{gap:4px}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}
+
+/* ---- Flex utilities ---- */
+.flex{display:flex}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
+.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}
+.flex-1{flex:1}.flex-shrink-0{flex-shrink:0}
+
+/* ---- Text utilities ---- */
+.text-center{text-align:center}.text-right{text-align:right}.text-left{text-align:left}
+.text-sm{font-size:0.82rem}.text-xs{font-size:0.72rem}.text-lg{font-size:1.1rem}.text-xl{font-size:1.3rem}
+.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-mono{font-family:var(--font-mono)}
+.leading-tight{line-height:1.3}.leading-relaxed{line-height:1.7}
+
+/* ---- Display ---- */
+.hidden{display:none}.block{display:block}.inline{display:inline}.inline-block{display:inline-block}
+.relative{position:relative}.absolute{position:absolute}.sticky{position:sticky;top:0}
+.w-full{width:100%}.h-full{height:100%}
+
+/* ---- Border utilities ---- */
+.rounded{border-radius:var(--radius)}.rounded-sm{border-radius:var(--radius-sm)}.rounded-lg{border-radius:var(--radius-lg)}.rounded-full{border-radius:9999px}
+.border{border:1px solid var(--border)}.border-t{border-top:1px solid var(--border)}.border-b{border-bottom:1px solid var(--border)}
+
+/* ---- Overflow ---- */
+.overflow-hidden{overflow:hidden}.overflow-auto{overflow:auto}.overflow-x-auto{overflow-x:auto}

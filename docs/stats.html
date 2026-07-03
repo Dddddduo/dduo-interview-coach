@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习统计 — Interview Coach</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        .chart-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        .chart-table th { background:var(--bg-2); padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); font-weight:600; color:var(--text); }
+        .chart-table td { padding:8px 14px; border-bottom:1px solid var(--border); }
+        .chart-table tr:hover td { background:rgba(255,255,255,0.02); }
+        .inline-bar { display:inline-block; height:8px; border-radius:4px; margin-right:6px; vertical-align:middle; }
+        .timeline-item { padding:8px 0; border-left:2px solid var(--border); padding-left:16px; margin-left:8px; }
+        .timeline-item:last-child { border-left-color:transparent; }
+        .timeline-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); margin-left:-22px; float:left; margin-top:6px; }
+        .insight-box { padding:12px 16px; border-radius:var(--radius); margin-bottom:8px; font-size:0.85rem; }
+        .insight-tip { background:var(--green-bg); border:1px solid var(--green); }
+        .insight-warn { background:var(--orange-bg); border:1px solid var(--orange); }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="topbar-mobile">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <span style="font-weight:600;">📊 学习统计</span>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+        <div class="section-hd">
+            <h2>📊 学习统计</h2>
+            <button class="btn btn-sm btn-secondary" onclick="location.reload()">🔄 刷新</button>
+        </div>
+
+        <!-- Overview Stats -->
+        <div id="overview-stats"></div>
+
+        <!-- Timeline -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><span class="card-title">📅 学习时间线</span></div>
+            <div class="card-body" id="timeline"></div>
+        </div>
+
+        <!-- Category Details -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><span class="card-title">📂 分类详情</span></div>
+            <div class="card-body" id="cat-details"></div>
+        </div>
+
+        <!-- Difficulty Distribution -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><span class="card-title">📊 难度分布</span></div>
+            <div class="card-body" id="diff-dist"></div>
+        </div>
+
+        <!-- Insights -->
+        <div class="card">
+            <div class="card-header"><span class="card-title">💡 学习建议</span></div>
+            <div class="card-body" id="insights"></div>
+        </div>
+    </main>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/stats.js"></script>
+</body>
+</html>

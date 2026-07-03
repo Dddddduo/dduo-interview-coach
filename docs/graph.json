@@ -1,0 +1,446 @@
+{
+  "meta": {
+    "generated": "2026-07-04 03:29:18",
+    "total_nodes": 15,
+    "total_edges": 30
+  },
+  "nodes": [
+    {
+      "id": "磁盘IO",
+      "name": "磁盘IO",
+      "count": 1,
+      "questions": [
+        "q0001"
+      ],
+      "categories": [
+        "mysql"
+      ],
+      "size": 40.0,
+      "color": "#4479A1"
+    },
+    {
+      "id": "数据结构",
+      "name": "数据结构",
+      "count": 1,
+      "questions": [
+        "q0001"
+      ],
+      "categories": [
+        "mysql"
+      ],
+      "size": 40.0,
+      "color": "#4479A1"
+    },
+    {
+      "id": "MySQL",
+      "name": "MySQL",
+      "count": 1,
+      "questions": [
+        "q0001"
+      ],
+      "categories": [
+        "mysql"
+      ],
+      "size": 40.0,
+      "color": "#4479A1"
+    },
+    {
+      "id": "B+树",
+      "name": "B+树",
+      "count": 1,
+      "questions": [
+        "q0001"
+      ],
+      "categories": [
+        "mysql"
+      ],
+      "size": 40.0,
+      "color": "#4479A1"
+    },
+    {
+      "id": "索引",
+      "name": "索引",
+      "count": 1,
+      "questions": [
+        "q0001"
+      ],
+      "categories": [
+        "mysql"
+      ],
+      "size": 40.0,
+      "color": "#4479A1"
+    },
+    {
+      "id": "进程",
+      "name": "进程",
+      "count": 1,
+      "questions": [
+        "q0002"
+      ],
+      "categories": [
+        "os"
+      ],
+      "size": 40.0,
+      "color": "#0078D7"
+    },
+    {
+      "id": "并发",
+      "name": "并发",
+      "count": 1,
+      "questions": [
+        "q0002"
+      ],
+      "categories": [
+        "os"
+      ],
+      "size": 40.0,
+      "color": "#0078D7"
+    },
+    {
+      "id": "操作系统",
+      "name": "操作系统",
+      "count": 1,
+      "questions": [
+        "q0002"
+      ],
+      "categories": [
+        "os"
+      ],
+      "size": 40.0,
+      "color": "#0078D7"
+    },
+    {
+      "id": "Linux",
+      "name": "Linux",
+      "count": 1,
+      "questions": [
+        "q0002"
+      ],
+      "categories": [
+        "os"
+      ],
+      "size": 40.0,
+      "color": "#0078D7"
+    },
+    {
+      "id": "线程",
+      "name": "线程",
+      "count": 1,
+      "questions": [
+        "q0002"
+      ],
+      "categories": [
+        "os"
+      ],
+      "size": 40.0,
+      "color": "#0078D7"
+    },
+    {
+      "id": "CAP",
+      "name": "CAP",
+      "count": 1,
+      "questions": [
+        "q0003"
+      ],
+      "categories": [
+        "distributed"
+      ],
+      "size": 40.0,
+      "color": "#00ADD8"
+    },
+    {
+      "id": "分布式",
+      "name": "分布式",
+      "count": 1,
+      "questions": [
+        "q0003"
+      ],
+      "categories": [
+        "distributed"
+      ],
+      "size": 40.0,
+      "color": "#00ADD8"
+    },
+    {
+      "id": "一致性",
+      "name": "一致性",
+      "count": 1,
+      "questions": [
+        "q0003"
+      ],
+      "categories": [
+        "distributed"
+      ],
+      "size": 40.0,
+      "color": "#00ADD8"
+    },
+    {
+      "id": "可用性",
+      "name": "可用性",
+      "count": 1,
+      "questions": [
+        "q0003"
+      ],
+      "categories": [
+        "distributed"
+      ],
+      "size": 40.0,
+      "color": "#00ADD8"
+    },
+    {
+      "id": "BASE",
+      "name": "BASE",
+      "count": 1,
+      "questions": [
+        "q0003"
+      ],
+      "categories": [
+        "distributed"
+      ],
+      "size": 40.0,
+      "color": "#00ADD8"
+    }
+  ],
+  "edges": [
+    {
+      "source": "数据结构",
+      "target": "磁盘IO",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "MySQL",
+      "target": "磁盘IO",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "B+树",
+      "target": "磁盘IO",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "磁盘IO",
+      "target": "索引",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "MySQL",
+      "target": "数据结构",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "B+树",
+      "target": "数据结构",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "数据结构",
+      "target": "索引",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "B+树",
+      "target": "MySQL",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "MySQL",
+      "target": "索引",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "B+树",
+      "target": "索引",
+      "weight": 1,
+      "questions": [
+        "q0001"
+      ]
+    },
+    {
+      "source": "并发",
+      "target": "进程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "操作系统",
+      "target": "进程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "Linux",
+      "target": "进程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "线程",
+      "target": "进程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "并发",
+      "target": "操作系统",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "Linux",
+      "target": "并发",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "并发",
+      "target": "线程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "Linux",
+      "target": "操作系统",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "操作系统",
+      "target": "线程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "Linux",
+      "target": "线程",
+      "weight": 1,
+      "questions": [
+        "q0002"
+      ]
+    },
+    {
+      "source": "CAP",
+      "target": "分布式",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "CAP",
+      "target": "一致性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "CAP",
+      "target": "可用性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "BASE",
+      "target": "CAP",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "一致性",
+      "target": "分布式",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "分布式",
+      "target": "可用性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "BASE",
+      "target": "分布式",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "一致性",
+      "target": "可用性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "BASE",
+      "target": "一致性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    },
+    {
+      "source": "BASE",
+      "target": "可用性",
+      "weight": 1,
+      "questions": [
+        "q0003"
+      ]
+    }
+  ]
+}

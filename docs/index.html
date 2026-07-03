@@ -3,348 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interview Coach — 面经深度解答 Agent</title>
+    <title>Interview Coach — 面经题库</title>
+    <link rel="stylesheet" href="css/app.css">
     <style>
-        :root {
-            --bg: #0d1117;
-            --bg-secondary: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent: #58a6ff;
-            --accent-green: #3fb950;
-            --accent-orange: #d2991d;
-            --accent-purple: #a371f7;
-            --accent-red: #f85149;
+        /* Dashboard specific */
+        .welcome-banner {
+            background:linear-gradient(135deg, rgba(88,166,255,0.1), rgba(163,113,247,0.1));
+            border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px 28px; margin-bottom:24px;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
-
-        /* Header */
-        header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 60px 0 40px;
-            text-align: center;
-        }
-        header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 12px;
-        }
-        header .subtitle {
-            font-size: 1.15rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .badges {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .badge-harness { background: rgba(163,113,247,0.15); color: var(--accent-purple); }
-        .badge-multiagent { background: rgba(88,166,255,0.15); color: var(--accent); }
-        .badge-claude { background: rgba(210,153,29,0.15); color: var(--accent-orange); }
-
-        /* Sections */
-        section { padding: 48px 0; border-bottom: 1px solid var(--border); }
-        section:last-child { border-bottom: none; }
-        h2 {
-            font-size: 1.5rem;
-            margin-bottom: 24px;
-            color: var(--text);
-        }
-        h2::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 20px;
-            background: var(--accent);
-            margin-right: 10px;
-            vertical-align: middle;
-            border-radius: 2px;
-        }
-
-        /* Architecture Diagram */
-        .arch-flow {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            margin: 24px 0;
-        }
-        .arch-node {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 24px;
-            text-align: center;
-            font-size: 0.9rem;
-            width: 100%;
-            max-width: 500px;
-        }
-        .arch-node.core { border-color: var(--accent); }
-        .arch-node.quality { border-color: var(--accent-green); }
-        .arch-node.assemble { border-color: var(--accent-purple); }
-        .arch-node.deploy { border-color: var(--accent-orange); }
-        .arch-arrow { color: var(--text-secondary); font-size: 1.2rem; }
-        .arch-row {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            width: 100%;
-            max-width: 500px;
-        }
-        .arch-row .arch-node { flex: 1; min-width: 120px; padding: 12px 16px; }
-
-        /* Answer Structure */
-        .structure-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-        }
-        .structure-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .structure-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
-        .structure-card.memory { border-left: 3px solid var(--accent-orange); }
-        .structure-card.answer { border-left: 3px solid var(--accent); }
-        .structure-card.framework { border-left: 3px solid var(--accent-green); }
-        .structure-card ul { list-style: none; padding: 0; }
-        .structure-card li { color: var(--text-secondary); font-size: 0.85rem; padding: 3px 0; }
-        .structure-card li::before { content: '• '; color: var(--accent); }
-
-        /* Harness Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
-        }
-        th, td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-        th {
-            background: var(--bg-secondary);
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-        td { font-size: 0.9rem; }
-
-        /* Code Block */
-        pre {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            overflow-x: auto;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-        .prompt { color: var(--accent-green); }
-        .question { color: var(--text); }
-
-        /* Buttons */
-        .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-        .btn {
-            display: inline-block;
-            padding: 10px 24px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        .btn-primary { background: var(--accent); color: #fff; }
-        .btn-primary:hover { background: #4090e0; }
-        .btn-secondary { background: var(--bg-secondary); color: var(--text); border: 1px solid var(--border); }
-        .btn-secondary:hover { border-color: var(--accent); }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 32px 0;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-        footer a { color: var(--accent); text-decoration: none; }
-
-        @media (max-width: 600px) {
-            header h1 { font-size: 1.8rem; }
-            .arch-row { flex-direction: column; }
-        }
+        .welcome-banner h2 { font-size:1.2rem; margin-bottom:4px; }
+        .welcome-banner p { color:var(--text-2); font-size:0.85rem; }
+        .dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+        .dashboard-grid .full-width { grid-column:1/-1; }
+        .recent-qs { }
+        .cat-chart { }
+        .cat-bar { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+        .cat-bar-name { width:80px; font-size:0.78rem; color:var(--text-2); text-align:right; }
+        .cat-bar-track { flex:1; height:20px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .cat-bar-fill { height:100%; border-radius:4px; background:var(--accent); transition:width 0.6s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; font-size:0.65rem; font-weight:600; color:#fff; }
+        .daily-tip { padding:12px 16px; background:var(--green-bg); border:1px solid var(--green); border-radius:var(--radius); font-size:0.85rem; margin-top:12px; }
     </style>
 </head>
 <body>
-
-<header>
-    <div class="container">
-        <h1>🎯 Interview Coach</h1>
-        <p class="subtitle">
-            基于 <strong>Harness Engineering（驾驭工程）</strong> 构建的 AI 面试深度解答 Agent
-            — 输入面试题，自动生成含记忆法、原理拆解、答题思路的完整文档，一键推送到 GitHub
-        </p>
-        <div class="badges">
-            <span class="badge badge-harness">⚙️ Harness Engineering</span>
-            <span class="badge badge-multiagent">🤖 多 Agent 协作</span>
-            <span class="badge badge-claude">🧠 Claude Code Skill</span>
-        </div>
+<div class="app-layout">
+    <!-- Mobile Top Bar -->
+    <div class="topbar-mobile">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <span style="font-weight:600;">🎯 Interview Coach</span>
     </div>
-</header>
 
-<section>
-    <div class="container">
-        <h2>🏗️ 工作流程</h2>
-        <div class="arch-flow">
-            <div class="arch-node core"><strong>📥 阶段1: 题目解析</strong><br>拆分面试题为独立题目，识别类型</div>
-            <div class="arch-arrow">↓</div>
-            <div class="arch-row">
-                <div class="arch-node core"><strong>🤖 Q1 答题</strong><br>interview-answerer</div>
-                <div class="arch-node core"><strong>🤖 Q2 答题</strong><br>interview-answerer</div>
-                <div class="arch-node core"><strong>🤖 Q3 答题</strong><br>interview-answerer</div>
-            </div>
-            <div class="arch-arrow">↓</div>
-            <div class="arch-row">
-                <div class="arch-node quality"><strong>✅ Q1 审查</strong><br>quality-reviewer</div>
-                <div class="arch-node quality"><strong>✅ Q2 审查</strong><br>quality-reviewer</div>
-                <div class="arch-node quality"><strong>✅ Q3 审查</strong><br>quality-reviewer</div>
-            </div>
-            <div class="arch-arrow">↓ (不合格自动重答，最多2次)</div>
-            <div class="arch-node assemble"><strong>📄 阶段4: 文档组装</strong><br>doc-assembler — 生成完整 Markdown 文档</div>
-            <div class="arch-arrow">↓</div>
-            <div class="arch-node deploy"><strong>🚀 阶段5-6: 落盘 & 推送</strong><br>Write 到 outputs/ → git commit → git push → GitHub</div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner" id="welcome-banner">
+            <h2>👋 欢迎回来</h2>
+            <p id="welcome-msg">加载中...</p>
         </div>
-    </div>
-</section>
 
-<section>
-    <div class="container">
-        <h2>🧩 每道题的回答结构</h2>
-        <div class="structure-grid">
-            <div class="structure-card memory">
-                <h3>🧠 联想记忆法</h3>
-                <p style="color: var(--text-secondary); font-size: 0.85rem;">最先给出，帮你快速编码到长期记忆</p>
-                <ul>
-                    <li>记忆口诀/场景联想</li>
-                    <li>记忆原理（认知钩子）</li>
-                    <li>关联知识（知识锚定）</li>
-                </ul>
+        <!-- Stat Cards -->
+        <div id="stat-cards"></div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Today's Review -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📋 今日待复习</span>
+                    <a href="daily.html" class="btn btn-sm btn-ghost">查看全部 →</a>
+                </div>
+                <div class="card-body" id="today-review-preview"></div>
             </div>
-            <div class="structure-card answer">
-                <h3>📖 深度解答</h3>
-                <p style="color: var(--text-secondary); font-size: 0.85rem;">按四层递进拆解原理</p>
-                <ul>
-                    <li>核心概念（是什么）</li>
-                    <li>底层原理（为什么）</li>
-                    <li>实践应用（怎么用）</li>
-                    <li>深入思考（注意事项）</li>
-                </ul>
+
+            <!-- Category Distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📊 分类分布</span>
+                    <a href="stats.html" class="btn btn-sm btn-ghost">详细统计 →</a>
+                </div>
+                <div class="card-body" id="cat-distribution"></div>
             </div>
-            <div class="structure-card framework">
-                <h3>🗺️ 回答思路</h3>
-                <p style="color: var(--text-secondary); font-size: 0.85rem;">面试现场怎么答、怎么得分</p>
-                <ul>
-                    <li>答题逻辑框架</li>
-                    <li>重点得分点</li>
-                    <li>常见误区 & 过渡话术</li>
-                </ul>
+
+            <!-- Recent Questions -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <span class="card-title">📝 最近归档</span>
+                    <div class="actions">
+                        <input type="text" class="input" id="quick-search" placeholder="🔍 快速搜索..." style="width:220px;">
+                        <a href="questions.html" class="btn btn-sm btn-secondary">题库浏览器 →</a>
+                    </div>
+                </div>
+                <div class="card-body" id="recent-questions"></div>
+            </div>
+
+            <!-- Knowledge Tags -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <span class="card-title">🏷️ 知识点标签</span>
+                    <a href="knowledge.html" class="btn btn-sm btn-ghost">知识图谱 →</a>
+                </div>
+                <div class="card-body tag-cloud" id="tag-cloud-mini"></div>
             </div>
         </div>
-    </div>
-</section>
 
-<section>
-    <div class="container">
-        <h2>⚙️ Harness Engineering 体现</h2>
-        <table>
-            <thead>
-                <tr><th>驾驭工程维度</th><th>本项目实现</th></tr>
-            </thead>
-            <tbody>
-                <tr><td><strong>多 Agent 协作</strong></td><td>3 个专用 Agent（解题者 + 审查者 + 文档者），各司其职</td></tr>
-                <tr><td><strong>Workflow 编排</strong></td><td>确定性 6 阶段流水线，每阶段有明确的输入输出契约</td></tr>
-                <tr><td><strong>质量门控</strong></td><td>审查 Agent 逐项检查 15 条标准，不合格自动返工重答</td></tr>
-                <tr><td><strong>Skill 封装</strong></td><td><code>/面经助手</code> 一行命令触发全流程</td></tr>
-                <tr><td><strong>自动部署</strong></td><td>文档生成后自动 git commit + push 到 GitHub</td></tr>
-                <tr><td><strong>可追溯性</strong></td><td>每步输出落盘，Git 历史追踪每次解答</td></tr>
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<section>
-    <div class="container">
-        <h2>🚀 如何使用</h2>
-        <pre><span class="prompt"># 克隆仓库</span>
-git clone git@github.com:Dddddduo/dduo-interview-coach.git
-cd dduo-interview-coach
-
-<span class="prompt"># 在 Claude Code 中打开此目录</span>
-claude
-
-<span class="prompt"># 输入 /面经助手 + 你的面试题</span>
-<span style="color: var(--accent-green);">/面经助手</span>
-<span class="question">第1题：请解释MySQL的索引底层数据结构，为什么选用B+树？</span>
-<span class="question">第2题：Redis的过期策略有哪些？如何保证缓存与数据库一致性？</span>
-<span class="question">第3题：描述你项目中遇到的最大技术挑战及解决方案</span></pre>
-        <div class="btn-row">
-            <a href="questions.html" class="btn btn-primary">📚 题库浏览器</a>
-            <a href="daily.html" class="btn btn-secondary">📅 每日复习</a>
-            <a href="sample.html" class="btn btn-secondary">📄 示例输出</a>
-            <a href="https://github.com/Dddddduo/dduo-interview-coach" class="btn btn-secondary">🔗 GitHub 仓库</a>
+        <!-- Quick Actions -->
+        <div style="text-align:center;padding:24px;margin-top:16px;">
+            <a href="daily.html" class="btn btn-primary btn-lg">📅 开始今日复习</a>
+            <a href="about.html" class="btn btn-secondary btn-lg" style="margin-left:8px;">📖 关于项目</a>
         </div>
-    </div>
-</section>
+    </main>
+</div>
 
-<section>
-    <div class="container">
-        <h2>🤖 Agent 体系</h2>
-        <table>
-            <thead>
-                <tr><th>Agent</th><th>模型</th><th>职责</th></tr>
-            </thead>
-            <tbody>
-                <tr><td><code>interview-answerer</code></td><td>Opus</td><td>深度解答单道面试题，产出记忆法 + 原理 + 思路</td></tr>
-                <tr><td><code>quality-reviewer</code></td><td>Sonnet</td><td>15 项清单逐项审查，PASS/FAIL + 具体修改建议</td></tr>
-                <tr><td><code>doc-assembler</code></td><td>Sonnet</td><td>组装最终文档，格式化、目录、元信息</td></tr>
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<footer>
-    <div class="container">
-        <p>Built with <a href="https://claude.com/claude-code">Claude Code</a> — Harness Engineering Architecture</p>
-        <p style="margin-top: 8px;"><a href="https://github.com/Dddddduo/dduo-interview-coach">Dddddduo/dduo-interview-coach</a> · MIT License</p>
-    </div>
-</footer>
-
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>

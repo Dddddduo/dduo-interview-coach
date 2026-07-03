@@ -4,202 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>题库浏览器 — Interview Coach</title>
+    <link rel="stylesheet" href="css/app.css">
     <style>
-        :root {
-            --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
-            --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
-            --green: #3fb950; --orange: #d2991d; --purple: #a371f7; --red: #f85149;
-            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-                     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
-        .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
-
-        /* Header */
-        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 10; }
-        .topbar-inner { max-width: 960px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .topbar h1 { font-size: 1.2rem; white-space: nowrap; }
-        .topbar nav { display: flex; gap: 4px; flex-wrap: wrap; }
-        .topbar nav a {
-            padding: 6px 14px; border-radius: 6px; text-decoration: none;
-            color: var(--text-secondary); font-size: 0.85rem; transition: all 0.15s;
-        }
-        .topbar nav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-        .topbar nav a.active { color: var(--accent); background: rgba(88,166,255,0.1); }
-
-        /* Stats bar */
-        .stats-mini { display: flex; gap: 8px; margin: 20px 0; flex-wrap: wrap; }
-        .stat-pill {
-            padding: 6px 14px; border-radius: 20px; background: var(--bg-secondary);
-            border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-secondary);
-        }
-        .stat-pill strong { color: var(--text); }
-        .stat-pill.streak { border-color: var(--green); color: var(--green); }
-
-        /* Search */
-        .search-wrap { position: relative; margin: 16px 0; }
-        .search-wrap input {
-            width: 100%; padding: 12px 16px 12px 40px; border-radius: 10px;
-            border: 1px solid var(--border); background: var(--bg-secondary);
-            color: var(--text); font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-        }
-        .search-wrap input:focus { border-color: var(--accent); }
-        .search-wrap .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
-        .search-info { font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px; }
-
-        /* View toggle */
-        .view-toggle { display: flex; gap: 4px; margin: 16px 0; }
-        .view-btn {
-            padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border);
-            background: transparent; color: var(--text-secondary); cursor: pointer;
-            font-size: 0.82rem; transition: all 0.15s;
-        }
-        .view-btn:hover { border-color: var(--accent); color: var(--text); }
-        .view-btn.active { background: rgba(88,166,255,0.1); border-color: var(--accent); color: var(--accent); }
-
-        /* Category pills */
-        .cat-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
-        .cat-pill {
-            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-            background: var(--bg-secondary); color: var(--text-secondary);
-            cursor: pointer; font-size: 0.8rem; transition: all 0.15s; white-space: nowrap;
-        }
-        .cat-pill:hover { border-color: var(--accent); }
-        .cat-pill.active { background: rgba(88,166,255,0.12); border-color: var(--accent); color: var(--accent); }
-        .cat-pill .count { font-size: 0.7rem; opacity: 0.7; }
-
-        /* Difficulty filter */
-        .diff-row { display: flex; gap: 6px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
-        .diff-row .label { font-size: 0.8rem; color: var(--text-secondary); margin-right: 4px; }
-        .diff-dot {
-            width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px;
-        }
-
-        /* Date groups */
-        .date-group { margin: 28px 0; }
-        .date-head {
-            font-size: 0.95rem; font-weight: 600; color: var(--text);
-            padding: 8px 0; margin-bottom: 10px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .date-head .date-badge {
-            padding: 2px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
-        }
-        .date-today { background: rgba(63,185,80,0.15); color: var(--green); }
-        .date-yesterday { background: rgba(210,153,29,0.15); color: var(--orange); }
-        .date-older { background: var(--bg-secondary); color: var(--text-secondary); }
-
-        /* Cards */
-        .card-grid { display: flex; flex-direction: column; gap: 8px; }
-        .card {
-            background: var(--bg-secondary); border: 1px solid var(--border);
-            border-radius: 10px; padding: 16px 20px; cursor: pointer;
-            transition: all 0.2s; text-decoration: none; color: inherit;
-            display: flex; align-items: flex-start; gap: 14px;
-        }
-        .card:hover { border-color: var(--accent); transform: translateX(4px); }
-        .card:active { transform: scale(0.995); }
-        .card-id {
-            flex-shrink: 0; background: rgba(88,166,255,0.1); color: var(--accent);
-            padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
-            font-family: monospace; margin-top: 2px;
-        }
-        .card-body { flex: 1; min-width: 0; }
-        .card-question { font-size: 0.93rem; font-weight: 500; line-height: 1.5; margin-bottom: 6px; }
-        .card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-        .card-cat { font-size: 0.75rem; color: var(--text-secondary); }
-        .card-diff { font-size: 0.72rem; font-weight: 600; }
-        .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-        .card-tag {
-            padding: 1px 7px; border-radius: 3px; font-size: 0.68rem;
-            background: rgba(163,113,247,0.08); color: var(--purple);
-        }
-        .card-review {
-            flex-shrink: 0; padding: 4px 10px; border-radius: 4px;
-            font-size: 0.7rem; background: rgba(63,185,80,0.1); color: var(--green);
-        }
-        .card-review.pending { background: transparent; color: var(--text-secondary); }
-
-        /* Tag cloud */
-        .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; }
-        .tcloud-item {
-            padding: 3px 10px; border-radius: 12px; cursor: pointer; font-size: 0.78rem;
-            background: rgba(163,113,247,0.06); color: var(--purple); transition: all 0.15s;
-        }
-        .tcloud-item:hover { background: rgba(163,113,247,0.2); }
-        .tcloud-item.active { background: rgba(163,113,247,0.2); color: #d2a8ff; }
-
-        /* Empty */
-        .empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
-        .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
-        .empty code {
-            background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px; font-size: 0.85em;
-        }
-
-        /* Footer */
-        .site-footer { text-align: center; padding: 28px; color: var(--text-secondary); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
-        .site-footer a { color: var(--accent); text-decoration: none; }
-
-        @media (max-width: 600px) {
-            .card { flex-direction: column; gap: 8px; }
-            .card-id { align-self: flex-start; }
+        /* Questions page specific styles */
+        .view-tabs { margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap; }
+        .filter-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+        .filter-row .label { font-size:0.8rem; color:var(--text-2); }
+        .sort-select { font-size:0.8rem; padding:4px 8px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg); color:var(--text); }
+        .browser-toolbar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+        .result-summary { text-align:center; color:var(--text-2); font-size:0.82rem; padding:12px; }
+        .result-summary strong { color:var(--text); }
+        .quick-filters { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+        .quick-filter { padding:2px 8px; border-radius:4px; font-size:0.7rem; background:var(--bg-2); border:1px solid var(--border); color:var(--text-2); cursor:pointer; }
+        .quick-filter:hover { border-color:var(--accent); color:var(--text); }
+        .quick-filter.active { background:rgba(88,166,255,0.12); border-color:var(--accent); color:var(--accent); }
+        @media (max-width:768px) {
+            .view-tabs { flex-direction:column; }
+            .browser-toolbar { flex-direction:column; align-items:flex-start; }
         }
     </style>
 </head>
 <body>
-
-<div class="topbar">
-    <div class="topbar-inner">
-        <h1>📚 题库浏览器</h1>
-        <nav>
-            <a href="index.html">🏠 首页</a>
-            <a href="questions.html" class="active">📚 题库</a>
-            <a href="daily.html">📅 每日复习</a>
-            <a href="sample.html">📄 示例</a>
-        </nav>
+<div class="app-layout">
+    <!-- Mobile Top Bar -->
+    <div class="topbar-mobile">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <span style="font-weight:600;">📚 题库浏览器</span>
     </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <div class="section-hd">
+            <h2>📚 题库浏览器</h2>
+            <div class="actions">
+                <select class="input input-sm" id="sort-select" style="width:auto;">
+                    <option value="newest">📅 最新优先</option>
+                    <option value="oldest">📅 最早优先</option>
+                    <option value="difficulty">📊 按难度排序</option>
+                    <option value="category">📂 按分类排序</option>
+                </select>
+                <button class="btn btn-sm btn-secondary" onclick="location.reload()">🔄 刷新</button>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div id="browser-stats"></div>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <div class="input-icon">
+                <span class="icon">🔍</span>
+                <input type="text" class="input input-lg" id="search-input" placeholder="搜索题目、标签、分类... (输入即搜)">
+            </div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-tabs">
+            <button class="btn btn-sm btn-secondary view-btn active" data-view="list">
+                📋 列表视图
+            </button>
+            <button class="btn btn-sm btn-secondary view-btn" data-view="daily">
+                📅 按日期分组
+            </button>
+            <button class="btn btn-sm btn-secondary view-btn" data-view="compact">
+                📊 紧凑视图
+            </button>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="pills" id="cat-pills"></div>
+
+        <!-- Difficulty + Result Count -->
+        <div class="filter-row">
+            <span class="label">🔽 难度筛选：</span>
+            <span id="diff-pills"></span>
+            <span class="label" style="margin-left:12px;" id="result-count"></span>
+        </div>
+
+        <!-- Active Filters Display -->
+        <div class="quick-filters" id="active-filters"></div>
+
+        <!-- Question Content Area -->
+        <div id="question-content"></div>
+
+        <!-- Export Actions -->
+        <div style="text-align:center;padding:24px;margin-top:16px;">
+            <span style="font-size:0.82rem;color:var(--text-2);margin-right:8px;">导出：</span>
+            <a href="data.json" class="btn btn-sm btn-ghost" download>📥 data.json</a>
+            <a href="index.json" class="btn btn-sm btn-ghost" download>📥 index.json</a>
+        </div>
+    </main>
 </div>
 
-<div class="container">
-    <!-- 统计条 -->
-    <div class="stats-mini" id="stats-bar"></div>
-
-    <!-- 搜索 -->
-    <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search" placeholder="搜索题目、标签、分类...">
-    </div>
-    <div class="search-info" id="search-info"></div>
-
-    <!-- 视图切换 -->
-    <div class="view-toggle">
-        <button class="view-btn active" data-view="list">📋 列表视图</button>
-        <button class="view-btn" data-view="daily">📅 按日期分组</button>
-    </div>
-
-    <!-- 分类 -->
-    <div class="cat-pills" id="cat-pills"></div>
-
-    <!-- 难度 -->
-    <div class="diff-row" id="diff-row">
-        <span class="label">难度：</span>
-    </div>
-
-    <!-- 内容区域 -->
-    <div id="content"></div>
-
-    <!-- 标签云 -->
-    <div class="tag-cloud" id="tag-cloud-wrap">
-        <span style="font-size:0.82rem;color:var(--text-secondary);">🏷️ 标签云：</span>
-        <span id="tag-cloud"></span>
-    </div>
-</div>
-
-<footer class="site-footer">
-    <p><a href="https://github.com/Dddddduo/dduo-interview-coach">Interview Coach</a> — Harness Engineering</p>
-</footer>
-
-<script src="questions.js"></script>
+<script src="js/app.js"></script>
+<script src="js/questions.js"></script>
 </body>
 </html>

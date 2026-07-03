@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 — Interview Coach</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>.about-hero{text-align:center;padding:40px 0}.about-hero h1{font-size:2rem}.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:24px 0}.feature-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;text-align:center}.feature-card .icon{font-size:2rem}.feature-card h3{font-size:1rem;margin:8px 0}.feature-card p{font-size:.82rem;color:var(--text-2)}.divider{border:none;border-top:1px solid var(--border);margin:32px 0}</style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="topbar-mobile"><button class="menu-btn" id="menu-btn">☰</button><span style="font-weight:600;">📖 关于</span></div>
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="about-hero">
+            <h1>🎯 Interview Coach</h1>
+            <p>基于 <strong>Harness Engineering（驾驭工程）</strong> 构建的 AI 面试备考系统。<br>多 Agent 协作 · 10 阶段确定性编排 · 质量门控 · 自动归档。</p>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <span class="badge badge-purple">⚙️ 驾驭工程</span><span class="badge badge-green">🤖 3 Agent 协作</span><span class="badge badge-orange">📚 自动沉淀</span>
+            </div>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="icon">🤖</div><h3>多 Agent 协作</h3><p>interview-answerer(答题) + quality-reviewer(审查) + doc-assembler(组装)。各司其职，通过明确定义的契约协作，而非一个巨型 prompt。</p></div>
+            <div class="feature-card"><div class="icon">✅</div><h3>质量门控</h3><p>15 项清单逐题审查，不合格自动重答（最多2次），不静默丢弃。确保每道题的输出都达到面试可用标准。</p></div>
+            <div class="feature-card"><div class="icon">📚</div><h3>题库沉淀</h3><p>每道题自动分类+自动标签+MD5去重+写独立.md文件。13个分类目录，index.json索引。数据永久保存、可检索。</p></div>
+            <div class="feature-card"><div class="icon">🚀</div><h3>自动部署</h3><p>答题→审查→归档→MD→HTML→data.json→git push→GitHub Pages，全自动10阶段流水线，无需手动操作。</p></div>
+            <div class="feature-card"><div class="icon">📅</div><h3>每日复习</h3><p>复习打卡、连续天数追踪、30天月历、进度条、一键全标记。localStorage持久化，隐私安全。</p></div>
+            <div class="feature-card"><div class="icon">🐍</div><h3>Python 独立运行</h3><p>9 个 Python 脚本覆盖全流程，不依赖 Claude Code。Anthropic API Key 即可独立答题、归档、训练。</p></div>
+        </div>
+        <hr class="divider">
+        <h3 style="margin-bottom:12px;">🚀 使用方式</h3>
+        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px 0;">
+            <pre style="color:var(--text);font-size:0.82rem;line-height:1.7;">
+<span style="color:var(--accent);"># Claude Code Skill（推荐）</span>
+claude
+/面经助手
+第1题：请解释 JVM 的内存模型...
+
+<span style="color:var(--accent);"># Python 独立运行</span>
+export ANTHROPIC_API_KEY='your-key'
+python scripts/interview_agent.py "什么是 CAP 理论？"
+
+<span style="color:var(--accent);"># 记忆训练</span>
+python scripts/memory_trainer.py --mode random outputs/*.md</pre>
+        </div>
+        <div style="text-align:center;margin:24px 0;">
+            <a href="https://github.com/Dddddduo/dduo-interview-coach" class="btn btn-primary">🔗 GitHub 仓库</a>
+            <a href="index.html" class="btn btn-secondary" style="margin-left:8px;">🏠 回到仪表盘</a>
+        </div>
+    </main>
+</div>
+<div style="margin-top:24px;"><h3>📊 项目统计</h3><div class="grid-2" style="margin-top:12px;"><div class="card card-accent"><div class="card-header"><span class="card-title">Python 脚本</span></div><div class="card-body"><div class="stat-value" style="font-size:1.5rem;">14 个</div><p style="font-size:0.82rem;color:var(--text-2);">覆盖答题、归档、训练、导出、API 全流程</p></div></div><div class="card card-green"><div class="card-header"><span class="card-title">Web 页面</span></div><div class="card-body"><div class="stat-value" style="font-size:1.5rem;">8 个</div><p style="font-size:0.82rem;color:var(--text-2);">仪表盘、题库、复习、知识图谱、统计、关于</p></div></div><div class="card card-purple"><div class="card-header"><span class="card-title">Agent 定义</span></div><div class="card-body"><div class="stat-value" style="font-size:1.5rem;">3 个</div><p style="font-size:0.82rem;color:var(--text-2);">interview-answerer / quality-reviewer / doc-assembler</p></div></div><div class="card card-orange"><div class="card-header"><span class="card-title">驾驭工程规则</span></div><div class="card-body"><div class="stat-value" style="font-size:1.5rem;">22 条</div><p style="font-size:0.82rem;color:var(--text-2);">10 MUST + 6 质量 MUST + 6 MUST NOT</p></div></div></div></div><div style="margin-top:24px;"><h3>🔗 技术栈</h3><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"><span class="badge badge-purple">Claude Code</span><span class="badge badge-accent">Anthropic SDK</span><span class="badge badge-green">Python 3.10+</span><span class="badge badge-orange">GitHub Pages</span><span class="badge badge-purple">Mermaid Charts</span><span class="badge badge-accent">localStorage</span><span class="badge badge-green">JSON Database</span><span class="badge badge-orange">Markdown</span><span class="badge badge-purple">CSS Variables</span><span class="badge badge-accent">highlight.js</span></div></div><script src="js/app.js"></script><script>App.init('about'); console.log('[About] Interview Coach v2.0 — Harness Engineering Architecture');</script>
+</body>
+</html>

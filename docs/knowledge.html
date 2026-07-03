@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识图谱 — Interview Coach</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        .kg-node {
+            display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+            border-radius:20px; background:var(--bg-2); border:2px solid var(--border);
+            cursor:pointer; transition:all var(--transition); font-size:0.85rem;
+        }
+        .kg-node:hover { border-color:var(--accent); transform:translateY(-2px); }
+        .kg-node.core { border-color:var(--accent); border-width:3px; }
+        .kg-dot { width:12px; height:12px; border-radius:50%; }
+        .kg-links { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:24px 0; }
+        .kg-link-card {
+            background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius);
+            padding:12px 16px; font-size:0.8rem; cursor:pointer; transition:all var(--transition);
+        }
+        .kg-link-card:hover { border-color:var(--accent); }
+        .kg-link-line { font-size:0.7rem; color:var(--text-3); text-align:center; }
+        .topic-map { max-height:500px; overflow-y:auto; }
+        .topic-section { margin-bottom:20px; }
+        .topic-title { font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <div class="topbar-mobile">
+        <button class="menu-btn" id="menu-btn">☰</button>
+        <span style="font-weight:600;">🧠 知识图谱</span>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+        <div class="section-hd">
+            <h2>🧠 知识图谱</h2>
+            <button class="btn btn-sm btn-secondary" onclick="KG.generate()">🔄 刷新数据</button>
+        </div>
+
+        <!-- Stats -->
+        <div id="kg-stats"></div>
+
+        <!-- Knowledge Nodes -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><span class="card-title">🔗 核心知识点</span></div>
+            <div class="card-body"><div class="kg-links" id="kg-nodes"></div></div>
+        </div>
+
+        <!-- Topic → Questions Mapping -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header"><span class="card-title">📋 知识点→题目映射</span></div>
+            <div class="card-body topic-map" id="topic-map"></div>
+        </div>
+
+        <!-- Related Topics -->
+        <div class="card">
+            <div class="card-header"><span class="card-title">🔗 关联关系</span></div>
+            <div class="card-body" id="kg-links"></div>
+        </div>
+    </main>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/knowledge.js"></script>
+</body>
+</html>
