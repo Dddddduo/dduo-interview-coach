@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T21:30:00",
-    "total_questions": 22
+    "last_updated": "2026-07-04T17:00:00",
+    "total_questions": 19
   },
   "categories": {
     "java": {
@@ -33,7 +33,7 @@
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 3
+      "count": 2
     },
     "spring": {
       "name": "Spring 框架",
@@ -45,7 +45,7 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 1
+      "count": 2
     },
     "os": {
       "name": "操作系统",
@@ -372,19 +372,22 @@
     },
     {
       "id": "q0017",
-      "question": "setnx 和 setx 区别；setnx 如何释放锁",
+      "question": "[技术-Redis] Redis 集群、哨兵的作用",
       "category": "redis",
       "tags": [
-        "Redis",
-        "分布式锁",
-        "缓存",
-        "原子性"
+        "redis",
+        "哨兵",
+        "集群",
+        "高可用",
+        "分片",
+        "Sentinel",
+        "Cluster"
       ],
       "difficulty": "medium",
-      "file": "questions/database/redis/setnx-setx-setnx.md",
-      "created": "2026-07-04 06:24:01",
-      "source": "面经助手-20260704",
-      "hash": "6336ff0c"
+      "file": "questions/database/redis/Redis集群哨兵的作用.md",
+      "created": "2026-07-04 16:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "redis_cluster_sentinel"
     },
     {
       "id": "q0018",
@@ -404,25 +407,6 @@
       "created": "2026-07-04 14:21:00",
       "source": "/面经助手-20260704",
       "hash": "5013ef6b"
-    },
-    {
-      "id": "q0017",
-      "question": "[技术-Redis] Redis 集群、哨兵的作用",
-      "category": "redis",
-      "tags": [
-        "redis",
-        "哨兵",
-        "集群",
-        "高可用",
-        "分片",
-        "Sentinel",
-        "Cluster"
-      ],
-      "difficulty": "medium",
-      "file": "questions/database/redis/Redis集群哨兵的作用.md",
-      "created": "2026-07-04 16:00:00",
-      "source": "/面经助手-20260704",
-      "hash": "redis_cluster_sentinel"
     },
     {
       "id": "q0020",
