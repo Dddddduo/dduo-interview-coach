@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T02:46:47",
-    "total_questions": 3
+    "last_updated": "2026-07-04T15:00:00",
+    "total_questions": 4
   },
   "categories": {
     "java": {
@@ -63,7 +63,7 @@
       "name": "行为面试",
       "icon": "🎯",
       "description": "项目经历、团队协作、职业规划",
-      "count": 0
+      "count": 1
     },
     "system-design": {
       "name": "系统设计",
@@ -149,6 +149,22 @@
       "created": "2026-07-04 02:46:47",
       "source": "示例归档",
       "hash": "8986daa7"
+    },
+    {
+      "id": "q0004",
+      "question": "自我介绍（请给出一个通用的自我介绍框架和范例，包含：开场（基本信息+技术栈）→ 亮点经历（实习/项目）→ 技术特长 → 职业规划的结构）",
+      "category": "behavioral",
+      "tags": [
+        "自我介绍",
+        "行为面试",
+        "面试技巧",
+        "STAR框架"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/behavioral/自我介绍.md",
+      "created": "2026-07-04 15:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "47e2c5a1"
     }
   ]
 }
