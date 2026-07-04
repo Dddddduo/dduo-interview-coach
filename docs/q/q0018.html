@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clust — Interview Coach</title>
+    <title>Redis 常用数据结构；zset（有序集合）底层跳表原理 — Interview Coach</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -149,7 +149,7 @@ body {
         <span class="sep">/</span>
         <span style="font-size:0.85rem;">q0018</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-cat">⚡ Redis / 缓存</span>
             <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
@@ -157,282 +157,552 @@ body {
 </header>
 
 <div class="q-container">
-    <h1>MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化</h1>
-    <div class="tag-row"><span class="tag-item">B+树</span>
-<span class="tag-item">索引</span>
-<span class="tag-item">MySQL</span>
-<span class="tag-item">InnoDB</span>
+    <h1>Redis 常用数据结构；zset（有序集合）底层跳表原理</h1>
+    <div class="tag-row"><span class="tag-item">Redis</span>
 <span class="tag-item">数据结构</span>
-<span class="tag-item">磁盘IO</span>
-<span class="tag-item">索引优化</span></div>
-    <pre># MySQL 索引实现与 B+ 树详解
-
----
-
-## 🧠 联想记忆法
-
-**核心记忆框架：B+ 树 = 有序词典的目录系统**
-
-想象一本《新华字典》的物理结构，这就是 B+ 树的完美隐喻：
-
-- **非叶子节点（目录页）**：只印了"偏旁部首"和"页码指引"，不印正文内容。对应 B+ 树非叶子节点只存键值(key)，不存数据(data)。
-- **叶子节点（正文页）**：所有字词的具体释义都只在正文页。对应 B+ 树所有数据只存储在叶子节点。
-- **双向链表（页脚页码连续）**：正文页的页码是连续的，「一」后面紧接「丁」，你可以从第 1 页一直翻到第 1000 页而不需要回目录。对应 B+ 树叶子节点通过双向链表(doubly linked list)连接，范围查询(range scan)只需顺序遍历。
-- **聚簇索引 = 字典本身就是按拼音排序**：每个字和它的释义紧密排列在一起。对应 InnoDB 聚簇索引(Clustered Index)，叶子节点存完整行数据。
-- **二级索引 = 部首检字表**：只告诉你这个字在第几页（主键值），你还需要翻到正文页才能看到释义。对应二级索引(Secondary Index)需要**回表**(bookmark lookup)操作。
-
-**对比记忆口诀**（五句搞定五种对比）：
-
-```
-B树节点都存数据 → B+数据只在叶子聚
-BST瘦高IO多 → B+矮胖盘IO少
-AVL红黑转太勤 → B+宽松省旋转
-跳表指针散乱 → B+连续更友好
-Hash等值快如风 → 范围查询即噩梦
-```
-
-**根因记忆**：一切为了**磁盘 I/O 最小化**——B+ 树的"矮胖"结构让每次磁头寻道(disk seek)能读取最多有效键值，减少 IO 次数到树的高度的级别（通常 3~4 层）。
-
----
-
-## 📖 深度解答
-
-### 一、核心概念
-
-#### 1.1 InnoDB 索引的两种形态
-
-**聚簇索引 (Clustered Index)**：InnoDB 存储引擎中，表数据本身是按照主键(Primary Key)构建的 B+ 树组织存储的。叶子节点(leaf node)存储完整的行数据，而非叶子节点(non-leaf node)只存储主键值和指向子节点的指针。这意味着：
-
-- **数据即索引，索引即数据**——找到主键就找到了整行。
-- 每个表**只有一个**聚簇索引（因为数据只能有一种物理排序方式）。
-- 若表未定义主键，InnoDB 会隐式创建一个 6 字节的 `ROW_ID` 作为聚簇索引。
-
-**二级索引 (Secondary Index)**：也称为辅助索引或非聚簇索引(Non-clustered Index)。叶子节点存储的是**主键值**(Primary Key Value)而非完整行数据。查询时需先通过二级索引找到主键值，再通过聚簇索引定位行数据，这个过程称为**回表**(bookmark lookup 或 table access by index rowid)。
-
-**为何二级索引不直接存储数据？** 这是设计上的两个核心考量：
-
-- **空间冗余(Space Redundancy)**：表可能有多个二级索引，若每个都存储完整行数据，一份数据会重复存储 N 次（N = 索引数），导致磁盘空间爆炸和缓冲池(buffer pool)污染。
-- **一致性问题(Consistency Problem)**：如果一条记录被更新，所有二级索引都必须同步更新其存储的行数据副本。这会引入巨大的写放大(write amplification)，且在高并发(high concurrency)场景下容易出现不一致窗口。
-
-```sql
--- 示例：创建测试表并验证聚簇索引与二级索引的行为
-CREATE TABLE employees (
-    id       INT PRIMARY KEY,          -- 聚簇索引，叶子节点存完整行
-    name     VARCHAR(50),
-    dept_id  INT,
-    salary   DECIMAL(10,2),
-    INDEX idx_dept (dept_id)           -- 二级索引，叶子节点只存 id 值
-);
-
--- 查询走二级索引并回表
-EXPLAIN SELECT * FROM employees WHERE dept_id = 10;
--- Extra 列为 NULL 或 Using index condition 说明需要回表
-
--- 查询只覆盖索引（无需回表）
-EXPLAIN SELECT id FROM employees WHERE dept_id = 10;
--- Extra 列为 Using index，说明仅在二级索引中就获取了全部所需数据（覆盖索引优化）
-```
-
-#### 1.2 B+ 树的三大核心特性
-
-1. **所有数据存储在叶子节点**：非叶子节点仅存储键值和子节点指针（又称"目录"），空间占用极小，使单个节点能容纳更多键值，从而降低树的高度(tree height)。
-2. **叶子节点通过双向链表连接**：每个叶子节点包含指向相邻叶子节点的指针（前驱和后继），使范围查询(range scan)无需回溯到上层，只需顺序遍历链表即可。
-3. **非叶子节点只存键值**：键值重复出现在非叶子节点和叶子节点（键值冗余），但非叶子节点不存储 `data` 指针指向的行数据，只存储指向下一层节点的页指针(page pointer)。
-
-### 二、底层原理
-
-#### 2.1 B+ 树 vs B 树 —— 数据存储位置与查询性能的差异
-
-| 维度 | B 树 | B+ 树 |
-|------|------|-------|
-| **数据存储** | 所有节点（含非叶子节点）都存储数据 | 仅叶子节点存储数据，非叶子节点只存键值 |
-| **键值冗余** | 无冗余，每个键值只出现一次 | 键值在非叶子节点和叶子节点间冗余 |
-| **范围查询** | 需要中序遍历(in-order traversal)，回溯到父节点，IO 次数多 | 叶子节点链表直接顺序扫描，IO 效率高 |
-| **单值查找** | B 树略优（可能在非叶子节点就命中数据） | B+ 树总是查到叶子节点 |
-
-**决定性推导**：对于磁盘数据库场景，范围查询(range query)远比单值查询(equality query)频繁且昂贵。B+ 树牺牲了"可能在非叶子节点提前命中"的小概率收益，换取了范围查询的稳定高效——所有叶子节点在同一深度(leaf at same depth)，链表串联使一次范围扫描的 IO 次数 = `O(log_m N) + M`（M 为覆盖的叶子节点数），而 B 树的中序遍历会导致大量随机 IO。
-
-#### 2.2 B+ 树 vs 二叉搜索树 (BST) —— 树的高度与磁盘 IO
-
-- **BST 的高度**：最坏情况下退化为链表，高度 O(N)；平均情况下 O(log₂ N)。当 N = 1,000,000 时，log₂ N ≈ 20。
-- **B+ 树的高度**：logₘ N，其中 m 是分叉数(fan-out)，通常 m 在 1000 量级（InnoDB 每个页 16KB，索引键值假设 8B+6B 指针 ≈ 14B，每页可存约 1170 个键值）。当 N = 1,000,000 且 m = 1000 时，log₁₀₀₀ 1,000,000 ≈ 2。
-
-**磁盘 IO 推导**：
-- BST：20 次 IO（每层一次随机寻道+页面读取）
-- B+ 树：2~3 次 IO
-
-每次磁盘 IO 的时间开销 ≈ 10ms（寻道 + 旋转延迟 + 传输），BST 查询需要 20 次 × 10ms = 200ms，而 B+ 树只需要 20~30ms。这就是根因：**B+ 树的宽矮结构将树高控制在个位数，将磁盘 IO 次数降到了物理极限**。
-
-#### 2.3 B+ 树 vs AVL / 红黑树 —— 平衡策略与适用场景
-
-| 维度 | AVL 树 | 红黑树(Red-Black Tree) | B+ 树 |
-|------|--------|----------------------|-------|
-| **平衡策略** | 严格平衡，BF∈{-1,0,1}，每次插入/删除最多 O(log N) 次旋转 | 弱平衡，最长路径不超过最短路径 2 倍，最多 2 次旋转+O(log N) 次变色 | 自动分裂/合并，通过调整 m 值控制平衡 |
-| **旋转频率** | 高（插入后几乎所有情况都需要调整） | 低（仅违反红黑规则时调整） | 最低（仅节点满时分裂(split)、不足时合并(merge)） |
-| **适用场景** | 内存中频繁查找的场景（如 Linux 内核的进程调度树） | 内存中需要频繁插入/删除的场景（如 Java TreeMap、C++ std::map） | **磁盘场景**（数据库、文件系统） |
-
-**核心差异**：AVL 和红黑树是为内存(memory)设计的。在内存中，所有节点随机访问的代价基本相同（纳秒级），因此精细的平衡控制有意义。但在磁盘场景下，一次旋转可能导致多个页面的随机写——B+ 树的"适度平衡"策略只在节点满/不足时做 page-level 的合并分裂，而非逐元素调整，极大地减少了磁盘写入次数。
-
-#### 2.4 B+ 树 vs 跳表 (Skip List) —— 实现复杂度与范围查询
-
-- **跳表的本质**：基于概率的多层链表(probabilistic multi-level linked list)，通过"抛硬币"决定每个元素的层高。
-- **实现复杂度**：跳表代码极其简洁（Redis 的 zset 实现仅约 300 行 C），B+ 树的节点分裂/合并逻辑复杂得多（InnoDB 的 btr0cur.c、btr0btr.c 等文件数千行）。
-- **范围查询对比**：二者对范围查询都友好。跳表可以沿着底层链表顺序遍历；B+ 树沿着叶子节点的双向链表顺序遍历。但 B+ 树的磁盘局部性更好——连续键值大概率在同一个页面(page)或相邻页面，只需一次 IO 读取一整个 block。跳表在磁盘上的节点分布是随机的（取决于插入顺序和概率层高），范围扫描会引发大量随机 IO。
-
-**结论**：Redis 选择跳表实现 zset 是因为 Redis 是**内存数据库**(in-memory database)，不存在磁盘 IO 的约束。而 MySQL 是**磁盘数据库**(disk-based database)，B+ 树的磁盘局部性(disk locality)是关键优势。
-
-#### 2.5 B+ 树 vs Hash 索引 —— 等值查询 vs 范围查询
-
-| 维度 | Hash 索引 | B+ 树索引 |
-|------|-----------|-----------|
-| **等值查询** | O(1)，理论最快 | O(log_m N)，常数级但略慢 |
-| **范围查询** | **不支持**（哈希表的无序性） | **原生支持**（有序键值+链表遍历） |
-| **模糊查询** | 不支持（`LIKE '%abc'` 无法） | 支持前缀匹配（`LIKE 'abc%'`） |
-| **排序** | 不支持（无序） | 支持（有序，可直接按索引顺序输出） |
-| **内存占用** | 哈希表通常需要预分配较大空间 + 链表解决冲突 | 索引树大小与数据量线性相关 |
-
-**MySQL 实际上支持两种索引引擎：InnoDB 的 B+ 树和 Memory/Heap 引擎的 Hash 索引。** InnoDB 在自适应哈希索引(Adaptive Hash Index, AHI)中内部使用了哈希来加速热点等值查询，但这对用户透明——底层索引结构始终是 B+ 树。
-
-**典型反例**：`SELECT * FROM users WHERE age &gt; 30 ORDER BY age`——Hash 索引在此场景下完全失效，B+ 树通过叶子节点链表扫描即可高效返回有序结果。
-
-### 三、实践应用
-
-#### 3.1 索引优化实践
-
-```sql
--- 1. 覆盖索引(Covering Index)：避免了回表
-CREATE INDEX idx_cover ON employees (dept_id, salary);
-SELECT dept_id, salary FROM employees WHERE dept_id = 10;
--- 此时 Extra 列为 Using index，表示仅在索引页中完成查询
-
--- 2. 索引下推(Index Condition Pushdown, ICP)：MySQL 5.6+ 优化
--- 将 WHERE 条件下推至存储引擎层过滤，减少回表次数
-SELECT * FROM employees 
-  WHERE dept_id = 10 AND name LIKE '张%';
--- dept_id 索引无法过滤 name，但 ICP 在索引遍历时就检查 name 条件
--- Extra 列显示 Using index condition
-
--- 3. 最左前缀原则(Leftmost Prefix Rule)
-CREATE INDEX idx_multi ON employees (dept_id, name, salary);
--- 以下查询可有效使用索引：
-WHERE dept_id = 10 AND name = '张三'  -- 完全匹配
-WHERE dept_id = 10                    -- 使用最左列
-WHERE dept_id = 10 AND salary &gt; 5000  -- 仅使用 dept_id 列(name 缺失)
--- 以下查询无法使用索引：
-WHERE name = '张三'                   -- 跳过了最左列
-WHERE salary &gt; 5000                   -- 跳过了前两列
-```
-
-#### 3.2 索引选择性与基数(Index Selectivity)
-
-```sql
--- 主键的散列度最优，基数(Cardinality)接近行数
-SELECT COUNT(DISTINCT id) / COUNT(*) AS selectivity FROM employees;  -- 1.0
-SELECT COUNT(DISTINCT gender) / COUNT(*) AS selectivity FROM employees;  -- ~0.5
--- 选择性(selectivity)越接近1，索引效率越高；性别列建索引通常无意义
-```
-
-### 四、深入思考
-
-#### 4.1 为什么 MySQL 最终选择了 B+ 树？——根因分析
-
-数据库系统的核心瓶颈(bottleneck)是**磁盘 I/O**，而不是 CPU 计算。机械硬盘(HDD)的随机读取延迟约为 10ms，固态硬盘(SSD)约为 0.1ms，而 CPU 执行一条指令只需纳秒级。因此数据库索引的设计目标非常明确：**在尽可能少的磁盘 I/O 次数内完成查询**。
-
-B+ 树对此的极致优化体现在三个层次：
-
-1. **IO 次数最小化**：高 fan-out 使树高稳定在 2~4 层，百万级数据的等值查询只需 2~3 次 IO。
-2. **IO 效率最大化**：按页(page)为单位（InnoDB 默认 16KB）读写，一次 IO 读取一整页的数百个键值。B+ 树非叶子节点密集存储键值，使每次 IO 读取的有效信息量最大化。
-3. **顺序 IO 替代随机 IO**：叶子节点的双向链表使范围查询转化为顺序扫描(sequential scan)，顺序 IO 的速度是随机 IO 的数十倍（HDD 差距更大，SSD 也有 10 倍差异）。
-
-**对比其他数据结构的致命缺陷**：
-- BST/AVL/红黑树：树高不可控或旋转频繁，磁盘 IO 次数过多
-- Hash：不支持范围查询，哈希冲突(hash collision)导致退化
-- 跳表：磁盘局部性差，节点分布随机
-- B 树：范围查询需要中序遍历导致随机 IO
-
-**结论**：B+ 树是面向磁盘 I/O 的"最优解"——它牺牲了等值查询的微末优势（相比 Hash）和非叶子节点的少量空间冗余，换取了磁盘场景下 IO 次数和 IO 类型的整体最优。这一设计思想是计算机体系结构中"存储层次(hierarchy)决定算法选择"的经典范例。
-
----
-
-## 🗺️ 回答思路
-
-### 一、答题逻辑框架
-
-```
-┌──────────────────────────────────────────────────┐
-│ 开场（30秒）                                      │
-│ "MySQL InnoDB 使用 B+ 树作为索引结构，核心原因   │
-│  可以用一句话概括：B+ 树在磁盘场景下实现了IO     │
-│  次数的最小化。下面我从实现、特性、对比三个维度   │
-│  展开。"                                          │
-├──────────────────────────────────────────────────┤
-│ 第一部分（2分钟）：InnoDB 索引实现                │
-│  ├─ 聚簇索引：数据即索引，叶子节点完整行          │
-│  ├─ 二级索引：叶子节点存主键需回表                │
-│  └─ 为什么不存数据：空间+一致性                   │
-├──────────────────────────────────────────────────┤
-│ 第二部分（2分钟）：B+树核心特性                  │
-│  ├─ 数据只在叶子节点                              │
-│  ├─ 双向链表连接叶子                              │
-│  └─ 非叶子节点只存键值                            │
-├──────────────────────────────────────────────────┤
-│ 第三部分（3分钟）：逐对对比（重点得分区）         │
-│  ├─ 每个对比：先说区别 → 再说原因→ 最后结论      │
-│  └─ 共5组对比，每组约30~40秒                     │
-├──────────────────────────────────────────────────┤
-│ 第四部分（30秒）：根因总结                        │
-│ "所以归根结底，MySQL选择B+树是为了磁盘IO最小化。"│
-└──────────────────────────────────────────────────┘
-```
-
-### 二、重点得分点
-
-| 得分点 | 分值权重 | 关键话术 |
-|--------|---------|---------|
-| 聚簇索引与二级索引的本质区别 | 20% | "聚簇索引的叶子节点存完整行，二级索引存主键值——这是 InnoDB 与其他引擎（如 MyISAM）的**根本区别**。" |
-| B+树 vs B 树的范围查询差异 | 20% | "B+树叶子节点的双向链表让范围查询只需要顺序扫描，B树需要中序遍历回溯父节点——这是**差距最大**的一组对比。" |
-| 树的高度与磁盘 IO 的数学关系 | 15% | "百万数据量下，B+树高度 2~3 层，即 2~3 次 IO；二叉搜索树需要 20 次 IO。这个差距在面对高并发时就决定了系统能否支撑。" |
-| 根因总结：磁盘 IO 最小化 | 15% | 必须在开头和结尾呼应 |
-| 代码示例+优化技巧 | 15% | 覆盖索引、索引下推、最左前缀原则各举一例 |
-| 术语中英对照的准确性 | 10% | 每个专业术语首次出现都必须带英文 |
-| 回答的层次结构 | 5% | "核心概念→底层原理→实践应用→深入思考"的完整展开 |
-
-### 三、常见误区（面试官雷区）
-
-1. **混淆 B 树和 B+ 树**：说"B+ 树就是 B 树的一种"，或者把 B 树称为"B-树"（B-tree 中的 "-" 并非负号而是连接符，B-tree 就是 B 树，不是"B减树"）。
-2. **说 InnoDB 不支持 Hash 索引**：实际上 Memory 引擎支持显式 Hash 索引，InnoDB 内部还有自适应哈希索引(AHI)。
-3. **笼统说"二级索引存数据位置"**：MyISAM 的二级索引存的是文件偏移(file offset)，但 InnoDB 的二级索引存的是主键值——这是两种完全不同的实现哲学。
-4. **忽视覆盖索引**：认为二级索引"一定"需要回表——实际上如果查询的所有列都在索引中（覆盖索引），Extra 列显示 `Using index`，无需回表。
-5. **认为 B+ 树"比 Hash 好"**：这是错误的——各有所长。等值查询 Hash 更快，但范围查询 B+ 树完胜。正确表述是："B+ 树更符合数据库的通用查询模式。"
-
-### 四、时间分配建议（总时长 8 分钟）
-
-| 段落 | 时间 | 备注 |
-|------|------|------|
-| 联想记忆法（口述开场） | 0.5 分钟 | 如果你用"字典类比"开篇，控制在 30 秒内 |
-| InnoDB 索引实现 | 1.5 分钟 | 聚簇 &gt; 二级 &gt; 为什么不存数据 |
-| B+ 树特性 | 1 分钟 | 三个特性各 20 秒，简洁有力 |
-| 五种逐对对比 | 3.5 分钟 | 这是重点，每个 40 秒 |
-| 根因总结 | 0.5 分钟 | 收束呼应 |
-| 代码示例穿插 | 1 分钟 | 在实践应用部分展示 |
-
-### 五、过渡话术
-
-**从"概念"过渡到"对比"**：
-&gt; "以上是 InnoDB 索引的基本实现和 B+ 树的特性，但你可能会有疑问：为什么是 B+ 树而不是其他结构？下面我将从五个方面，将 B+ 树与其他主流数据结构——B 树、二叉搜索树、AVL/红黑树、跳表、Hash——做逐对对比。"
-
-**从"对比"过渡到"根因"**：
-&gt; "通过这五组对比，你会发现一个规律：在内存中表现优异的结构在磁盘场景下各有短板。而 B+ 树的每一个设计决策——数据只在叶子节点、叶子节点链表连接、高 fan-out——都指向同一个目标。这个目标就是 MySQL 选择 B+ 树的最终答案。"
-
-**从"深度解答"过渡到"总结"**：
-&gt; "综上所述，MySQL InnoDB 选择 B+ 树并非偶然，而是计算机体系结构中"存储层次决定算法选择"这一根本原则的体现——当你的数据落在磁盘上时，IO 次数就是一切，B+ 树通过高 fan-out 和顺序链表扫描，将 IO 次数压缩到了理论下限。"
-
----
-
-&gt; 📋 **分类**: MySQL / 数据库
-&gt; 🏷️ **标签**: `B+树` `索引` `MySQL` `InnoDB` `数据结构` `磁盘IO` `索引优化`
-&gt; 📊 **难度**: 进阶
-&gt; 📅 **归档时间**: 2026-07-04 14:21:00</pre>
+<span class="tag-item">ZSet</span>
+<span class="tag-item">跳表</span>
+<span class="tag-item">Skip List</span>
+<span class="tag-item">压缩列表</span></div>
+    <h1 id="redis-zset">Redis 常用数据结构；zset（有序集合）底层跳表原理</h1>
+<h3 id="_1">🧠 联想记忆法</h3>
+<p><strong>记忆口诀："字列哈集有，位超地流跳"</strong></p>
+<p>每个字对应一种数据结构，串联成故事方便回忆：</p>
+<ol>
+<li><strong>字（String）</strong> — 字符串，最基础，像"字"一样简单</li>
+<li><strong>列（List）</strong> — 列表，像"队列"排队</li>
+<li><strong>哈（Hash）</strong> — 哈希，像"哈"希表存对象</li>
+<li><strong>集（Set）</strong> — 集合，像"集"合去重</li>
+<li><strong>有（ZSet / Sorted Set）</strong> — 有序集合，带"有"序的集合</li>
+<li><strong>位（Bitmap）</strong> — 位图，像"位"运算</li>
+<li><strong>超（HyperLogLog）</strong> — 超低内存基数统计，"超"级省空间</li>
+<li><strong>地（GEO）</strong> — 地理位置，"地"理坐标</li>
+<li><strong>流（Stream）</strong> — 消息流，"流"式消息队列</li>
+</ol>
+<p><strong>ZSet 跳表记忆："层塔跳查"</strong></p>
+<p>想象一栋楼（跳表）：<br />
+- <strong>层（Level）</strong> — 楼层越高人越少（高层节点少）<br />
+- <strong>塔（Tower）</strong> — 每个节点像塔，高度随机（随机层数，P=1/4）<br />
+- <strong>跳（Skip）</strong> — 坐电梯跳跃，不用爬每层楼梯<br />
+- <strong>查（Search）</strong> — O(log N) 查到目标，比链表 O(N) 快得多</p>
+<p><strong>为什么 Redis 用跳表不用红黑树？→ "简范并"</strong></p>
+<ul>
+<li><strong>简</strong> — 实现简单，代码量少</li>
+<li><strong>范</strong> — 范围查询友好，跳表双向遍历即可</li>
+<li><strong>并</strong> — 并发加锁粒度更小（锁节点而非整棵树）</li>
+</ul>
+<hr />
+<h3 id="_2">📖 深度解答</h3>
+<hr />
+<h4 id="redis">第一层：核心概念 — Redis 九大数据结构概述</h4>
+<p>Redis（Remote Dictionary Server）是一个高性能的键值对（Key-Value）内存数据库，其成功很大程度上归功于丰富的数据结构。以下逐一概述每种数据结构的核心用途：</p>
+<p><strong>1. String（字符串）</strong><br />
+最基础的数据结构，value 最大 512MB。底层实现为 SDS（Simple Dynamic String，简单动态字符串），相比 C 字符串具备 O(1) 长度获取、预分配空间、二进制安全等优势。用途：缓存（如验证码 123456）、计数器（如商品浏览量）、分布式锁（SETNX 命令）、对象序列化存储。</p>
+<p><strong>2. List（列表）</strong><br />
+双向链表（linked list）或压缩列表（ziplist，元素少时），支持双端插入/弹出（LPUSH/RPOP）。用途：消息队列（BRPOP 阻塞消费）、最新消息列表（如微博时间线 LPUSH + LTRIM）。注意：Redis 官方已逐步转向 Stream 作为消息队列的首选。</p>
+<p><strong>3. Hash（哈希）</strong><br />
+字典结构，类似 Java 的 HashMap，底层可用哈希表（hashtable）或压缩列表（ziplist，字段少时）。用途：存储对象（如用户信息 <code>HSET user:1001 name "Alice" age 25</code>），比 String 序列化整对象更灵活，支持单独修改某个字段。</p>
+<p><strong>4. Set（集合）</strong><br />
+无序、不可重复的元素集合，底层用哈希表（hashtable）或整数集合（intset，全为整数时）。核心价值在集合运算：交集（SINTER）、并集（SUNION）、差集（SDIFF）。用途：标签系统（如文章标签）、共同好友、抽奖去重。</p>
+<p><strong>5. ZSet / Sorted Set（有序集合）</strong><br />
+<strong>本题重点</strong>，见下文详细展开。每个元素关联一个 score（分值），按 score 排序。用途：排行榜（如游戏积分排名）、延时队列（score 存时间戳）、限流滑动窗口。</p>
+<p><strong>6. Bitmap（位图）</strong><br />
+底层实际是 String，按位（bit）操作，8 个 bit = 1 字节。用途：用户签到（365 天只需 46 字节）、在线状态统计（SETBIT/GETBIT/BITCOUNT）。</p>
+<p><strong>7. HyperLogLog（超日志结构）</strong><br />
+基于概率算法（HyperLogLog 算法）的基数统计，标准误差约 0.81%。12KB 内存即可统计 2^64 个元素的基数（不重复元素数量）。用途：UV（独立访客）统计，如 <code>PFADD page:1 user1 user2 user3</code> + <code>PFCOUNT page:1</code>。</p>
+<p><strong>8. GEO（地理空间）</strong><br />
+底层基于 ZSet 实现，将经纬度编码为 52 位整数作为 score。支持 GEOADD 添加位置、GEORADIUS 范围查询（附近的人）、GEODIST 距离计算。用途：附近的人、打车定位、地理围栏。</p>
+<p><strong>9. Stream（流）</strong><br />
+Redis 5.0 引入的、类似 Kafka 的日志型消息队列。支持消息持久化、消费者组（Consumer Group）、ACK 确认机制。相比 List/发布订阅（Pub/Sub）更可靠。用途：消息队列、事件溯源（Event Sourcing）、日志采集。</p>
+<hr />
+<h4 id="zset">第二层：底层原理 — ZSet 编码机制与跳表原理</h4>
+<h5 id="21-zset">2.1 ZSet 的两种底层编码</h5>
+<p>ZSet 根据数据量和元素大小自动选择底层编码：</p>
+<table>
+<thead>
+<tr>
+<th>编码方式</th>
+<th>数据结构</th>
+<th>适用条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ziplist（压缩列表）</strong></td>
+<td>连续内存块，元素按 score 排序紧密排列</td>
+<td>元素少且元素值小时</td>
+</tr>
+<tr>
+<td><strong>skiplist + dict（跳表 + 字典）</strong></td>
+<td>跳表维护有序性 + 字典（哈希表）提供 O(1) 按成员查分值</td>
+<td>元素多或元素值大时</td>
+</tr>
+</tbody>
+</table>
+<p><strong>切换阈值（redis.conf 配置）：</strong></p>
+<div class="highlight"><pre><span></span><code>zset-max-ziplist-entries 128    # 元素数不超过 128
+zset-max-ziplist-value 64       # 每个元素值（ele）不超过 64 字节
+</code></pre></div>
+
+<p>当元素个数 &gt; 128 或任一元素值 &gt; 64 字节时，自动从 ziplist 转换为 skiplist+dict，且<strong>不可逆</strong>（只能单向转换，从节省内存转向高性能）。</p>
+<p><strong>为何 ziplist 在小数据量时更优？</strong><br />
+- ziplist 是连续内存，Cache Locality（缓存局部性）好，一个 CPU 缓存行（Cache Line）可加载多个元素<br />
+- skiplist 每个节点需独立 malloc，内存碎片 + 指针额外开销（约 20+ 字节/层）</p>
+<h5 id="22-skip-list">2.2 跳表（Skip List）核心原理</h5>
+<p><strong>什么是跳表？</strong><br />
+跳表由 William Pugh 在 1990 年提出，本质是在有序链表（Ordered Linked List）上建立多级索引（Multi-Level Index），通过"跳跃"跳过大量中间节点，实现近似二分查找的效率。</p>
+<p><strong>形象理解：</strong><br />
+- <strong>一级索引</strong>：每隔一个节点取一个到上层（相当于高速公路的快车道）<br />
+- <strong>二级索引</strong>：再每隔一个节点取一个到更上层<br />
+- 查找时从最高层开始，快速定位区间，逐层下降找到目标</p>
+<div class="highlight"><pre><span></span><code><span class="c">Level 3:  1 </span><span class="nb">-----------------------------</span><span class="nv">&gt;</span><span class="c"> 9</span>
+<span class="c">Level 2:  1 </span><span class="nb">------------</span><span class="nv">&gt;</span><span class="c"> 5 </span><span class="nb">------------</span><span class="nv">&gt;</span><span class="c"> 9</span>
+<span class="c">Level 1:  1 </span><span class="nb">---</span><span class="nv">&gt;</span><span class="c"> 3 </span><span class="nb">---</span><span class="nv">&gt;</span><span class="c"> 5 </span><span class="nb">---</span><span class="nv">&gt;</span><span class="c"> 7 </span><span class="nb">---</span><span class="nv">&gt;</span><span class="c"> 9</span>
+<span class="c">Level 0:  1 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 2 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 3 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 4 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 5 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 6 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 7 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 8 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 9 </span><span class="nb">-</span><span class="nv">&gt;</span><span class="c"> 10</span>
+</code></pre></div>
+
+<p>查找元素 8 的过程：Level 3 到达 9，发现 9 &gt; 8 → 降 Level 2 从 1 跳到 5 → Level 1 从 5 跳到 7 → Level 0 从 7 遍历到 8。只需 4 步，而原始链表需要 8 步。</p>
+<p><strong>层数（Level）与随机化：</strong><br />
+- 每个新节点插入时，随机决定其层数<br />
+- Redis 实现中，概率 P = 1/4（ZSKIPLIST_P = 0.25），最高层数限制为 64（ZSKIPLIST_MAXLEVEL = 64）<br />
+- 层数生成算法：<br />
+<code>层数 = 1
+  while (random() &lt; 0.25 and 层数 &lt; 64):
+      层数++</code><br />
+- 数学期望：平均层数 = 1 / (1 - P) = 1 / 0.75 ≈ 1.33 层<br />
+- 这使得跳表在空间和速度之间取得平衡：P=1/4 比 P=1/2 更节省内存（每层索引节点更少），但查找速度稍慢（层数更多）</p>
+<p><strong>为什么不用红黑树/AVL树？</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>跳表</th>
+<th>红黑树 / AVL树</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实现复杂度</td>
+<td>实现简单，约 200 行 C 代码</td>
+<td>复杂，需处理旋转（Rotation）、染色（Coloring），约 500+ 行</td>
+</tr>
+<tr>
+<td>范围查询</td>
+<td>天然支持：找到起点后沿 backward/forward 指针遍历区间，无需回溯</td>
+<td>需中序遍历，需维护栈或 parent 指针，实现复杂</td>
+</tr>
+<tr>
+<td>并发控制</td>
+<td>仅需锁住受影响的节点，细粒度锁</td>
+<td>需锁住整棵子树，锁粒度大</td>
+</tr>
+<tr>
+<td>调试难度</td>
+<td>可视化简单，插入/删除不破坏全局结构</td>
+<td>旋转操作导致结构突变，调试困难</td>
+</tr>
+<tr>
+<td>内存占用</td>
+<td>约 N * avgLevel 个指针（额外 ~1.33N 指针）</td>
+<td>每个节点 2 个子节点指针 + 1 个 parent 指针 + 颜色位</td>
+</tr>
+<tr>
+<td>查找效率</td>
+<td>平均 O(log N)，最坏 O(N)（几乎不发生）</td>
+<td>严格 O(log N)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>总结：Redis 作者 antirez 的原话 — "跳表实现起来更简单，调试更容易，而且范围查询操作（ZRANGE）更高效。"</strong></p>
+<hr />
+<h4 id="redis_1">第三层：实践应用 — Redis 跳表具体实现分析</h4>
+<h5 id="31-c-redis-t_zsetc">3.1 核心数据结构（C 语言，Redis 源码 t_zset.c）</h5>
+<div class="highlight"><pre><span></span><code><span class="cm">/* 跳表节点 */</span>
+<span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplistNode</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">sds</span><span class="w"> </span><span class="n">ele</span><span class="p">;</span><span class="w">                          </span><span class="c1">// 成员（member），SDS 字符串</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">score</span><span class="p">;</span><span class="w">                     </span><span class="c1">// 分值（score），排序依据</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplistNode</span><span class="w"> </span><span class="o">*</span><span class="n">backward</span><span class="p">;</span><span class="w">   </span><span class="c1">// 后退指针，指向上一个节点（用于反向遍历）</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplistLevel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplistNode</span><span class="w"> </span><span class="o">*</span><span class="n">forward</span><span class="p">;</span><span class="w"> </span><span class="c1">// 前进指针，指向同层的下一个节点</span>
+<span class="w">        </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">span</span><span class="p">;</span><span class="w">            </span><span class="c1">// 跨度，从当前节点到 forward 节点跨越了多少个元素</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="n">level</span><span class="p">[];</span><span class="w">                        </span><span class="c1">// 层级数组（柔性数组，C99 特性）</span>
+<span class="p">}</span><span class="w"> </span><span class="n">zskiplistNode</span><span class="p">;</span>
+
+<span class="cm">/* 跳表 */</span>
+<span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplist</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">zskiplistNode</span><span class="w"> </span><span class="o">*</span><span class="n">header</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">tail</span><span class="p">;</span><span class="w"> </span><span class="c1">// 头节点（哨兵）+ 尾节点</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w">                </span><span class="c1">// 节点总数（不含头节点）</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">level</span><span class="p">;</span><span class="w">                           </span><span class="c1">// 当前最大层数（不含头节点）</span>
+<span class="p">}</span><span class="w"> </span><span class="n">zskiplist</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>关键理解：</strong><br />
+- <strong>header（头节点）</strong> — 哨兵节点（Sentinel），不存储实际数据，level 数组固定 64 层，所有 forward 初始化为 NULL，span 初始化为 0<br />
+- <strong>level[]（层级数组）</strong> — 柔性数组，每个节点实际占用的层数是随机生成的，level[0] 总是存在<br />
+- <strong>span（跨度）</strong> — 精髓设计！用于快速计算元素的排名（Rank），ZRANK 命令无需遍历就可知道元素排第几<br />
+- <strong>backward（后退指针）</strong> — 仅 level[0] 有 backward，用于 ZREVRANGE 反向遍历</p>
+<p><strong>辅助结构 — dict（字典）：</strong></p>
+<div class="highlight"><pre><span></span><code><span class="cm">/* ZSet 整体结构 */</span>
+<span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">zset</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">dict</span><span class="w"> </span><span class="o">*</span><span class="n">dict</span><span class="p">;</span><span class="w">            </span><span class="c1">// 字典：key=成员(ele), value=分值(score)</span>
+<span class="w">    </span><span class="n">zskiplist</span><span class="w"> </span><span class="o">*</span><span class="n">zsl</span><span class="p">;</span><span class="w">        </span><span class="c1">// 跳表：按 score 排序</span>
+<span class="p">}</span><span class="w"> </span><span class="n">zset</span><span class="p">;</span>
+</code></pre></div>
+
+<ul>
+<li><strong>dict 的作用</strong>：ZSCORE 命令 O(1) 按成员查分值；ZSet 的成员唯一性检查通过 dict 完成</li>
+<li><strong>数据冗余</strong>：ele（成员）和 score（分值）在跳表和字典中各存一份指针，不复制数据</li>
+</ul>
+<h5 id="32-olog-n">3.2 查找过程（O(log N)）</h5>
+<div class="highlight"><pre><span></span><code>查找 score=8.0 的元素：
+1. 从 header 的最高层（当前 level-1）开始
+2. 在每一层向前移动，直到下一节点的 score &gt; 目标 score
+3. 降一层继续
+4. 最终在 level[0] 找到目标
+</code></pre></div>
+
+<p><strong>ZRANK 排名计算：</strong><br />
+查找过程中累加经过节点的 span 值，即可得到排名。无需额外遍历，这就是 span 字段的妙用。</p>
+<h5 id="33-olog-n">3.3 插入过程（O(log N)）</h5>
+<div class="highlight"><pre><span></span><code>插入 (ele=&quot;Bob&quot;, score=8.0)：
+1. 查找插入位置，同时记录每层需要更新的节点（update[] 数组）和累积排名（rank[] 数组）
+2. 随机生成新节点的层数 level
+3. 如果新 level &gt; 当前跳表 level，更新 update[] 中更高层指向 header
+4. 逐层插入：调整每层 forward 指针和 span 值
+5. 设置 backward 指针
+6. 更新跳表 level 和 length
+7. 同步更新 dict（ZADD 同时操作 dict + skiplist）
+</code></pre></div>
+
+<h5 id="34-olog-n">3.4 删除过程（O(log N)）</h5>
+<p>与插入对称，逐层调整 forward 指针和 span 值，释放节点内存，同步删除 dict 中的键值对。</p>
+<hr />
+<h4 id="_3">第四层：深入思考</h4>
+<h5 id="41-vs-b-mysql-b-redis">4.1 跳表 vs B+ 树：为什么 MySQL 用 B+ 树，Redis 用跳表？</h5>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Redis 跳表</th>
+<th>MySQL B+ 树</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>存储介质</td>
+<td><strong>内存</strong>（随机访问无成本）</td>
+<td><strong>磁盘</strong>（需最小化 I/O）</td>
+</tr>
+<tr>
+<td>节点大小</td>
+<td>小粒度节点（1 个元素）</td>
+<td>大粒度页（通常 16KB，读一批数据）</td>
+</tr>
+<tr>
+<td>扇出（Fan-out）</td>
+<td>低（平均 1/(1-P) 个指针）</td>
+<td>高（一个页存几百个 key）</td>
+</tr>
+<tr>
+<td>树高</td>
+<td>O(log N)，~20 层（百万级数据）</td>
+<td>通常 3~4 层（千万级数据）</td>
+</tr>
+<tr>
+<td>范围查询</td>
+<td>双向链表遍历</td>
+<td>叶节点链表遍历</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论：</strong> 内存场景下跳表更灵活；磁盘场景下 B+ 树通过高扇出降低树高，减少 I/O 次数。</p>
+<h5 id="42">4.2 跳表最坏情况分析</h5>
+<ul>
+<li>最坏情况：所有节点都只生成 1 层（概率极低：0.75^N），此时退化为链表，查找 O(N)</li>
+<li>但概率指数级衰减：N=1000 时，概率约为 10^-125，实际几乎不可能发生</li>
+<li>随机化算法保证的是"期望性能"而非"最坏性能保证"</li>
+</ul>
+<h5 id="43-zset">4.3 ZSet 的应用场景深度解析</h5>
+<p><strong>场景 1：实时排行榜</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 玩家积分更新</span>
+ZADD<span class="w"> </span>game:scores<span class="w"> </span><span class="m">1500</span><span class="w"> </span><span class="s2">&quot;player:1001&quot;</span>
+ZADD<span class="w"> </span>game:scores<span class="w"> </span><span class="m">2000</span><span class="w"> </span><span class="s2">&quot;player:1002&quot;</span>
+<span class="c1"># 获取 Top 10</span>
+ZREVRANGE<span class="w"> </span>game:scores<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">9</span><span class="w"> </span>WITHSCORES
+<span class="c1"># 查看自己排名</span>
+ZRANK<span class="w"> </span>game:scores<span class="w"> </span><span class="s2">&quot;player:1001&quot;</span>
+</code></pre></div>
+
+<p><strong>场景 2：延时队列</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 任务到期时间戳作为 score</span>
+ZADD<span class="w"> </span>delay:queue<span class="w"> </span><span class="m">1690000000</span><span class="w"> </span><span class="s2">&quot;task:send_email&quot;</span>
+<span class="c1"># 消费线程轮询到期的任务</span>
+ZRANGEBYSCORE<span class="w"> </span>delay:queue<span class="w"> </span><span class="m">0</span><span class="w"> </span>&lt;current_timestamp&gt;<span class="w"> </span>LIMIT<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">10</span>
+</code></pre></div>
+
+<p><strong>场景 3：滑动窗口限流</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 每个请求的时间戳作为一个成员，score 也设为时间戳</span>
+ZADD<span class="w"> </span>rate:limit:user:1001<span class="w"> </span><span class="m">1690000000</span><span class="w"> </span><span class="m">1690000000</span>
+<span class="c1"># 删除窗口外的请求</span>
+ZREMRANGEBYSCORE<span class="w"> </span>rate:limit:user:1001<span class="w"> </span><span class="m">0</span><span class="w"> </span>&lt;window_start&gt;
+<span class="c1"># 统计窗口内请求数</span>
+ZCARD<span class="w"> </span>rate:limit:user:1001
+</code></pre></div>
+
+<hr />
+<h5 id="44-java">4.4 Java 简化版跳表实现</h5>
+<p>以下代码展示跳表的核心机制（查找/插入/删除），仅用于理解原理：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.*</span><span class="p">;</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * 简化版跳表 — 用于理解 Redis ZSet 底层原理</span>
+<span class="cm"> * 特点：</span>
+<span class="cm"> *  - 泛型，支持任意可比较类型</span>
+<span class="cm"> *  - 随机层数（P=0.25，同 Redis）</span>
+<span class="cm"> *  - 支持查找、插入、删除、范围查询</span>
+<span class="cm"> */</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SkipList</span><span class="o">&lt;</span><span class="n">K</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Comparable</span><span class="o">&lt;?</span><span class="w"> </span><span class="kd">super</span><span class="w"> </span><span class="n">K</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.25</span><span class="p">;</span><span class="w">        </span><span class="c1">// 概率因子，同 Redis ZSKIPLIST_P</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MAX_LEVEL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span><span class="p">;</span><span class="w">     </span><span class="c1">// 最大层数，同 Redis</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">header</span><span class="p">;</span><span class="w">            </span><span class="c1">// 哨兵头节点</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">level</span><span class="p">;</span><span class="w">                           </span><span class="c1">// 当前最大层数</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w">                            </span><span class="c1">// 元素个数</span>
+
+<span class="w">    </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">;</span>
+<span class="w">        </span><span class="n">V</span><span class="w"> </span><span class="n">value</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">forward</span><span class="p">;</span><span class="w">   </span><span class="c1">// 每层的前进指针</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">nodeLevel</span><span class="p">;</span><span class="w">          </span><span class="c1">// 该节点的层数</span>
+
+<span class="w">        </span><span class="nd">@SuppressWarnings</span><span class="p">(</span><span class="s">&quot;unchecked&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="n">Node</span><span class="p">(</span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">key</span><span class="p">;</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">nodeLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="p">;</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">forward</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">[</span><span class="n">level</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">SkipList</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">header</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">MAX_LEVEL</span><span class="p">);</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 随机生成层数（同 Redis 算法）</span>
+<span class="cm">     * 层数从 1 开始，每次概率为 P 时加一层，不超过 MAX_LEVEL</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">randomLevel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">lvl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Random</span><span class="w"> </span><span class="n">rand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Random</span><span class="p">();</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">rand</span><span class="p">.</span><span class="na">nextDouble</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">lvl</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">MAX_LEVEL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">lvl</span><span class="o">++</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">lvl</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 查找 — O(log N) 平均</span>
+<span class="cm">     * 返回与 key 关联的 value，不存在返回 null</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">header</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// 从最高层向下查找</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">                    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="c1">// 到达第 0 层，检查下一个节点</span>
+<span class="w">        </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">value</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 插入 — O(log N) 平均</span>
+<span class="cm">     * 如果 key 已存在，更新 value；否则插入新节点</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">insert</span><span class="p">(</span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// update[] 记录每层需要更新的节点</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">update</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">[</span><span class="n">MAX_LEVEL</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">header</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 1. 查找插入位置，记录每层的前驱</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">                    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 2. 如果 key 已存在，更新 value</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">current</span><span class="p">.</span><span class="na">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 3. 随机生成新节点层数</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">newNodeLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">randomLevel</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// 4. 如果新层数 &gt; 当前跳表层数，更新 update 数组</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">newNodeLevel</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">newNodeLevel</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">header</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newNodeLevel</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 5. 创建新节点并逐层插入</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">newNode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">newNodeLevel</span><span class="p">);</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">newNodeLevel</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">newNode</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newNode</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="n">size</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 删除 — O(log N) 平均</span>
+<span class="cm">     * 返回被删除节点的 value，不存在返回 null</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">update</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">[</span><span class="n">MAX_LEVEL</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">header</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 1. 查找待删除节点，记录每层的前驱</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">                    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 2. 未找到</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 3. 逐层删除</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">level</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">current</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span><span class="w">  </span><span class="c1">// 更高层不包含此节点</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">update</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 4. 更新跳表层数（可能降低）</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">header</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">level</span><span class="o">--</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="n">size</span><span class="o">--</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">value</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 范围查询 — 跳表的核心优势</span>
+<span class="cm">     * 返回 key 在 [from, to] 范围内的所有键值对</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">rangeQuery</span><span class="p">(</span><span class="n">K</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="kd">to</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">List</span><span class="o">&lt;</span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">header</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 找到 from 的起始位置</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">                    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">from</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 沿第 0 层遍历</span>
+<span class="w">        </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">current</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">key</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="kd">to</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">result</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">AbstractMap</span><span class="p">.</span><span class="na">SimpleEntry</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="na">key</span><span class="p">,</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">value</span><span class="p">));</span>
+<span class="w">            </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">.</span><span class="na">forward</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">size</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">size</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// 测试</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">SkipList</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">sl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SkipList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+
+<span class="w">        </span><span class="n">sl</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Alice&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">sl</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Bob&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">sl</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Charlie&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">sl</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;David&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">sl</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Eve&quot;</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;查找 key=3: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">search</span><span class="p">(</span><span class="mi">3</span><span class="p">));</span><span class="w">     </span><span class="c1">// Alice</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;查找 key=6: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">search</span><span class="p">(</span><span class="mi">6</span><span class="p">));</span><span class="w">     </span><span class="c1">// null</span>
+
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;\n范围查询 [2, 4]: &quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Map</span><span class="p">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">rangeQuery</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;  &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">getKey</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot; -&gt; &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">getValue</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;\n删除 key=3: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">delete</span><span class="p">(</span><span class="mi">3</span><span class="p">));</span><span class="w">   </span><span class="c1">// Alice</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;删除后查找 key=3: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">search</span><span class="p">(</span><span class="mi">3</span><span class="p">));</span><span class="w"> </span><span class="c1">// null</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;当前元素数: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sl</span><span class="p">.</span><span class="na">size</span><span class="p">());</span><span class="w">         </span><span class="c1">// 4</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h3 id="_4">🗺️ 回答思路</h3>
+<p>面试中遇到 "Redis 数据结构与 ZSet 跳表" 时，建议按以下思路组织回答，层层递进，体现深度和广度：</p>
+<p><strong>第 1 步：总览全局（展示广度）</strong><br />
+先快速过一遍 9 种数据结构，每种一句话说出核心用途和典型命令。让面试官知道你全面掌握 Redis。如果你有实战经验，结合具体业务举例（如"我们用 Bitmap 做签到，HyperLogLog 做 UV"）。</p>
+<p><strong>第 2 步：聚焦 ZSet 编码（展示深度切入点）</strong><br />
+说清楚 ZSet 有两种底层编码：<br />
+- 小数据用 ziplist（连续内存，缓存友好）<br />
+- 大数据用 skiplist+dict（跳表加速查找 + 字典 O(1) 查分值）<br />
+- 提到阈值 128/64 并解释单向转换原因</p>
+<p><strong>第 3 步：跳表原理（核心考点）</strong><br />
+- 画图说明多级索引如何加速查找<br />
+- 解释随机层数（P=1/4, Max=64）<br />
+- 比较红黑树/AVL：强调"简（实现简单）范（范围查询）并（并发友好）"</p>
+<p><strong>第 4 步：Redis 源码实现（体现源码阅读能力）</strong><br />
+说出 zskiplistNode 和 zskiplist 的结构，特别强调 span 字段用于排名计算，backward 用于反向遍历。这让面试官感受到你读过源码。</p>
+<p><strong>第 5 步：手写代码（让面试官无可挑剔）</strong><br />
+主动提出用 Java 实现一个简化版跳表。面试官通常不会要求写完整的 Redis 实现，能写出 search/insert/delete 的核心逻辑即可。</p>
+<p><strong>第 6 步：升华（拉开差距的关键）</strong><br />
+- 对比 B+ 树：内存 vs 磁盘的存储介质差异<br />
+- 最坏情况分析及概率论证<br />
+- 实际项目中的 ZSet 应用场景</p>
+<p><strong>避坑指南：</strong><br />
+- ❌ 不要说跳表和 B+ 树谁更"好"——要说明它们适用不同场景<br />
+- ❌ 不要混淆 ziplist 和 skiplist 的"list"——完全是两回事<br />
+- ❌ 不要认为跳表比红黑树"快"——O(log N) 同级，区别在实现难度和范围查询<br />
+- ✅ 主动提 span 字段和 ZRANK 的关系，这是加分项<br />
+- ✅ 提到 Redis 官方也在考虑引入新的数据结构（如 listpack 替代 ziplist），展现你关注前沿</p>
+<p><strong>复杂度总结：</strong><br />
+| 操作 | 平均时间复杂度 | 最坏时间复杂度 |<br />
+|------|--------------|--------------|<br />
+| 查找（search） | O(log N) | O(N) |<br />
+| 插入（insert） | O(log N) | O(N) |<br />
+| 删除（delete） | O(log N) | O(N) |<br />
+| 范围查询（range） | O(log N + M) | O(N) |<br />
+| ZRANK（排名） | O(log N) | O(N) |</p>
+<p><em>注：M 为返回的元素数；最坏情况几乎不会发生（概率指数级小）</em></p>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0018')">
             ✅ Mark as Reviewed Today

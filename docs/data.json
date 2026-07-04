@@ -4,7 +4,7 @@
     "last_updated": "2026-07-04T14:33:16",
     "total_questions": 37
   },
-  "total": 37,
+  "total": 36,
   "categories": {
     "java": {
       "name": "Java",
@@ -99,7 +99,7 @@
       "count": 3
     },
     "java": {
-      "count": 6
+      "count": 5
     },
     "devops": {
       "count": 1
@@ -136,10 +136,6 @@
       "count": 4
     },
     {
-      "tag": "缓存",
-      "count": 4
-    },
-    {
       "tag": "Redis",
       "count": 4
     },
@@ -161,6 +157,10 @@
     },
     {
       "tag": "事务",
+      "count": 3
+    },
+    {
+      "tag": "缓存",
       "count": 3
     },
     {
@@ -514,19 +514,6 @@
         "created": "2026-07-04 14:25:09",
         "source": "面经助手-20260704",
         "hash": "633baf63"
-      },
-      {
-        "id": "q0020",
-        "question": "Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构",
-        "category": "java",
-        "tags": [
-          "缓存"
-        ],
-        "difficulty": "hard",
-        "file": "questions/database/java/Redis-常用数据结构有哪些ZSet有序集合底层跳表原理是什么请深入讲解-StringListHashSetZSetB.md",
-        "created": "2026-07-04 14:25:42",
-        "source": "面经助手-20260704",
-        "hash": "856cdc58"
       },
       {
         "id": "q0021",
@@ -1115,19 +1102,6 @@
       "created": "2026-07-04 14:25:09",
       "source": "面经助手-20260704",
       "hash": "633baf63"
-    },
-    {
-      "id": "q0020",
-      "question": "Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构",
-      "category": "java",
-      "tags": [
-        "缓存"
-      ],
-      "difficulty": "hard",
-      "file": "questions/database/java/Redis-常用数据结构有哪些ZSet有序集合底层跳表原理是什么请深入讲解-StringListHashSetZSetB.md",
-      "created": "2026-07-04 14:25:42",
-      "source": "面经助手-20260704",
-      "hash": "856cdc58"
     },
     {
       "id": "q0021",
