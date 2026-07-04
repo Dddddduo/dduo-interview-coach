@@ -223,6 +223,17 @@
       "created": "2026-07-04 14:30:00",
       "source": "面经助手-20260704",
       "hash": "6154cf00"
+    },
+    {
+      "id": "q0012",
+      "question": "Spring AI 结构化输出实现旅游报告生成，将 AI 回复转为结构化价格对象，展开讲解",
+      "category": "spring",
+      "tags": ["Spring AI", "Structured Output", "BeanOutputConverter", "JSON Schema", "LLM", "POJO映射"],
+      "difficulty": "hard",
+      "file": "questions/database/spring/Spring-AI-结构化输出实现旅游报告生成.md",
+      "created": "2026-07-04 14:40:00",
+      "source": "面经助手-20260704",
+      "hash": "a1b2springai"
     }
   ]
 }
