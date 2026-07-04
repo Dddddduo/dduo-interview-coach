@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T18:30:00",
-    "total_questions": 31
+    "last_updated": "2026-07-04T14:28:11",
+    "total_questions": 34
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 5
+      "count": 6
     },
     "python": {
       "name": "Python",
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 7
+      "count": 8
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -39,7 +39,7 @@
       "name": "Spring 框架",
       "icon": "🍃",
       "description": "Spring Boot、Spring Cloud",
-      "count": 3
+      "count": 2
     },
     "distributed": {
       "name": "分布式系统",
@@ -51,7 +51,7 @@
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 1
+      "count": 3
     },
     "network": {
       "name": "计算机网络",
@@ -530,18 +530,17 @@
     {
       "id": "q0028",
       "question": "垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）",
-      "category": "spring",
+      "category": "mysql",
       "tags": [
         "分表",
-        "水平分表",
+        "分片",
         "Sharding",
         "数据库优化",
-        "分片",
         "垂直分表",
-        "分区"
+        "水平分表"
       ],
       "difficulty": "medium",
-      "file": "questions/database/spring/垂直分表和水平分表的区别Difference-between-Vertical-Partitioning-and-Hor.md",
+      "file": "questions/database/mysql/垂直分表和水平分表的区别.md",
       "created": "2026-07-04 14:26:09",
       "source": "/面经助手-20260704",
       "hash": "b06eefe1"
@@ -598,12 +597,51 @@
       "id": "q0036",
       "question": "线程、进程、协程相关知识点：深入讲解三者的区别和联系（进程的资源分配、IPC、上下文切换；线程的Java实现与同步机制；协程的虚拟线程与海量并发；对比表格与应用场景）",
       "category": "os",
-      "tags": ["并发编程", "操作系统", "进程", "线程", "协程", "虚拟线程", "Java"],
+      "tags": [
+        "并发编程",
+        "操作系统",
+        "进程",
+        "线程",
+        "协程",
+        "虚拟线程",
+        "Java"
+      ],
       "difficulty": "medium",
       "file": "questions/database/os/进程线程协程相关知识点深入讲解三者的区别和联系.md",
       "created": "2026-07-04 18:30:00",
       "source": "/面经助手-20260704",
       "hash": "ptc20260704"
+    },
+    {
+      "id": "q0037",
+      "question": "线程、进程、协程相关知识点：深入讲解三者的区别和联系",
+      "category": "os",
+      "tags": [
+        "并发编程",
+        "操作系统",
+        "进程",
+        "线程",
+        "协程",
+        "虚拟线程",
+        "Java",
+        "JVM"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/os/线程进程协程相关知识点深入讲解三者的区别和联系.md",
+      "created": "2026-07-04 14:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "p3c0r0ut1n3"
+    },
+    {
+      "id": "q0034",
+      "question": "HashMap 底层实现，插入元素时会发生什么",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\java\\HashMap-底层实现插入元素时会发生什么.md",
+      "created": "2026-07-04 14:28:11",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "5625b037"
     }
   ]
 }

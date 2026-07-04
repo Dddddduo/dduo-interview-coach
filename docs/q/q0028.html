@@ -149,7 +149,7 @@ body {
         <span class="sep">/</span>
         <span style="font-size:0.85rem;">q0028</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">🍃 Spring 框架</span>
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
             <span class="q-meta-item q-meta-diff-medium">● 中级</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
@@ -159,221 +159,626 @@ body {
 <div class="q-container">
     <h1>垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）</h1>
     <div class="tag-row"><span class="tag-item">分表</span>
-<span class="tag-item">水平分表</span>
+<span class="tag-item">分片</span>
 <span class="tag-item">Sharding</span>
 <span class="tag-item">数据库优化</span>
-<span class="tag-item">分片</span>
 <span class="tag-item">垂直分表</span>
-<span class="tag-item">分区</span></div>
-    <h1 id="difference-between-vertical-partitioning-and-horizontal-partitioning">垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）</h1>
-<h3 id="_1">🧠 联想记忆法</h3>
-<ul>
-<li><strong>记忆口诀/联想</strong>: "竖切蛋糕横切饼" —— 垂直分表像竖着切蛋糕（按列切，每块含不同配料），水平分表像横着切饼（按行切，每块结构一样）。</li>
-<li>
-<p>补充口诀："竖拆列，横拆行；列不同，行相同"</p>
-</li>
-<li>
-<p><strong>记忆原理</strong>:</p>
-</li>
-<li>"竖"（垂直）对应数据库的列（Column），"横"（水平）对应数据库的行（Row）—— 中文的"竖/横"与数据库的"列/行"自然对应，不易混淆。</li>
-<li>
-<p>蛋糕横切和竖切的生活场景人人熟悉，竖切出来的每块成分不同（类比垂直分表每张表结构不同），横切出来的每块成分一致（类比水平分表每张表结构相同）。</p>
-</li>
-<li>
-<p><strong>关联知识</strong>:</p>
-</li>
-<li>与文件系统的 RAID 0/1 类比：垂直分表 ≈ RAID 1（不同数据分布），水平分表 ≈ RAID 0（数据条带化，Stripe）</li>
-<li>与分布式系统的 Region Split（HBase/MongoDB）概念相通</li>
-<li>与数据库设计中的第三范式（3NF）有联系 —— 垂直分表本质上是拆分范式化的过程</li>
-</ul>
-<h3 id="_2">📖 深度解答</h3>
-<h4 id="core-concepts">一、核心概念（Core Concepts）</h4>
-<p><strong>垂直分表（Vertical Partitioning）</strong>，又称列拆分（Column Splitting），是指将一张字段较多的宽表（Wide Table）按列拆分成多张结构不同的窄表（Narrow Table）。每张子表包含原表的部分列，通过主键（Primary Key）关联。</p>
-<p><strong>水平分表（Horizontal Partitioning / Sharding）</strong>，又称行拆分（Row Splitting），是指将一张数据量大的表按行拆分<strong>结构完全相同</strong>的多张子表。每张子表拥有相同的列定义，但存储不同的数据行。</p>
+<span class="tag-item">水平分表</span></div>
+    <h1 id="_1">垂直分表和水平分表的区别</h1>
+<blockquote>
+<p>Difference between Vertical Partitioning and Horizontal Partitioning</p>
+</blockquote>
+<hr />
+<h2 id="_2">🧠 联想记忆法</h2>
+<h3 id="_3">记忆口诀/联想</h3>
+<p><strong>"切蛋糕：竖切分配料，横切分人数"</strong></p>
+<p>一套完整的记忆框架包含三个层次：</p>
 <table>
 <thead>
 <tr>
-<th>维度</th>
-<th>垂直分表</th>
-<th>水平分表</th>
+<th>层次</th>
+<th>口诀</th>
+<th>对应关系</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>拆分方向</td>
-<td>按列（Column）</td>
-<td>按行（Row）</td>
+<td>核心口诀</td>
+<td>竖切分列，横切分行</td>
+<td>垂直=按列拆分，水平=按行拆分</td>
 </tr>
 <tr>
-<td>子表结构</td>
-<td>不同（Different Schema）</td>
-<td>相同（Identical Schema）</td>
+<td>场景口诀</td>
+<td>宽表竖切，大表横切</td>
+<td>垂直解决"表太宽"，水平解决"表太大"</td>
 </tr>
 <tr>
-<td>拆分依据</td>
-<td>字段属性（大小、访问频率）</td>
-<td>分片键（Sharding Key）</td>
-</tr>
-<tr>
-<td>数据量减少</td>
-<td>每张表行数不变，列数减少</td>
-<td>每张表列数不变，行数减少</td>
-</tr>
-<tr>
-<td>主键关系</td>
-<td>子表共享同一主键</td>
-<td>子表各自独立主键</td>
+<td>问题口诀</td>
+<td>竖切怕JOIN，横切怕扩容</td>
+<td>垂直分表的核心代价是JOIN查询，水平分表的核心代价是扩容重分布</td>
 </tr>
 </tbody>
 </table>
-<p><strong>典型举例</strong>：</p>
-<p>垂直分表 —— 用户表（User）拆分为：</p>
-<div class="highlight"><pre><span></span><code><span class="c1">-- 用户主表：高频、小字段</span>
-<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_main</span><span class="w"> </span><span class="p">(</span>
-<span class="w">    </span><span class="n">user_id</span><span class="w">    </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
-<span class="w">    </span><span class="n">username</span><span class="w">   </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
-<span class="w">    </span><span class="n">mobile</span><span class="w">     </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
-<span class="w">    </span><span class="n">email</span><span class="w">      </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
-<span class="w">    </span><span class="n">status</span><span class="w">     </span><span class="n">TINYINT</span><span class="p">,</span>
-<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="n">DATETIME</span>
+<h3 id="_4">记忆原理</h3>
+<p>这个口诀利用<strong>空间类比法</strong>建立强记忆锚点：</p>
+<ul>
+<li><strong>物理空间映射</strong>："竖切"对应数据库的"列"（Column）方向，将一张宽表的多个列分散到不同表中；"横切"对应数据库的"行"（Row）方向，将大量行均匀分布到多个结构相同的表中。人的空间直觉对"竖/横"有天然的方向辨别力，无需额外记忆。</li>
+<li><strong>分层递进编码</strong>：第一层解决"是什么"（按列 vs 按行），第二层解决"为什么"（宽表vs大表的两类问题），第三层解决"有什么代价"（JOIN vs 扩容）。三层递进形成完整的知识链：<strong>定义→动机→代价</strong>，面试中自然展开不会遗漏。</li>
+<li><strong>反义对偶结构</strong>："竖切分列，横切分行"采用四字对偶结构，类似"左顾右盼"、"上窜下跳"的成语节奏，朗朗上口且形成对比强化。</li>
+</ul>
+<h3 id="_5">关联知识</h3>
+<ul>
+<li><strong>文件系统类比</strong>：垂直分表类似将一个大文件按字段拆分为多个小文件（如JSON中拆出独立的<code>user_base</code>和<code>user_ext</code>）；水平分表类似将一个大文件按行拆分为多个分片文件（如日志文件按日期拆分）。前者解决单行数据过宽问题，后者解决单文件行数过多问题。</li>
+<li><strong>操作系统类比</strong>：垂直分表 ≈ 页面分段（Segmentation）——将进程地址空间按逻辑功能拆分为代码段、数据段、堆栈段；水平分表 ≈ 分页（Paging）——将内存等分为固定大小的页框。这一类比在学习数据库时帮助理解两类拆分的思想来源。</li>
+<li><strong>Java类设计类比</strong>：垂直分表 ≈ 类的拆分原则（单一职责：一个类不应包含过多字段，将大字段拆到独立类）；水平分表 ≈ 线程池任务分片（将大量任务平均分配给多个工作线程并行处理）。</li>
+</ul>
+<hr />
+<h2 id="_6">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p><strong>垂直分表（Vertical Partitioning）与水平分表（Horizontal Partitioning/Sharding）</strong> 是数据库拆分（Database Splitting）的两种基本策略，分别从列维度和行维度解决单表性能瓶颈问题。</p>
+<h4 id="11">1.1 垂直分表：按列拆分</h4>
+<p>垂直分表（Vertical Partitioning）是指将一张列数过多的表，按列拆分为多张结构不同的子表。每张子表包含原表的部分列，通过主键（Primary Key）保持关联。</p>
+<p><strong>形式化定义</strong>：给定原表 <code>R(A1, A2, ..., An)</code>，垂直分表将其拆分为 <code>R1(A1, A2, ..., Ak)</code> 和 <code>R2(A1, Ak+1, ..., An)</code>，其中 <code>A1</code> 为主键，两张子表共享主键。</p>
+<p><strong>典型示例</strong>：电商用户表</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 拆分前：一张宽表，包含所有用户信息</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
+<span class="w">    </span><span class="n">password</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+<span class="w">    </span><span class="n">email</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+<span class="w">    </span><span class="n">phone</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">avatar_url</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span>
+<span class="w">    </span><span class="n">bio</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span><span class="w">                    </span><span class="c1">-- 个人简介，访问频率低</span>
+<span class="w">    </span><span class="n">last_login_ip</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">register_time</span><span class="w"> </span><span class="n">DATETIME</span><span class="p">,</span>
+<span class="w">    </span><span class="n">register_ip</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">vip_level</span><span class="w"> </span><span class="n">TINYINT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">points</span><span class="w"> </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">preferences</span><span class="w"> </span><span class="n">JSON</span><span class="w">             </span><span class="c1">-- 偏好设置，大字段</span>
 <span class="p">);</span>
 
-<span class="c1">-- 用户扩展表：低频、大字段</span>
+<span class="c1">-- 拆分后：用户基本信息表（高频访问字段）</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_base</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
+<span class="w">    </span><span class="n">password</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+<span class="w">    </span><span class="n">email</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+<span class="w">    </span><span class="n">phone</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">last_login_ip</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">register_time</span><span class="w"> </span><span class="n">DATETIME</span><span class="p">,</span>
+<span class="w">    </span><span class="n">register_ip</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="c1">-- 拆分后：用户扩展信息表（低频访问字段 + 大字段）</span>
 <span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_ext</span><span class="w"> </span><span class="p">(</span>
-<span class="w">    </span><span class="n">user_id</span><span class="w">     </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
-<span class="w">    </span><span class="n">avatar_url</span><span class="w">  </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span>
-<span class="w">    </span><span class="n">bio</span><span class="w">         </span><span class="nb">TEXT</span><span class="p">,</span>
-<span class="w">    </span><span class="n">preferences</span><span class="w"> </span><span class="n">JSON</span><span class="p">,</span>
-<span class="w">    </span><span class="n">last_login</span><span class="w">  </span><span class="n">DATETIME</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">avatar_url</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span>
+<span class="w">    </span><span class="n">bio</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">vip_level</span><span class="w"> </span><span class="n">TINYINT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">points</span><span class="w"> </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">preferences</span><span class="w"> </span><span class="n">JSON</span>
 <span class="p">);</span>
 </code></pre></div>
 
-<p>水平分表 —— 订单表（Order）按 <code>user_id</code> 哈希分16张表：</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// 分片路由算法：user_id % 16</span>
-<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">OrderShardingAlgorithm</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">getTableName</span><span class="p">(</span><span class="n">Long</span><span class="w"> </span><span class="n">userId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">shard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">userId</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">16</span><span class="p">);</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;order_&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">shard</span><span class="p">;</span>
+<p><strong>常用拆分规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+<th>拆分对象</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大字段分离</td>
+<td>将TEXT/BLOB/JSON等大字段拆到独立表</td>
+<td><code>bio</code>、<code>preferences</code>、<code>avatar_data</code></td>
+</tr>
+<tr>
+<td>冷热数据分离</td>
+<td>将高频访问字段（热数据）与低频字段（冷数据）拆分</td>
+<td>登录信息 vs 历史设置</td>
+</tr>
+<tr>
+<td>更新频率分离</td>
+<td>将高频更新字段与低频更新字段拆分</td>
+<td><code>last_login_ip</code>（高频写）vs <code>vip_level</code>（低频写）</td>
+</tr>
+<tr>
+<td>访问模式分离</td>
+<td>将列表页需要的字段与详情页需要的字段拆分</td>
+<td>列表需<code>username</code>+<code>avatar</code>，详情需<code>bio</code>+<code>preferences</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="12">1.2 水平分表：按行拆分</h4>
+<p>水平分表（Horizontal Partitioning / Sharding）是指将一张行数过大的表，按行拆分为多张结构完全相同的子表（也叫分片，Shard）。每张子表包含原表的一个行子集。</p>
+<p><strong>形式化定义</strong>：给定原表 <code>R</code> 的行集合 <code>{r1, r2, ..., rm}</code>，水平分表将其拆分为 <code>R1, R2, ..., Rn</code>，满足 <code>R = R1 ∪ R2 ∪ ... ∪ Rn</code> 且 <code>Ri ∩ Rj = ∅ (i≠j)</code>，所有子表结构相同。</p>
+<p><strong>典型示例</strong>：订单表按用户ID哈希分16张表</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 拆分后：16张结构完全相同的子表</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">order_0</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">user_id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">order_no</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total_amount</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span>
+<span class="w">    </span><span class="n">status</span><span class="w"> </span><span class="n">TINYINT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">create_time</span><span class="w"> </span><span class="n">DATETIME</span>
+<span class="p">);</span>
+<span class="c1">-- 同理 order_1, order_2, ..., order_15，结构完全一致</span>
+
+<span class="c1">-- 路由规则（Sharding Strategy）：user_id % 16</span>
+<span class="c1">-- 当 user_id = 1001 时，路由到 order_1001%16 = order_9</span>
+<span class="c1">-- 当 user_id = 2050 时，路由到 order_2050%16 = order_2</span>
+</code></pre></div>
+
+<hr />
+<h3 id="2">2. 底层原理</h3>
+<h4 id="21">2.1 垂直分表的底层原理：页存储与行溢出</h4>
+<p><strong>InnoDB Page（数据库页）存储结构</strong></p>
+<p>MySQL InnoDB 存储引擎以 <strong>Page（页）</strong> 为最小I/O单位，默认每个 Page 大小为 <strong>16KB</strong>。数据行（Row）以 B+ 树（B+ Tree）的叶子节点形式存储在 Page 中：</p>
+<div class="highlight"><pre><span></span><code>InnoDB Page (16KB)
+┌──────────────────────────────────┐
+│  File Header (38B)               │
+├──────────────────────────────────┤
+│  Page Header (56B)               │
+├──────────────────────────────────┤
+│  Infimum + Supremum Records (26B)│
+├──────────────────────────────────┤
+│  ┌── Row Data ──────────────┐   │
+│  │  row_1 (500B)            │   │
+│  │  row_2 (500B)            │   │
+│  │  ...                     │   │
+│  │  row_n (500B)            │   │  ← 一行越宽，Page能容纳的行数越少
+│  └──────────────────────────┘   │
+├──────────────────────────────────┤
+│  Free Space                      │
+├──────────────────────────────────┤
+│  Page Directory                  │
+├──────────────────────────────────┤
+│  File Trailer (8B)               │
+└──────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>关键计算</strong>：一个 16KB 的 Page，除去 File Header（38B）、Page Header（56B）、File Trailer（8B）等固定开销（约120B）后，可用空间约 16256B。如果表中包含 <code>TEXT</code>、<code>BLOB</code>、<code>JSON</code> 等大字段，或者列数过多导致单行数据很大（如 4KB/行），一个 Page 只能存储约 4 行，导致 B+ 树层级加深、查询需要读取更多 Page、I/O 次数剧增。</p>
+<p><strong>行溢出（Row Overflow）</strong></p>
+<p>InnoDB 对行大小有硬限制：<strong>一行的所有列（不包括TEXT/BLOB）不得超过 Page 大小的一半（约 8126B）</strong>。当行数据超过此限制或包含 TEXT/BLOB 类型时，会发生行溢出：</p>
+<ul>
+<li><strong>行内存储（Inline Storage）</strong>：对于 VARCHAR 或较短的 TEXT，InnoDB 会优先尝试在行内存储所有数据。</li>
+<li><strong>页外存储（Off-page Storage）</strong>：如果 TEXT/BLOB 字段超过一定长度（TEXT 最大 65535B，BLOB 最大 65535B），InnoDB 会在行内只保留一个 20 字节的溢出指针（Overflow Pointer），实际数据存储在单独的溢出页（Overflow Page）中，查询时需要额外的一次 I/O 获取数据。</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">行内</span><span class="err">（</span><span class="n">未拆分</span><span class="err">）：</span>
+<span class="err">┌─────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">email</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">bio</span><span class="w"> </span><span class="p">(</span><span class="nc">TEXT</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="n">B</span><span class="p">)</span><span class="w">        </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">1</span><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="n">Tom</span><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="n">t</span><span class="nv">@m</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">bio</span><span class="w"> </span><span class="n">content</span><span class="p">...</span><span class="w"> </span><span class="p">(</span><span class="n">溢出指针</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">←</span><span class="w"> </span><span class="n">需要额外I</span><span class="o">/</span><span class="n">O读取溢出页</span>
+<span class="err">└─────────────────────────────────────────────┘</span>
+
+<span class="n">垂直分表后</span><span class="err">：</span>
+<span class="err">┌────────────────────┐</span><span class="w">   </span><span class="err">┌──────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">email</span><span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">bio</span><span class="w"> </span><span class="p">(</span><span class="nc">TEXT</span><span class="p">)</span><span class="w">       </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="mi">1</span><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="n">Tom</span><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="n">t</span><span class="nv">@m</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="mi">1</span><span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="n">bio</span><span class="w"> </span><span class="n">content</span><span class="p">...</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="err">←</span><span class="w"> </span><span class="n">查基本信息时不触发生物字段</span>
+<span class="err">└────────────────────┘</span><span class="w">   </span><span class="err">└──────────────────────┘</span>
+</code></pre></div>
+
+<p>垂直分表的本质优化就是<strong>将行溢出的大字段分离到独立表</strong>，使主表每行变窄，一个 Page 容纳更多行，大幅降低查询时的 I/O 次数。</p>
+<p><strong>聚簇索引（Clustered Index）与非聚簇索引（Secondary Index）</strong></p>
+<p>InnoDB 使用 <strong>聚簇索引（Clustered Index）</strong> 作为主键索引，叶子节点直接存储完整行数据。非聚簇索引（Secondary Index / Non-clustered Index）的叶子节点存储主键值，回表查询（Index Lookup）时通过主键到聚簇索引查找完整行。</p>
+<div class="highlight"><pre><span></span><code>聚簇索引（按主键组织）        非聚簇索引（按username组织）
+┌──────────────┐            ┌──────────────┐
+│  Page 1      │            │  Page 1      │
+│  id=1 行数据  │            │  &quot;Alice&quot;→id=3│
+│  id=2 行数据  │            │  &quot;Bob&quot;  →id=1│
+│  id=3 行数据  │            │  &quot;Tom&quot;  →id=2│
+└──────────────┘            └──────┬───────┘
+                                    │ 回表查询
+                                    ▼
+                             ┌──────────────┐
+                             │  聚簇索引     │
+                             │  id=3 行数据  │
+                             └──────────────┘
+</code></pre></div>
+
+<p>垂直分表后，每张子表各有一套聚簇索引，行宽变窄，索引层级减少（通常 B+ 树从 3 层降为 2 层），查询效率显著提升。</p>
+<h4 id="22">2.2 水平分表的底层原理：分片路由与数据分布</h4>
+<p><strong>分片策略（Sharding Strategy）</strong></p>
+<p>水平分表的核心是<strong>分片键（Sharding Key）</strong>的选择和<strong>路由策略（Routing Strategy）</strong>的确定。常用的分片策略包括四种：</p>
+<p><strong>（1）Range 分片（范围分片，Range Sharding）</strong></p>
+<p>按分片键的范围区间将数据分配到不同表：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 订单按时间范围分片</span>
+<span class="c1">-- order_202401: 2024年1月的订单</span>
+<span class="c1">-- order_202402: 2024年2月的订单</span>
+<span class="c1">-- order_202403: 2024年3月的订单</span>
+
+<span class="c1">-- 路由规则：根据 create_time 确定目标表</span>
+<span class="c1">-- 2024-01-15 → order_202401</span>
+<span class="c1">-- 2024-02-20 → order_202402</span>
+</code></pre></div>
+
+<p>优点：实现简单，范围查询友好（直接访问连续的分片）；缺点：<strong>数据倾斜（Data Skew）</strong>问题严重——热点月份数据集中写入某一片，该片成为性能瓶颈。</p>
+<p><strong>（2）Hash 分片（哈希分片，Hash Sharding）</strong></p>
+<p>对分片键计算哈希值后取模：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 用户表按 user_id 哈希分 8 张表</span>
+<span class="c1">-- 路由规则：user_id % 8</span>
+<span class="c1">-- user_id=1001 → 1001 % 8 = 1 → user_1</span>
+<span class="c1">-- user_id=1002 → 1002 % 8 = 2 → user_2</span>
+</code></pre></div>
+
+<p>优点：数据分布均匀，避免热点问题；缺点：<strong>扩容困难</strong>（改变分片数后取模结果全变，需要大规模数据迁移），范围查询需遍历所有分片。</p>
+<p><strong>（3）List 分片（列表分片，List Sharding）</strong></p>
+<p>按分片键的枚举值列表确定目标表：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 按地区分片</span>
+<span class="c1">-- user_east: 华东地区用户（上海、江苏、浙江）</span>
+<span class="c1">-- user_south: 华南地区用户（广东、福建、海南）</span>
+<span class="c1">-- user_west: 西部地区用户（四川、重庆、陕西）</span>
+
+<span class="k">CASE</span><span class="w"> </span><span class="n">region</span>
+<span class="w">    </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">&#39;上海&#39;</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">&#39;user_east&#39;</span>
+<span class="w">    </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">&#39;江苏&#39;</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">&#39;user_east&#39;</span>
+<span class="w">    </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">&#39;广东&#39;</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">&#39;user_south&#39;</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="k">END</span>
+</code></pre></div>
+
+<p><strong>（4）Composite 分片（复合分片，Composite Sharding）</strong></p>
+<p>组合多种策略分片：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 先按 user_id % 16 确定分库（16个库）</span>
+<span class="c1">-- 再按 create_time 月做 Range 分表</span>
+<span class="c1">-- 最终表名：order_{dbIndex}_{month}</span>
+</code></pre></div>
+
+<hr />
+<h3 id="3">3. 实践应用</h3>
+<h4 id="31">3.1 垂直分表的应用场景</h4>
+<p><strong>场景一：电商用户系统</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 用户基础表：高频访问 + 少量列</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_base</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">UNIQUE</span><span class="p">,</span>
+<span class="w">    </span><span class="n">password_hash</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">128</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">email</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+<span class="w">    </span><span class="n">phone</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">status</span><span class="w"> </span><span class="n">TINYINT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+<span class="w">    </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_email</span><span class="w"> </span><span class="p">(</span><span class="n">email</span><span class="p">),</span>
+<span class="w">    </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_phone</span><span class="w"> </span><span class="p">(</span><span class="n">phone</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span>
+
+<span class="c1">-- 用户统计表：高频更新，单独拆分避免行锁竞争</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_stats</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">coins</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">points</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">experience</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="k">level</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total_orders</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total_spent</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">.</span><span class="mi">00</span><span class="p">,</span>
+<span class="w">    </span><span class="k">FOREIGN</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">user_base</span><span class="p">(</span><span class="n">id</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span>
+
+<span class="c1">-- 用户设置表：大字段 + 低频访问</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">user_settings</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">preferences</span><span class="w"> </span><span class="n">JSON</span><span class="p">,</span>
+<span class="w">    </span><span class="n">notification_config</span><span class="w"> </span><span class="n">JSON</span><span class="p">,</span>
+<span class="w">    </span><span class="n">privacy_settings</span><span class="w"> </span><span class="n">JSON</span><span class="p">,</span>
+<span class="w">    </span><span class="n">theme</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="s1">&#39;light&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="k">FOREIGN</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">user_base</span><span class="p">(</span><span class="n">id</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>场景二：内容管理系统（CMS，Content Management System）</strong></p>
+<p>文章表拆分策略：<br />
+- <code>article_summary</code>：<code>id, title, author_id, status, create_time, view_count</code>（列表页需要，窄表）<br />
+- <code>article_body</code>：<code>id, content TEXT, html_content MEDIUMTEXT</code>（详情页需要，大字段）</p>
+<h4 id="32">3.2 水平分表的应用场景</h4>
+<p><strong>场景一：订单系统（按用户ID哈希分片）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># ShardingSphere 水平分表配置示例</span>
+<span class="nt">spring</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">shardingsphere</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">datasource</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">names</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds</span>
+<span class="w">      </span><span class="nt">ds</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">com.zaxxer.hikari.HikariDataSource</span>
+<span class="w">        </span><span class="nt">driver-class-name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">com.mysql.cj.jdbc.Driver</span>
+<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jdbc:mysql://localhost:3306/order_db</span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">root</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">root</span>
+<span class="w">    </span><span class="nt">sharding</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">tables</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">t_order</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">actual-data-nodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds.t_order_$-&gt;{0..15}</span><span class="w">  </span><span class="c1"># 16张分表</span>
+<span class="w">          </span><span class="nt">table-strategy</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">standard</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">sharding-column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_id</span><span class="w">                </span><span class="c1"># 分片键</span>
+<span class="w">              </span><span class="nt">precise-algorithm-class-name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">com.example.OrderPreciseAlgorithm</span>
+<span class="w">          </span><span class="nt">key-generator</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SNOWFLAKE</span><span class="w">                           </span><span class="c1"># 雪花算法生成全局唯一ID</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1">// 自定义分片算法（PreciseShardingAlgorithm）</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">OrderPreciseAlgorithm</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">PreciseShardingAlgorithm</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">doSharding</span><span class="p">(</span><span class="n">Collection</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tableNames</span><span class="p">,</span><span class="w"> </span>
+<span class="w">                             </span><span class="n">PreciseShardingValue</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span><span class="w"> </span><span class="n">shardingValue</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Long</span><span class="w"> </span><span class="n">userId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shardingValue</span><span class="p">.</span><span class="na">getValue</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">shardIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">userId</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">16</span><span class="p">);</span><span class="w">           </span><span class="c1">// Hash分片</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">tableName</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">tableNames</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tableName</span><span class="p">.</span><span class="na">endsWith</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">shardIndex</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">tableName</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IllegalArgumentException</span><span class="p">(</span><span class="s">&quot;No table found for userId: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">userId</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<h4 id="underlying-principles">二、底层原理（Underlying Principles）</h4>
-<p><strong>垂直分表的底层原理</strong>：</p>
-<ol>
-<li>
-<p><strong>InnoDB 页存储（Page Storage）</strong>：MySQL InnoDB 存储引擎的最小存储单位是页（Page），默认大小为 16KB。一个页内存储的行数越多，每次 I/O 能读取的有效数据越多。宽表的每行数据过大 → 每个页能存储的行数减少 → 相同行数的数据需要更多页 → 增加 I/O 次数。</p>
-</li>
-<li>
-<p><strong>行溢出（Row Overflow）</strong>：当一行数据超过一个页的大小（16KB），InnoDB 会将部分数据存储在溢出页（Overflow Page）中。TEXT、BLOB、过长 VARCHAR 都会触发行溢出。查询时即使只需要一个字段，也需要读取溢出页，造成额外的随机 I/O。</p>
-</li>
-<li>
-<p><strong>聚簇索引（Clustered Index）</strong>：InnoDB 的主键是聚簇索引，行数据直接存储在 B+ 树的叶子节点上。宽表意味着每棵 B+ 树的叶子节点存储的数据量更大，树的高度更高。高度每增加一层，每次查询就多一次磁盘 I/O。</p>
-</li>
-<li>
-<p><strong>缓冲池（Buffer Pool）污染</strong>：宽表中的大字段被加载到 Buffer Pool 后，会挤占热门数据的缓存空间，降低缓存命中率（Cache Hit Ratio）。</p>
-</li>
-</ol>
-<p><strong>水平分表的底层原理</strong>：</p>
-<ol>
-<li><strong>B+树高度与数据量</strong>：InnoDB B+树的高度与数据量的关系为：<code>高度 h = log_{扇出数}(总行数)</code>。设扇出数（Fan-out）约为 1200（16KB / 索引键大小），则：</li>
-<li>高度 h=3：可存储约 1200³ ≈ 17 亿行</li>
-<li>但实际上，由于索引项与行数据共同存储在叶子节点，有效扇出数远小于理论值</li>
-<li>
-<p>当单表数据量超过千万级别，B+树高度达到 3-4 层，每次查询需 3-4 次 I/O</p>
-</li>
-<li>
-<p><strong>锁竞争（Lock Contention）</strong>：单表数据量过大时，行锁（Record Lock）、间隙锁（Gap Lock）的竞争加剧，特别是在高并发写入场景下。</p>
-</li>
-<li>
-<p><strong>索引维护成本</strong>：B+树的维护（分裂、合并）成本随数据量增加呈超线性增长。水平分表后，每张子表独立维护 B+树，单树规模大幅减小。</p>
-</li>
-</ol>
-<h4 id="practical-applications">三、实践应用（Practical Applications）</h4>
-<p><strong>垂直分表应用场景</strong>：</p>
-<ol>
-<li><strong>电商用户系统</strong>：用户表包含基本信息 + 收货地址 + 会员信息 + 偏好设置，每天查询频率差异极大将基本信息分离为高频访问表</li>
-<li><strong>内容管理系统</strong>：文章表包含标题、摘要、正文（TEXT）、封面图URL，正文只在点击详情时查询，应拆分</li>
-<li><strong>SaaS 多租户系统</strong>：租户配置表中的 JSON 配置字段与核心业务字段分离</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="c1"># ShardingSphere 垂直分表配置示例</span>
-<span class="nt">rules</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="kt">!SHARDING</span>
-<span class="w">    </span><span class="nt">tables</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">user_main</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">actualDataNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds0.user_main</span>
-<span class="w">      </span><span class="nt">user_ext</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">actualDataNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds0.user_ext</span>
+<p><strong>场景二：日志系统（按时间Range分片）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 每月一张日志表</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">access_log_202406</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ip</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">16</span><span class="p">),</span>
+<span class="w">    </span><span class="n">url</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">512</span><span class="p">),</span>
+<span class="w">    </span><span class="n">status_code</span><span class="w"> </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">duration_ms</span><span class="w"> </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">request_time</span><span class="w"> </span><span class="n">DATETIME</span><span class="p">,</span>
+<span class="w">    </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_time</span><span class="w"> </span><span class="p">(</span><span class="n">request_time</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="p">;</span>
+
+<span class="c1">-- 查询时指定表名</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">access_log_202406</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">request_time</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="s1">&#39;2024-06-01&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">request_time</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="s1">&#39;2024-07-01&#39;</span><span class="p">;</span>
 </code></pre></div>
 
-<p><strong>水平分表应用场景</strong>：</p>
-<ol>
-<li><strong>订单系统</strong>：按用户 ID 分片，确保同一用户的订单在同一个分片上，便于查询</li>
-<li><strong>日志系统</strong>：按时间范围分片（Range Sharding），按月创建日志表</li>
-<li><strong>消息记录</strong>：按 Hash 分片，均匀分布写入压力</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="c1"># ShardingSphere 水平分表配置示例</span>
-<span class="nt">rules</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="kt">!SHARDING</span>
-<span class="w">    </span><span class="nt">tables</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">order</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">actualDataNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds0.order_${0..15}</span>
-<span class="w">        </span><span class="nt">tableStrategy</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">standard</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">shardingColumn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_id</span>
-<span class="w">            </span><span class="nt">shardingAlgorithmName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">order_hash</span>
-<span class="w">    </span><span class="nt">shardingAlgorithms</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">order_hash</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HASH_MOD</span>
-<span class="w">        </span><span class="nt">props</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">shardingCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<h4 id="33-sharding-key">3.3 分片键（Sharding Key）的选择原则</h4>
+<p>分片键选择是水平分表设计中最关键的决策，遵循以下四个原则：</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+<th>反例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>数据均匀</strong>（Data Uniformity）</td>
+<td>各分片数据量尽量一致</td>
+<td>按地区分片导致某些地区订单量远大于其他地区</td>
+</tr>
+<tr>
+<td><strong>查询友好</strong>（Query Affinity）</td>
+<td>大部分查询携带分片键</td>
+<td>按创建时间分片但查询按用户ID</td>
+</tr>
+<tr>
+<td><strong>不可变性</strong>（Immutability）</td>
+<td>分片键值不应变更</td>
+<td>按手机号分片但用户可以换号</td>
+</tr>
+<tr>
+<td><strong>高基数</strong>（High Cardinality）</td>
+<td>分片键的取值分布足够广</td>
+<td>按性别（仅2个值）分片</td>
+</tr>
+</tbody>
+</table>
+<p><strong>推荐分片键</strong>：用户ID、订单ID、设备ID等天然均匀分布且查询频率高的字段。</p>
+<hr />
+<h3 id="4">4. 深入思考</h3>
+<h4 id="41-join">4.1 垂直分表的JOIN问题与反范式化设计权衡</h4>
+<p>垂直分表将原本在一张表的字段分散到多张表，查询时需通过 JOIN 或多次查询拼装数据：</p>
+<p><strong>问题</strong>：JOIN操作对性能影响显著——需要读取多张表的聚簇索引，在内存中进行行匹配，表数越多性能下降越明显。</p>
+<p><strong>权衡方案</strong>：反范式化设计（Denormalization）——在基础表中冗余存储少量扩展表字段，减少JOIN次数。</p>
+<p><strong>决策原则</strong>：<br />
+- <strong>读多写少</strong>的字段：适合冗余（如用户等级），写入时同步更新即可<br />
+- <strong>读少写多</strong>的字段：不适合冗余（如登录IP），反范式化带来的写同步成本高于收益<br />
+- <strong>一致性要求高</strong>的字段：避免冗余，宁可JOIN也要保证数据一致性</p>
+<h4 id="42-consistent-hashing">4.2 水平分表的扩容难题与一致性哈希（Consistent Hashing）</h4>
+<p><strong>扩容痛点</strong>：Hash分片下，从 N 片扩容到 M 片时，<code>hash(key) % N</code> 变为 <code>hash(key) % M</code>，几乎所有数据的路由目标都会变化，需要大规模数据迁移（Re-sharding）。</p>
+<p><strong>传统取模迁移代价示例</strong>：</p>
+<div class="highlight"><pre><span></span><code>扩容前：4 张表，key=1 → 1%4=1 → 表1
+扩容后：8 张表，key=1 → 1%8=1 → 表1（命中）
+        key=5 → 5%4=1 → 表1（旧），5%8=5 → 表5（新）→ 需要迁移！
+        平均约 75% 的数据需要迁移
 </code></pre></div>
 
-<p><strong>分片键（Sharding Key）选择原则</strong>：<br />
-- 高频查询条件字段（Where 中的核心条件）<br />
-- 数据分布均匀（避免数据倾斜 Data Skew）<br />
-- 不可变性（Immutable）—— 一旦选择不应变更<br />
-- 与业务聚合性一致（如按用户分片便于管理订单数据）</p>
-<h4 id="deep-thinking">四、深入思考（Deep Thinking）</h4>
-<p><strong>垂直分表的 JOIN 问题与反范式化</strong>：<br />
-垂直分表后，查询需要跨表 JOIN，影响性能。可通过反范式化（Denormalization）—— 在子表中冗余存储少量高频查询字段，减少 JOIN 次数。这是一次空间换时间的设计权衡（Trade-off）。</p>
-<p><strong>水平分表的扩容难题</strong>：<br />
-- 取模分片（Mod Sharding）：扩容时数据迁移量大，需要全量 rehash<br />
-- 一致性哈希（Consistent Hashing）：每次扩容仅需迁移 1/N 的数据量<br />
-- Range 分片：新增分片无需重分布，但可能产生热点（Hot Spot）</p>
-<p><strong>跨分片查询（Cross-shard Query）</strong>：<br />
-水平分表后，不带分片键的查询需要广播到所有分片（Broadcast Query），再在应用层聚合结果（结果归并 Result Merge）。生产实践中应尽量避免，或通过 Elasticsearch 的倒排索引（Inverted Index）做二级索引。</p>
-<h3 id="_3">🗺️ 回答思路</h3>
-<p><strong>答题逻辑框架</strong>（总-分-总结构）：<br />
-1. <strong>总起</strong>：一句话定义两种分表方式 —— "垂直分表按列拆分，解决单行过大问题；水平分表按行拆分，解决单表行数过多问题"<br />
-2. <strong>分述</strong>：分别展开概念、原理、应用场景、优缺点<br />
-3. <strong>对比</strong>：列出对比表格，强调本质区别<br />
-4. <strong>总结</strong>：两者不是互斥关系，可组合使用，给出选型建议</p>
-<p><strong>重点得分点</strong>：<br />
-- 点出本质区别（列 vs 行）—— 这是最基础也是最重要的区分<br />
-- 说出底层存储原理（InnoDB Page、B+树高度）展现深度<br />
-- 给出实际分片配置（YAML/代码）展现工程经验<br />
-- 指出方案缺陷（JOIN问题、扩容难题）体现全面思考</p>
-<p><strong>常见误区</strong>：<br />
-- 混淆"分表"（Table Splitting）与"分区"（Partitioning，如 MySQL PARTITION BY RANGE）<br />
-- 以为水平分表一定需要中间件（实际也可以应用层硬编码路由）<br />
-- 忽略水平分表对事务和聚合查询的影响</p>
-<p><strong>时间分配建议</strong>（5分钟答案）：<br />
-| 阶段 | 时间 | 内容 |<br />
-|------|------|------|<br />
-| 概念定义 | 1分钟 | 两种分表的定义和本质区别 |<br />
-| 对比分析 | 2分钟 | 优缺点对比、适用场景举例 |<br />
-| 底层原理 | 1分钟 | B+树、Page存储、锁竞争 |<br />
-| 深入拓展 | 1分钟 | 分布式问题、选型思考 |</p>
-<p><strong>过渡话术</strong>：<br />
-- "在了解概念后，我们从底层存储原理来看看为什么需要这样拆分……"<br />
-- "以上是垂直分表和水平分表的区别，接下来我们深入讨论分库和分表各自解决什么具体问题……"</p>
+<p><strong>一致性哈希（Consistent Hashing）</strong> 的解决思路：</p>
+<p>一致性哈希将哈希值空间组织成一个虚拟环（Hash Ring，范围 0~2^32-1），数据节点映射到环上，数据按顺时针方向找到最近的节点。</p>
+<p><strong>扩容时的影响</strong>：新增一个节点时，仅影响该节点顺时针方向的相邻节点的数据，平均只需迁移 <code>1/(N+1)</code> 的数据（N为原节点数）。相比传统取模的 <code>N/(N+1)</code>，迁移量大幅降低。</p>
+<p><strong>虚拟节点（Virtual Node）优化</strong>：一致性哈希在节点较少时可能出现数据倾斜——部分节点负载远大于其他节点。引入虚拟节点（每个物理节点对应 K 个虚拟节点）使数据分布更均匀。K 的典型取值为 100~200。</p>
+<h4 id="43-idsnowflake-algorithm">4.3 分布式全局ID生成：雪花算法（Snowflake Algorithm）</h4>
+<p>水平分表后，数据库自增ID不再适用（不同分片会生成重复ID）。需要全局唯一的分布式ID生成器。<strong>雪花算法（Snowflake Algorithm）</strong> 是 Twitter 开源的最广泛使用的解决方案。</p>
+<p><strong>ID 结构（64位 Long）</strong>：<br />
+- 1 bit：符号位，始终为 0<br />
+- 41 bits：毫秒级时间戳，可用 69 年<br />
+- 10 bits：工作机器 ID（5 bit 数据中心 + 5 bit 机器 ID）<br />
+- 12 bits：序列号，每毫秒可生成 4096 个 ID</p>
+<p><strong>算法特点</strong>：<br />
+- <strong>全局唯一</strong>：分布式环境下不依赖中心节点，每台机器独立生成不重复ID<br />
+- <strong>趋势递增</strong>：时间戳高位在前，整体呈递增趋势<br />
+- <strong>高性能</strong>：纯位运算生成，单机可达百万级/秒<br />
+- <strong>容错</strong>：时钟回拨（Clock Drift）问题——如果服务器时间回拨，可能生成重复ID。解决方案：记录上次生成时间戳，回拨时等待或使用备用序列号段</p>
+<h4 id="44-cross-shard-query">4.4 跨分片查询（Cross-shard Query）与分布式事务</h4>
+<p><strong>跨分片查询（Cross-shard Query）</strong></p>
+<p>当查询条件不包含分片键时，系统需要将查询广播到所有分片，然后合并结果——这是水平分表最严重的性能问题之一。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 订单表按 user_id 分片</span>
+<span class="c1">-- 当按 order_no 查询时，无法路由到特定分片：</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t_order</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">order_no</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;ORD202406150001&#39;</span><span class="p">;</span>
+<span class="c1">-- → 需要遍历所有 16 张分表</span>
+
+<span class="c1">-- 解决方案一：建立全局索引表</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">order_no_index</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">order_no</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">user_id</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">shard_index</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+
+<span class="c1">-- 解决方案二：Elasticsearch 构建二级索引</span>
+</code></pre></div>
+
+<p>其他跨分片查询场景：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>问题</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨分片排序</td>
+<td>各分片TOP N合并后不是全局TOP N</td>
+<td>各分片取N行，应用层归并排序</td>
+</tr>
+<tr>
+<td>跨分片聚合</td>
+<td>COUNT/SUM/AVG 需要汇总各分片结果</td>
+<td>分片分别计算后汇总；AVG需SUM+COUNT二次计算</td>
+</tr>
+<tr>
+<td>跨分片分页</td>
+<td>深度分页页面越大性能越差</td>
+<td>禁止深度分页，改用游标分页（Cursor-based Pagination）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>分布式事务（Distributed Transaction）</strong></p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>一致性模型</th>
+<th>适用场景</th>
+<th>核心算法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两阶段提交（2PC）</td>
+<td>强一致性</td>
+<td>金融、支付</td>
+<td>Prepare → Commit/Rollback</td>
+</tr>
+<tr>
+<td>TCC（Try-Confirm-Cancel）</td>
+<td>最终一致性</td>
+<td>高并发场景</td>
+<td>预留资源 → 确认/回滚</td>
+</tr>
+<tr>
+<td>可靠消息最终一致性</td>
+<td>最终一致性</td>
+<td>异步解耦场景</td>
+<td>本地消息表 + MQ补偿</td>
+</tr>
+<tr>
+<td>Seata AT</td>
+<td>最终一致性</td>
+<td>通用场景</td>
+<td>全局事务代理 + 回滚日志</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">🗺️ 回答思路</h2>
+<h3 id="_8">答题逻辑框架</h3>
+<p>推荐采用 <strong>"总分总"结构（Macro-to-Specific-to-Summary）</strong> 进行面试回答：</p>
+<div class="highlight"><pre><span></span><code>第一层（30秒）: 一句话定义两者本质区别
+→ &quot;垂直分表是按列拆分，把一张宽表变成多张窄表；
+   水平分表是按行拆分，把一张大表变成多张小表。
+   前者解决『表太宽』问题，后者解决『表太大』问题。&quot;
+
+第二层（2分钟）: 分点对比底层原理
+→ 【垂直】页存储结构 → 行溢出 → 聚簇索引优化
+→ 【水平】分片策略（Range/Hash/List/Composite） → 路由算法
+
+第三层（1分半）: 实践示例
+→ 垂直：电商用户表拆为 base + stats + settings
+→ 水平：订单表 user_id % 16 分16片 + ShardingSphere配置代码
+
+第四层（1分钟）: 深入思考与权衡
+→ 垂直：JOIN vs 反范式化
+→ 水平：扩容一致性哈希 + 全局ID + 跨分片查询
+</code></pre></div>
+
+<h3 id="_9">重点得分点</h3>
+<ol>
+<li>
+<p><strong>说清楚本质区别（按列 vs 按行）</strong>——这是最基础的区分，也是面试官最在意的第一印象。能够直接说出"垂直分表对列进行拆分（Column-level），水平分表对行进行拆分（Row-level）"即获得基准分。</p>
+</li>
+<li>
+<p><strong>讲透底层原理而非停留在表面</strong>——从InnoDB Page 16KB、行溢出（Off-page Storage）角度解释垂直分表为什么能提升I/O性能；从分片路由算法角度解释水平分表为什么能扩展写能力。这一层是区分"背答案"和"真理解"的关键。</p>
+</li>
+<li>
+<p><strong>展示代码和配置实战能力</strong>——能写出ShardingSphere的<code>actual-data-nodes</code>配置和自定义<code>PreciseShardingAlgorithm</code>实现，证明不是纸上谈兵。</p>
+</li>
+<li>
+<p><strong>点出扩容和跨分片查询等核心难点</strong>——面试官特别关注候选人是否对分表方案的"代价"有清醒认知。主动提出一致性哈希（Consistent Hashing）、分布式全局ID（Snowflake Algorithm）和跨分片查询（Cross-shard Query）解决方案，展现系统性思考能力。</p>
+</li>
+<li>
+<p><strong>区分分表与分区（Partitioning vs. Partition）</strong>——这是高频易混淆点，主动点出差异可加分。</p>
+</li>
+</ol>
+<h3 id="_10">常见误区</h3>
+<ol>
+<li><strong>"垂直分表和水平分表只能选一种"</strong>——实际上两者可以同时使用（混合分片）。先垂直拆分解决宽表问题，再水平拆分解决大表问题。</li>
+<li><strong>"分表一定能提升所有查询性能"</strong>——片面理解。垂直分表减少了不必要的列扫描，但需要JOIN查询；水平分表若查询条件不含分片键，需遍历所有分片，性能比单表更差。</li>
+<li><strong>"分表和分区（Partition）是同一回事"</strong>——重大误区。MySQL Partition是单个实例内的行级拆分，对应用透明；分表（Sharding）是跨实例/跨表的拆分，通常需要中间件支持。</li>
+<li><strong>"分表只解决读性能问题"</strong>——不准确。水平分表的核心动机之一是提升写性能，垂直分表主要提升读性能。</li>
+<li><strong>"Hash分片一劳永逸"</strong>——Hash分片数据分布均匀，但扩容时需要全量数据重分布，成本极高。</li>
+</ol>
+<h3 id="_11">时间分配建议</h3>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>时间</th>
+<th>内容要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>引入——核心概念</td>
+<td>30~45秒</td>
+<td>一句话定义+手势辅助</td>
+</tr>
+<tr>
+<td>底层原理——重点</td>
+<td>2~2.5分钟</td>
+<td>垂直：Page→行溢出→聚簇索引链；水平：四种分片策略</td>
+</tr>
+<tr>
+<td>实践对比——代码</td>
+<td>1.5~2分钟</td>
+<td>建表SQL对比 + ShardingSphere配置 + Java路由算法</td>
+</tr>
+<tr>
+<td>深入思考——权衡</td>
+<td>1~1.5分钟</td>
+<td>JOIN vs 反范式化 + 扩容一致性哈希 + 跨分片查询</td>
+</tr>
+<tr>
+<td>收尾——总结</td>
+<td>15~30秒</td>
+<td>总结两者区别和使用选择</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_12">过渡话术</h3>
+<ul>
+<li><strong>从概念到原理</strong>："以上是两者的基本定义。接下来我从底层存储引擎的角度解释，为什么列数多会降低性能，以及为什么行数多需要做分片。"</li>
+<li><strong>从垂直分表过渡到水平分表</strong>："垂直分表解决了单表列数过多的问题，但当我们面对亿级数据量时，即使只有3个字段，单表的数据行数也可能成为瓶颈——这就引出了水平分表。"</li>
+<li><strong>从理论到实践</strong>："理论层面理解了，接下来我们看一个实际的生产案例。以电商订单系统为例，我们会用 ShardingSphere 做用户ID哈希分片。"</li>
+<li><strong>收尾总结</strong>："最后总结一下：垂直分表和水平分表是数据库拆分的两个基本维度，前者按列拆分优化I/O，后者按行拆分扩展容量。在实际架构设计中，我倾向于先用垂直分表控制单表宽度，然后根据业务增长评估何时引入水平分表，两者可结合使用。"</li>
+</ul>
 <hr />
 <blockquote>
-<p>📋 <strong>分类</strong>: Spring 框架<br />
-🏷️ <strong>标签</strong>: <code>分表</code> <code>水平分表</code> <code>Sharding</code> <code>数据库优化</code> <code>分片</code> <code>垂直分表</code> <code>分区</code><br />
-📊 <strong>难度</strong>: 中级<br />
-📅 <strong>归档时间</strong>: 2026-07-04 14:26:09</p>
+<p><strong>分类</strong>: MySQL / 数据库<br />
+<strong>标签</strong>: <code>垂直分表</code> <code>水平分表</code> <code>Partitioning</code> <code>Sharding</code> <code>数据库架构</code> <code>分片策略</code> <code>InnoDB</code> <code>一致性哈希</code><br />
+<strong>难度</strong>: 进阶<br />
+<strong>归档时间</strong>: 2026-07-04 23:00:00</p>
 </blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0028')">

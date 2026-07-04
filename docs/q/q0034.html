@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>线程、进程、协程相关知识点 — Interview Coach</title>
+    <title>HashMap 底层实现，插入元素时会发生什么 — Interview Coach</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -149,493 +149,731 @@ body {
         <span class="sep">/</span>
         <span style="font-size:0.85rem;">q0034</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">💻 操作系统</span>
-            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
     </div>
 </header>
 
 <div class="q-container">
-    <h1>线程、进程、协程相关知识点</h1>
-    <div class="tag-row"><span class="tag-item">协程</span>
-<span class="tag-item">并发</span>
-<span class="tag-item">线程</span>
-<span class="tag-item">进程</span>
-<span class="tag-item">虚拟线程</span>
-<span class="tag-item">并发编程</span></div>
-    <h1 id="_1">线程、进程、协程相关知识点</h1>
-<h2 id="_2">🧠 联想记忆法</h2>
-<p><strong>记忆口诀："进独享、线共享、协轻量"</strong></p>
-<p>将三者想象成不同层级的"工作单元"：</p>
+    <h1>HashMap 底层实现，插入元素时会发生什么</h1>
+    <div class="tag-row"></div>
+    <h1 id="hashmap">HashMap 底层实现，插入元素时会发生什么</h1>
+<h1 id="hashmap_1">HashMap 底层实现：插入元素时会发生什么</h1>
+<blockquote>
+<p>本文档汇编了一道 Java 高频面试题的深度解答，涵盖联想记忆法、底层原理拆解与面试回答思路。</p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents">目录（Table of Contents）</h2>
 <ul>
-<li><strong>进程（Process）</strong> = 一栋独立的别墅</li>
-<li>每栋别墅有独立的围墙（地址空间）、水电表（资源）</li>
-<li>别墅之间"老死不相往来"，通信必须通过电话（IPC：管道、Socket）</li>
-<li>
-<p>搬家（上下文切换）代价巨大——要搬一整套家具、重新布线</p>
-</li>
-<li>
-<p><strong>线程（Thread）</strong> = 别墅里的各个房间</p>
-</li>
-<li>共享客厅、厨房、卫生间（进程的地址空间和资源）</li>
-<li>但每个房间有自己的床铺和书桌（栈空间和寄存器）</li>
-<li>
-<p>换房间（线程切换）只需带个人物品走，不用动整栋别墅</p>
-</li>
-<li>
-<p><strong>协程（Coroutine）</strong> = 房间里书桌上的笔记本</p>
-</li>
-<li>想换本书看（切换协程）——手一伸就行，不用离开椅子</li>
-<li>完全由你自己决定什么时候换书（用户态调度）</li>
-<li>成本几乎为零，笔记本里可以夹几百张书签（几 GB 内存轻松创建百万协程）</li>
+<li><a href="#-联想记忆法">🧠 联想记忆法</a></li>
+<li><a href="#记忆口诀联想">记忆口诀/联想</a></li>
+<li><a href="#记忆原理">记忆原理</a></li>
+<li><a href="#关联知识">关联知识</a></li>
+<li><a href="#-深度解答">📖 深度解答</a></li>
+<li><a href="#核心概念">核心概念</a></li>
+<li><a href="#底层原理重点详细展开">底层原理（重点，详细展开）</a><ul>
+<li><a href="#1-jdk-17-与-jdk-18-的结构变化">1. JDK 1.7 与 JDK 1.8 的结构变化</a></li>
+<li><a href="#2-put-方法的完整执行流程jdk-18">2. put() 方法的完整执行流程（JDK 1.8）</a></li>
+<li><a href="#3-哈希扰动函数-hash-的作用">3. 哈希扰动函数 hash() 的作用</a></li>
+<li><a href="#4-扩容机制resize">4. 扩容机制（Resize）</a></li>
+<li><a href="#5-为什么容量是-2-的幂power-of-two">5. 为什么容量是 2 的幂（Power of Two）</a></li>
+<li><a href="#6-链表转红黑树与退化的阈值">6. 链表转红黑树与退化的阈值</a></li>
+<li><a href="#7-为什么树化阈值选择-8泊松分布分析">7. 为什么树化阈值选择 8（泊松分布分析）</a></li>
+<li><a href="#8-负载因子-075-的原因">8. 负载因子 0.75 的原因</a></li>
 </ul>
-<p><strong>一句话串记</strong>：进程是出租房独门独户（独立资源），线程是合租房共用客厅（共享内存），协程是你书桌上的笔记本（轻量自调度）。</p>
+</li>
+<li><a href="#实践应用">实践应用</a></li>
+<li><a href="#深入思考">深入思考</a></li>
+<li><a href="#-回答思路">🗺️ 回答思路</a></li>
+<li><a href="#答题逻辑框架">答题逻辑框架</a></li>
+<li><a href="#重点得分点">重点得分点</a></li>
+<li><a href="#常见误区">常见误区</a></li>
+<li><a href="#时间分配建议">时间分配建议</a></li>
+<li><a href="#过渡话术">过渡话术</a></li>
+</ul>
 <hr />
-<h2 id="_3">📖 深度解答</h2>
-<h3 id="_4">第一层：核心概念</h3>
-<h4 id="1-process">1. 进程（Process）</h4>
-<p><strong>进程</strong>是操作系统进行<strong>资源分配</strong>的最小单位。每个进程拥有<strong>独立的虚拟地址空间</strong>，包括代码段、数据段、堆和栈，进程A无法直接访问进程B的内存。</p>
-<p><strong>进程间通信（Inter-Process Communication, IPC）</strong> 是操作系统的核心机制，主要方式包括：</p>
+<h1 id="hashmap_2">HashMap 底层实现：插入元素时会发生什么</h1>
+<hr />
+<h2 id="_1">🧠 联想记忆法</h2>
+<h3 id="_2">记忆口诀/联想</h3>
+<p><strong>口诀一（整体结构）</strong>："数组兜底，链表拉链，红黑太长，扩容搬家"</p>
+<p><strong>口诀二（put流程）</strong>："算哈希，找位置；空则放，撞则链；长了树，满了扩"</p>
+<h3 id="_3">记忆原理</h3>
+<ul>
+<li>口诀一描述了 HashMap 的四层核心机制：底层用数组（Array）作为主存储结构，哈希冲突（Hash Collision）时用链表（Linked List）拉链法解决，链表长度超过阈值（Threshold）时转为红黑树（Red-Black Tree）提升查询性能，当元素数量超过负载因子（Load Factor）与容量的乘积时触发扩容（Resize）并重新分布元素。</li>
+<li>口诀二对应 put() 方法的执行流程：先通过扰动函数（Perturbation Function）计算哈希值，再通过 (n-1) &amp; hash 计算数组下标；若目标槽位为空则直接插入；若发生哈希冲突则追加至链表尾部（JDK 1.8 尾插法）；当链表长度达到 8 且数组长度达到 64 时转为红黑树；当元素总数超过扩容阈值时执行扩容。</li>
+<li>每句口诀对应一个独立的知识点层次，面试时逐句展开即可覆盖 HashMap 的核心考查范围。</li>
+</ul>
+<h3 id="_4">关联知识</h3>
+<ul>
+<li><strong>数据结构课程</strong>：HashMap 的数组+链表结构对应哈希表（Hash Table）的拉链法（Separate Chaining），红黑树对应平衡二叉查找树（Balanced BST）。</li>
+<li><strong>Java 集合框架</strong>：HashMap 实现了 Map 接口，与 HashSet（底层由 HashMap 实现）、LinkedHashMap（继承自 HashMap，增加了双向链表维护顺序）、TreeMap（基于红黑树的 NavigableMap 实现）同属 Java Collections Framework。</li>
+<li><strong>并发编程</strong>：HashMap 的非线程安全特性与 ConcurrentHashMap（采用分段锁 Segment Lock / CAS+细粒度锁）形成对比，是并发容器考查的经典对照。</li>
+</ul>
+<hr />
+<h2 id="_5">📖 深度解答</h2>
+<h3 id="_6">核心概念</h3>
+<p>HashMap 是基于<strong>哈希表（Hash Table）</strong>实现的键值对（Key-Value）存储容器，位于 <code>java.util</code> 包下，继承自 <code>AbstractMap</code>，实现了 <code>Map</code>、<code>Cloneable</code>、<code>Serializable</code> 接口。</p>
+<p>其内部采用 <strong>数组（Array）+ 链表（Linked List）+ 红黑树（Red-Black Tree）</strong>的组合数据结构：</p>
+<ul>
+<li><strong>数组（Node<K,V>[] table）</strong>：作为哈希桶（Hash Bucket）数组，每个桶存储一个链表或红黑树的头节点。</li>
+<li><strong>链表（Linked List）</strong>：用于解决哈希冲突（Hash Collision），当多个 key 映射到同一数组下标时，以链表形式串联存储。JDK 1.7 采用头插法（Head Insertion），JDK 1.8 改为尾插法（Tail Insertion）。</li>
+<li><strong>红黑树（Red-Black Tree）</strong>：当链表长度超过阈值（默认 8）且数组长度达到 64 时，链表转换为红黑树，将查找时间复杂度从 O(n) 优化为 O(log n)。</li>
+</ul>
+<p>HashMap 允许 key 和 value 为 null，但 key 最多允许一个 null（存储在 table[0] 位置）。HashMap 是<strong>非线程安全（Not Thread-Safe）</strong>的，多线程环境下需使用 <code>ConcurrentHashMap</code> 或通过 <code>Collections.synchronizedMap()</code> 包装。</p>
+<h3 id="_7">底层原理（重点，详细展开）</h3>
+<h4 id="1-jdk-17-jdk-18">1. JDK 1.7 与 JDK 1.8 的结构变化</h4>
 <table>
 <thead>
 <tr>
-<th>IPC 方式</th>
-<th>原理</th>
-<th>特点</th>
+<th>对比维度</th>
+<th>JDK 1.7</th>
+<th>JDK 1.8</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>管道（Pipe）</td>
-<td>内核缓冲区，一端写一端读</td>
-<td>单向、仅限父子进程，半双工</td>
+<td>数据结构</td>
+<td>数组 + 链表</td>
+<td>数组 + 链表 + 红黑树</td>
 </tr>
 <tr>
-<td>消息队列（Message Queue）</td>
-<td>内核维护的消息链表</td>
-<td>双向、消息有类型，适合小数据</td>
+<td>链表插入方式</td>
+<td>头插法（Head Insertion）</td>
+<td>尾插法（Tail Insertion）</td>
 </tr>
 <tr>
-<td>共享内存（Shared Memory）</td>
-<td>映射同一块物理内存</td>
-<td>速度最快，需搭配信号量同步</td>
+<td>哈希扰动</td>
+<td>4 次位运算 + 5 次异或</td>
+<td>1 次异或 + 1 次无符号右移</td>
 </tr>
 <tr>
-<td>信号量（Semaphore）</td>
-<td>计数器 + PV 操作</td>
-<td>主要用于同步，而非数据传输</td>
+<td>扩容后元素迁移</td>
+<td>逐元素 rehash</td>
+<td>原位置或原位置+旧容量</td>
 </tr>
 <tr>
-<td>Socket</td>
-<td>网络套接字</td>
-<td>跨机器通信，支持 TCP/UDP</td>
+<td>初始化方式</td>
+<td>单独 inflateTable() 方法</td>
+<td>在 put() 首次调用时 resize()</td>
 </tr>
 </tbody>
 </table>
-<p>进程<strong>上下文切换（Context Switch）</strong> 开销大，因为需要：<br />
-1. 保存/恢复 CPU 寄存器状态<br />
-2. 切换<strong>页表（Page Table）</strong>——每个进程的虚拟地址到物理地址的映射表不同<br />
-3. <strong>刷新 TLB（Translation Lookaside Buffer）</strong>——页表缓存，切换后全部失效<br />
-4. 清空 CPU 流水线（Pipeline）</p>
-<p>这些操作通常需要数百到数千个 CPU 周期，属于<strong>重量级</strong>操作。</p>
-<h4 id="2-thread">2. 线程（Thread）</h4>
-<p><strong>线程</strong>是 CPU <strong>调度</strong>的最小单位，是进程内的一个执行流。同一进程的所有线程共享：<br />
-- 代码段（Code Segment）<br />
-- 数据段（Data Segment，含全局变量）<br />
-- 堆（Heap）<br />
-- 打开的文件描述符（File Descriptor）</p>
-<p>每个线程独有：<br />
-- <strong>线程栈（Thread Stack）</strong><br />
-- <strong>程序计数器（Program Counter, PC）</strong><br />
-- <strong>寄存器状态（Register Set）</strong></p>
-<p><strong>Java 中的线程实现：</strong></p>
-<div class="highlight"><pre><span></span><code><span class="c1">// 方式1：继承 Thread 类</span>
-<span class="kd">class</span> <span class="nc">MyThread</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Thread</span><span class="w"> </span><span class="p">{</span>
+<p><strong>为什么引入红黑树</strong>：<br />
+当哈希函数分布不均匀或遭遇哈希碰撞攻击（Hash Collision DoS Attack）时，链表可能变得极长，导致 get() 时间复杂度退化至 O(n)。红黑树作为自平衡二叉查找树，保证在最坏情况下查找、插入、删除操作的时间复杂度为 O(log n)，显著提升了 HashMap 在极端场景下的性能表现。这一优化来源于 JDK 对实际生产环境中哈希碰撞问题的反馈。</p>
+<h4 id="2-put-jdk-18">2. put() 方法的完整执行流程（JDK 1.8）</h4>
+<p>put() 方法内部调用 putVal() 方法，以下是详细执行步骤：</p>
+<p><strong>步骤 1：计算哈希值</strong></p>
+<p>调用 <code>hash(key)</code> 方法，通过扰动函数（Perturbation Function）将 key 的 hashCode() 高 16 位与低 16 位进行异或（XOR），使高位信息参与低位运算，降低哈希碰撞概率。</p>
+<p><strong>步骤 2：判断 table 是否为空或长度为 0</strong></p>
+<p>若 table 为 null 或长度为 0，则调用 <code>resize()</code> 方法进行初始化扩容（Initial Resize），分配默认容量（16）的数组。</p>
+<p><strong>步骤 3：计算数组下标</strong></p>
+<p>使用 <code>(n - 1) &amp; hash</code> 代替取模运算 <code>hash % n</code>，计算目标桶的数组下标。由于 n 是 2 的幂次，<code>(n - 1) &amp; hash</code> 等价于 <code>hash % n</code> 且位运算效率更高。</p>
+<p><strong>步骤 4：判断对应桶是否为空</strong></p>
+<p>若 <code>tab[i = (n - 1) &amp; hash]</code> 为 null，则直接创建新节点 <code>newNode(hash, key, value, null)</code> 并放入该位置。</p>
+<p><strong>步骤 5：处理哈希冲突</strong></p>
+<p>若对应桶不为空（即发生哈希冲突），则进入以下分支判断：</p>
+<ul>
+<li><strong>5a</strong>：检查当前桶头节点的 hash 和 key 是否与待插入的 key 完全相等（使用 <code>==</code> 和 <code>equals()</code>），若相等则将头节点赋值给 <code>e</code>，后续替换 value。</li>
+<li><strong>5b</strong>：若当前桶存储的是红黑树节点（<code>instanceof TreeNode</code>），则调用 <code>putTreeVal()</code> 方法在红黑树中插入或查找节点。</li>
+<li><strong>5c</strong>：否则遍历链表，遍历过程中：</li>
+<li>若找到 hash 和 key 均相等的节点，则记录该节点（<code>e = p</code>），后续替换 value。</li>
+<li>若遍历到链表尾部仍未找到相等节点，则在链表尾部插入新节点（尾插法 Tail Insertion）。</li>
+<li>插入后检查链表长度是否达到 <strong>树化阈值（TREEIFY_THRESHOLD = 8）</strong>，若达到则调用 <code>treeifyBin()</code> 方法尝试将链表转为红黑树。</li>
+<li><code>treeifyBin()</code> 内部会先检查数组长度是否达到 <strong>最小树化容量（MIN_TREEIFY_CAPACITY = 64）</strong>，若数组长度不足 64，则优先执行扩容（Resize）而非树化。</li>
+</ul>
+<p><strong>步骤 6：替换旧值</strong></p>
+<p>若步骤 5 中找到了相同 key 的节点（<code>e != null</code>），则替换该节点的 value（<code>e.value = value</code>），并返回旧值 <code>oldValue</code>（<code>afterNodeAccess(e)</code> 为 LinkedHashMap 预留的回调方法）。</p>
+<p><strong>步骤 7：检查是否需要扩容</strong></p>
+<p>插入成功后执行 <code>++modCount</code>（修改计数器，用于 fail-fast 机制）。然后判断 <code>++size &gt; threshold</code>（threshold = 容量 * 负载因子），若超过则调用 <code>resize()</code> 方法进行扩容。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// JDK 1.8 HashMap.putVal() 核心源码</span>
+<span class="kd">final</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="nf">putVal</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">hash</span><span class="p">,</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="n">onlyIfAbsent</span><span class="p">,</span>
+<span class="w">               </span><span class="kt">boolean</span><span class="w"> </span><span class="n">evict</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">tab</span><span class="p">;</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">p</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 步骤 2：若 table 为空则扩容初始化</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">table</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tab</span><span class="p">.</span><span class="na">length</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">        </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">resize</span><span class="p">()).</span><span class="na">length</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 步骤 3-4：计算下标并判断是否为空桶</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tab</span><span class="o">[</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">hash</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">        </span><span class="n">tab</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newNode</span><span class="p">(</span><span class="n">hash</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">);</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="p">;</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="n">k</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// 步骤 5a：检查头节点是否匹配</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="na">hash</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">            </span><span class="p">((</span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="na">key</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="n">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">k</span><span class="p">))))</span>
+<span class="w">            </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// 步骤 5b：检查是否为红黑树节点</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="k">instanceof</span><span class="w"> </span><span class="n">TreeNode</span><span class="p">)</span>
+<span class="w">            </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="p">)</span><span class="n">p</span><span class="p">).</span><span class="na">putTreeVal</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">tab</span><span class="p">,</span><span class="w"> </span><span class="n">hash</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">);</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// 步骤 5c：遍历链表</span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">binCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">binCount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="na">next</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">p</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newNode</span><span class="p">(</span><span class="n">hash</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">);</span>
+<span class="w">                    </span><span class="c1">// 检查链表长度是否达到树化阈值</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">binCount</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">TREEIFY_THRESHOLD</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="c1">// -1 for 1st</span>
+<span class="w">                        </span><span class="n">treeifyBin</span><span class="p">(</span><span class="n">tab</span><span class="p">,</span><span class="w"> </span><span class="n">hash</span><span class="p">);</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="na">hash</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">                    </span><span class="p">((</span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">key</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="n">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">k</span><span class="p">))))</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="c1">// 步骤 6：替换旧值</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">V</span><span class="w"> </span><span class="n">oldValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">value</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">onlyIfAbsent</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">oldValue</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">                </span><span class="n">e</span><span class="p">.</span><span class="na">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">;</span>
+<span class="w">            </span><span class="n">afterNodeAccess</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">oldValue</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="o">++</span><span class="n">modCount</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 步骤 7：检查是否需要扩容</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">++</span><span class="n">size</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">threshold</span><span class="p">)</span>
+<span class="w">        </span><span class="n">resize</span><span class="p">();</span>
+<span class="w">    </span><span class="n">afterNodeInsertion</span><span class="p">(</span><span class="n">evict</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="3-hash">3. 哈希扰动函数 hash() 的作用</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">// JDK 1.8 HashMap.hash() 源码</span>
+<span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">hash</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">hashCode</span><span class="p">())</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">16</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>作用</strong>：将 key 的 hashCode() 高 16 位与低 16 位进行异或运算（XOR），使高 16 位的特征信息"扰动"到低 16 位，在后续 <code>(n - 1) &amp; hash</code> 计算下标时，高位的差异也能体现在下标中。</p>
+<p><strong>为什么需要高位参与运算</strong>：</p>
+<p>因为 <code>(n - 1) &amp; hash</code> 等效于取模，但仅使用了 hash 的低位（n 通常较小，如 16、32、64，对应二进制掩码只有低 4-6 位有效）。如果 hashCode() 的高位差异很大而低位相似（例如某些对象的 hashCode 实现不佳），不发生扰动就会大量碰撞。通过将高 16 位右移并与自身异或，实现了高位信息向低位的传播，<strong>用一次位运算替代了 JDK 1.7 中四次位运算的五次异或</strong>，在性能与散列均匀性之间取得平衡。</p>
+<p><strong>JDK 1.7 的 hash() 对比</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// JDK 1.7 HashMap.hash() — 9 次扰动</span>
+<span class="kd">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">hash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">h</span><span class="w"> </span><span class="o">^=</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="p">(</span><span class="n">h</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>JDK 1.8 的简化是基于数学分析和工程实践的综合结论——九次扰动带来的额外均匀性对实际分布影响有限，而减少扰动次数能显著提升高频调用（put/get）性能。</p>
+<h4 id="4-resize">4. 扩容机制（Resize）</h4>
+<p><strong>触发条件</strong>：当 <code>size &gt; threshold</code> 时触发扩容。其中 <code>threshold = capacity * loadFactor</code>。默认初始容量为 16，负载因子为 0.75，因此默认阈值为 12。</p>
+<p><strong>扩容过程</strong>：</p>
+<ol>
+<li><strong>新容量计算</strong>：新容量为旧容量的 2 倍（<code>oldCap &lt;&lt; 1</code>），同时新阈值也为旧阈值的 2 倍（<code>oldThr &lt;&lt; 1</code>）。</li>
+<li><strong>新数组创建</strong>：以新容量为长度创建新的 Node 数组。</li>
+<li><strong>元素迁移（JDK 1.8 优化）</strong>：遍历旧数组的每个桶，对桶内的元素进行迁移：</li>
+<li>若桶为空：跳过。</li>
+<li><strong>若桶中只有一个节点</strong>：直接通过 <code>newTab[e.hash &amp; (newCap - 1)]</code> 计算新下标并放入。</li>
+<li><strong>若桶中为红黑树</strong>：调用 <code>split()</code> 方法拆分红黑树，可能退化为链表。</li>
+<li><strong>若桶中为链表（JDK 1.8 核心优化）</strong>：将原链表拆分为 <strong>低位链（Low-Tail）</strong> 和 <strong>高位链（High-Tail）</strong> 两个链表：<ul>
+<li>通过 <code>(e.hash &amp; oldCap) == 0</code> 判断：结果为 0 则留在原位置（低位链），非 0 则移动到 <code>原位置 + oldCap</code>（高位链）。</li>
+<li><strong>无需重新计算所有元素的 hash</strong>，利用容量翻倍后二进制掩码多一位的特性，仅通过一次位运算确定迁移方向。</li>
+</ul>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// JDK 1.8 HashMap.resize() 核心迁移逻辑</span>
+<span class="kd">final</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="nf">resize</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">oldTab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">table</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">oldCap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">oldTab</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">oldTab</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">oldThr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threshold</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">newCap</span><span class="p">,</span><span class="w"> </span><span class="n">newThr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 新容量 = 旧容量 * 2</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">oldCap</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">newCap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">oldCap</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="n">newThr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">oldThr</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// ... 省略边界条件处理 (容量为0、阈值为0等)</span>
+<span class="w">    </span><span class="n">threshold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newThr</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;[]</span><span class="w"> </span><span class="n">newTab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;[]</span><span class="p">)</span><span class="k">new</span><span class="w"> </span><span class="n">Node</span><span class="o">[</span><span class="n">newCap</span><span class="o">]</span><span class="p">;</span>
+<span class="w">    </span><span class="n">table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newTab</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 遍历旧数组，迁移元素</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">oldTab</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">oldCap</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">oldTab</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">oldTab</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w"> </span><span class="c1">// 帮助 GC</span>
+<span class="w">                </span><span class="c1">// 单节点直接迁移</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">                    </span><span class="n">newTab</span><span class="o">[</span><span class="n">e</span><span class="p">.</span><span class="na">hash</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">newCap</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="w"> </span><span class="k">instanceof</span><span class="w"> </span><span class="n">TreeNode</span><span class="p">)</span>
+<span class="w">                    </span><span class="p">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="p">)</span><span class="n">e</span><span class="p">).</span><span class="na">split</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">newTab</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">oldCap</span><span class="p">);</span>
+<span class="w">                </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// 链表迁移：拆分为低位链和高位链</span>
+<span class="w">                    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loHead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">loTail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">                    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">hiHead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">hiTail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">                    </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">                    </span><span class="k">do</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">next</span><span class="p">;</span>
+<span class="w">                        </span><span class="c1">// 关键判断：hash &amp; oldCap == 0 则留在原位置</span>
+<span class="w">                        </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">e</span><span class="p">.</span><span class="na">hash</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">oldCap</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">loTail</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">                                </span><span class="n">loHead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                            </span><span class="k">else</span>
+<span class="w">                                </span><span class="n">loTail</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                            </span><span class="n">loTail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hiTail</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">                                </span><span class="n">hiHead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                            </span><span class="k">else</span>
+<span class="w">                                </span><span class="n">hiTail</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                            </span><span class="n">hiTail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                        </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">                    </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">);</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">loTail</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="n">loTail</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">                        </span><span class="n">newTab</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">loHead</span><span class="p">;</span><span class="w">       </span><span class="c1">// 低位链：原位置</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">hiTail</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="n">hiTail</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">                        </span><span class="n">newTab</span><span class="o">[</span><span class="n">j</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">oldCap</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hiHead</span><span class="p">;</span><span class="w"> </span><span class="c1">// 高位链：原位置+旧容量</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">newTab</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>JDK 1.8 扩容优化的核心</strong>：不需要对每个元素重新计算 hash（即不需要 rehash），仅通过 <code>(e.hash &amp; oldCap)</code> 一次位运算即可确定元素在新数组中的位置，大幅提升了扩容效率。</p>
+<h4 id="5-2-power-of-two">5. 为什么容量是 2 的幂（Power of Two）</h4>
+<p>HashMap 要求初始容量必须为 2 的幂次方（若用户传入非 2 的幂，会被 <code>tableSizeFor()</code> 方法调整为最近的 2 的幂），原因如下：</p>
+<ol>
+<li><strong>位运算替代取模</strong>：<code>(n - 1) &amp; hash</code> 等效于 <code>hash % n</code>，但位运算的执行速度远快于取模运算（取模涉及除法指令）。这是 HashMap 追求极致性能的体现。</li>
+<li><strong>均匀分布</strong>：当 n 为 2 的幂时，<code>(n - 1)</code> 的二进制形式为全 1（如 16-1=15=1111），与 hash 进行 &amp; 运算时，hash 的所有低位信息都能参与下标计算，使元素分布更均匀。若 n 不是 2 的幂（如 15=1110），最低位始终为 0，将导致某些槽位永远无法被命中，浪费空间且增加碰撞概率。</li>
+<li><strong>扩容优化</strong>：容量为 2 的幂时，扩容后元素的新位置只有两种可能性——原位置或"原位置 + 旧容量"，通过 <code>(e.hash &amp; oldCap)</code> 即可判定，无需逐个 rehash。</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// 将用户传入的容量转为最近的 2 的幂</span>
+<span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">tableSizeFor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">cap</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cap</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span>
+<span class="w">    </span><span class="n">n</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="mi">16</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">MAXIMUM_CAPACITY</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">MAXIMUM_CAPACITY</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>此方法通过 5 次无符号右移和异或运算，将传入的 cap 调整为大于等于该数的最小 2 的幂次方。例如传入 13，先减 1 得 12（以避免本身就是 2 的幂时翻倍），经过位移后得到 15，再 +1 得到 16。</p>
+<h4 id="6">6. 链表转红黑树与退化的阈值</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">// HashMap 源码中的阈值常量</span>
+<span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">TREEIFY_THRESHOLD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span><span class="w">     </span><span class="c1">// 链表转红黑树阈值</span>
+<span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">UNTREEIFY_THRESHOLD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span><span class="w">   </span><span class="c1">// 红黑树退化为链表阈值</span>
+<span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MIN_TREEIFY_CAPACITY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span><span class="p">;</span><span class="w"> </span><span class="c1">// 树化前数组最小容量</span>
+</code></pre></div>
+
+<ul>
+<li><strong>TREEIFY_THRESHOLD = 8</strong>：当链表长度达到 8 时，调用 <code>treeifyBin()</code> 尝试将链表转为红黑树。需注意 <code>treeifyBin()</code> 内部还有数组长度检查（须 &gt;= 64），否则先扩容。</li>
+<li><strong>UNTREEIFY_THRESHOLD = 6</strong>：在扩容拆分红黑树时，若拆分后的红黑树节点数 &lt;= 6，则退化为链表。6 与 8 之间保留 2 的差值（即 7 作为缓冲区），防止链表和红黑树之间的频繁转换带来性能抖动。</li>
+<li><strong>MIN_TREEIFY_CAPACITY = 64</strong>：数组长度不足 64 时，即使链表长度达到 8，也会优先扩容而非树化。这是因为在容量较小的数组中，扩容可以有效降低哈希碰撞。</li>
+</ul>
+<h4 id="7-8">7. 为什么树化阈值选择 8（泊松分布分析）</h4>
+<div class="highlight"><pre><span></span><code><span class="cm">/* HashMap 源码注释原文（类注释中）：</span>
+<span class="cm"> * Ideally, under random hashCodes, the frequency of</span>
+<span class="cm"> * nodes in bins follows a Poisson distribution</span>
+<span class="cm"> * (http://en.wikipedia.org/wiki/Poisson_distribution)</span>
+<span class="cm"> * with a parameter of about 0.5 on average for the default resizing</span>
+<span class="cm"> * threshold of 0.75, although with a large variance because of</span>
+<span class="cm"> * resizing granularity. Ignoring variance, the expected</span>
+<span class="cm"> * occurrences of list size k are (exp(-0.5) * pow(0.5, k) / factorial(k)).</span>
+<span class="cm"> *</span>
+<span class="cm"> * 0:    0.60653066</span>
+<span class="cm"> * 1:    0.30326533</span>
+<span class="cm"> * 2:    0.07581633</span>
+<span class="cm"> * 3:    0.01263606</span>
+<span class="cm"> * 4:    0.00157952</span>
+<span class="cm"> * 5:    0.00015795</span>
+<span class="cm"> * 6:    0.00001316</span>
+<span class="cm"> * 7:    0.00000094</span>
+<span class="cm"> * 8:    0.00000006</span>
+<span class="cm"> * more: less than 1 in ten million</span>
+<span class="cm"> */</span>
+</code></pre></div>
+
+<p>源码注释给出了基于<strong>泊松分布（Poisson Distribution）</strong>的概率计算，在负载因子为 0.75 且随机哈希码的前提下：</p>
+<ul>
+<li>链表长度达到 8 的概率为 0.00000006（六千万分之一）</li>
+<li>链表长度超过 8 的概率小于千万分之一</li>
+</ul>
+<p>选择 8 作为树化阈值，使得在正常哈希分布情况下，红黑树几乎不会被触发——只有当哈希函数严重异常或遭受恶意碰撞攻击时才会发生树化。这既保证了正常情况下的性能（链表操作简单，节点对象更小），也提供了对抗极端情况的保障。</p>
+<p>选择 <strong>6 作为退化阈值</strong>而非 7 或 8，是为了留出缓冲空间（Buffer Zone）。如果退化阈值也为 8，则在链表长度在 8 附近频繁增删时，会导致链表转红黑树和红黑树退化回链表的<strong>频繁转换（Oscillation）</strong>，每次转换都需要时间和空间开销（树化和未树化的节点结构不同，TreeNode 占用空间是普通 Node 的约 2 倍）。</p>
+<h4 id="8-075">8. 负载因子 0.75 的原因</h4>
+<p><strong>负载因子（Load Factor）</strong>是衡量哈希表空间利用率与查询效率之间平衡的参数。默认值 0.75 是时间和空间成本之间的折中取值：</p>
+<ul>
+<li><strong>空间利用率</strong>：负载因子越大（如 1.0），哈希桶平均负载越高，空间利用率越高，但哈希碰撞概率增大，查询性能下降。</li>
+<li><strong>查询效率</strong>：负载因子越小（如 0.5），哈希碰撞概率越低，查询效率越高，但空间浪费严重（大量空桶）。</li>
+<li><strong>0.75 的由来</strong>：根据源码中泊松分布的计算逻辑，负载因子取 0.75 时，桶中链表长度遵循参数约为 0.5 的泊松分布。在多数哈希函数表现正常的情况下，链表长度超过 8 的概率低于六千万分之一，基本不会触发树化。</li>
+<li><strong>工程实践</strong>：JVM 内存管理和 CPU 缓存行（Cache Line）效率也是考量因素之一。过小的负载因子会导致数组频繁扩容和数据迁移；过大的负载因子则导致频繁的哈希碰撞和链表遍历。0.75 是经过大量性能测试后选择的折中值，既保证了足够的空间利用率，又维持了可接受的查询性能。</li>
+</ul>
+<h3 id="_8">实践应用</h3>
+<h4 id="hashmap_3">正确使用 HashMap：预估初始容量</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">// 错误用法：不指定初始容量，频繁扩容</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w"> </span><span class="c1">// 默认容量 16</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">users</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">User</span><span class="p">());</span><span class="w"> </span><span class="c1">// 触发多次扩容</span>
+<span class="p">}</span>
+
+<span class="c1">// 正确用法：预估容量，避免扩容</span>
+<span class="c1">// 计算公式：expectedSize / loadFactor + 1</span>
+<span class="c1">// 1000 / 0.75 + 1 ≈ 1334 → tableSizeFor 调整后为 2048</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">1334</span><span class="p">);</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">users</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">User</span><span class="p">());</span><span class="w"> </span><span class="c1">// 无需扩容</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>不预设容量或容量过小的后果</strong>：每次扩容需要创建新数组并迁移所有元素，扩容操作的<strong>时间复杂度为 O(n)</strong>，若多次触发扩容将严重影响写入性能。</p>
+<p>Guava 提供了 <code>Maps.newHashMapWithExpectedSize(int expectedSize)</code> 方法封装了这一计算逻辑，可直接使用。</p>
+<h4 id="key-hashcodeequals">自定义对象做 key 需重写 hashCode/equals</h4>
+<p>当使用自定义对象（Custom Object）作为 HashMap 的 key 时，<strong>必须同时重写（Override）</strong> <code>hashCode()</code> 和 <code>equals()</code> 方法：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 正确示例：同时重写 hashCode 和 equals</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">User</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">userId</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+
 <span class="w">    </span><span class="nd">@Override</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Thread running: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">getName</span><span class="p">());</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-<span class="k">new</span><span class="w"> </span><span class="n">MyThread</span><span class="p">().</span><span class="na">start</span><span class="p">();</span>
-
-<span class="c1">// 方式2：实现 Runnable 接口</span>
-<span class="n">Thread</span><span class="w"> </span><span class="n">thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Runnable running&quot;</span><span class="p">));</span>
-<span class="n">thread</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
-
-<span class="c1">// 方式3：实现 Callable 接口（有返回值、可抛异常）</span>
-<span class="n">FutureTask</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">futureTask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">FutureTask</span><span class="o">&lt;&gt;</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Callable result&quot;</span><span class="p">;</span>
-<span class="p">});</span>
-<span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(</span><span class="n">futureTask</span><span class="p">).</span><span class="na">start</span><span class="p">();</span>
-<span class="n">String</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">futureTask</span><span class="p">.</span><span class="na">get</span><span class="p">();</span><span class="w"> </span><span class="c1">// 获取返回值</span>
-
-<span class="c1">// 方式4：线程池 ThreadPoolExecutor</span>
-<span class="n">ThreadPoolExecutor</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
-<span class="w">    </span><span class="mi">2</span><span class="p">,</span><span class="w">                      </span><span class="c1">// corePoolSize</span>
-<span class="w">    </span><span class="mi">5</span><span class="p">,</span><span class="w">                      </span><span class="c1">// maximumPoolSize</span>
-<span class="w">    </span><span class="mi">60L</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span><span class="w">  </span><span class="c1">// keepAliveTime</span>
-<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span><span class="w"> </span><span class="c1">// workQueue</span>
-<span class="w">    </span><span class="n">Executors</span><span class="p">.</span><span class="na">defaultThreadFactory</span><span class="p">(),</span>
-<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">.</span><span class="na">AbortPolicy</span><span class="p">()</span><span class="w"> </span><span class="c1">// 拒绝策略</span>
-<span class="p">);</span>
-<span class="n">executor</span><span class="p">.</span><span class="na">execute</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Thread pool task&quot;</span><span class="p">));</span>
-<span class="n">executor</span><span class="p">.</span><span class="na">shutdown</span><span class="p">();</span>
-</code></pre></div>
-
-<p><strong>线程同步机制：</strong></p>
-<table>
-<thead>
-<tr>
-<th>机制</th>
-<th>原理</th>
-<th>适用场景</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>synchronized</code></td>
-<td>JVM 层面的 Monitor 锁，基于 Object Header 的 Mark Word</td>
-<td>简单的互斥同步，自动释放锁</td>
-</tr>
-<tr>
-<td><code>ReentrantLock</code></td>
-<td>AQS（AbstractQueuedSynchronizer）实现，支持公平/非公平锁</td>
-<td>需要超时、可中断、尝试获取等高级功能</td>
-</tr>
-<tr>
-<td><code>volatile</code></td>
-<td>内存屏障（Memory Barrier），保证可见性，禁止指令重排序</td>
-<td>单个变量的读写可见性保证</td>
-</tr>
-<tr>
-<td>CAS（Compare-And-Swap）</td>
-<td>硬件级原子指令（如 x86 的 <code>CMPXCHG</code>），非阻塞</td>
-<td>乐观锁场景，如 AtomicInteger</td>
-</tr>
-</tbody>
-</table>
-<p><strong>特点对比：</strong><br />
-- <code>synchronized</code> 锁会膨胀：无锁 → 偏向锁 → 轻量级锁 → 重量级锁（JDK 6+ 优化）<br />
-- <code>volatile</code> 不保证原子性，仅保证可见性和有序性<br />
-- CAS 存在 ABA 问题（可通过 <code>AtomicStampedReference</code> 解决）</p>
-<h4 id="3-coroutine-java-virtual-thread">3. 协程（Coroutine）与 Java 虚拟线程（Virtual Thread）</h4>
-<p><strong>协程（Coroutine）</strong> 是<strong>用户态（User Space）的轻量级线程</strong>，由程序自身调度，而非操作系统内核。协程的调度器运行在用户态，切换时<strong>不需要陷入内核态（Kernel Mode）</strong>，因此开销极低。</p>
-<p><strong>Java 虚拟线程（Virtual Thread）</strong> 是 JDK 21 正式发布的协程实现，属于 <strong>Project Loom</strong> 的成果。虚拟线程由 JVM 管理，挂载在若干平台线程（Platform Thread，即传统的 OS 线程）上执行，采用 <strong>M:N 调度模型</strong>（M 个虚拟线程映射到 N 个平台线程）。</p>
-<p><strong>代码示例：Java 虚拟线程 vs 传统线程</strong></p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.*</span><span class="p">;</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.stream.IntStream</span><span class="p">;</span>
-
-<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ThreadVsVirtualThread</span><span class="w"> </span><span class="p">{</span>
-
-<span class="w">    </span><span class="c1">// 传统平台线程 —— 创建 10,000 个线程</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">platformThreads</span><span class="p">()</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">10000</span><span class="p">);</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-
-<span class="w">        </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">Thread</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w"> </span><span class="c1">// 模拟 I/O 等待</span>
-<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">                </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">            </span><span class="n">t</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
-<span class="w">        </span><span class="p">});</span>
-
-<span class="w">        </span><span class="n">latch</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;平台线程 10000 个耗时: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;ms&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="c1">// 结果：运行缓慢，有可能 OOM，因为每个 OS 线程默认栈 1MB</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">o</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">o</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">o</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">getClass</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="na">getClass</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">        </span><span class="n">User</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="w"> </span><span class="n">o</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Objects</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">userId</span><span class="p">,</span><span class="w"> </span><span class="n">user</span><span class="p">.</span><span class="na">userId</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="c1">// 虚拟线程 —— 创建 100,000 个虚拟线程</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">virtualThreads</span><span class="p">()</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">100000</span><span class="p">);</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-
-<span class="w">        </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">100000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">startVirtualThread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w"> </span><span class="c1">// 虚拟线程在此处会 yield，不阻塞平台线程</span>
-<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">                </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">        </span><span class="p">});</span>
-
-<span class="w">        </span><span class="n">latch</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;虚拟线程 100000 个耗时: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;ms&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="c1">// 结果：轻松完成，因为每个虚拟线程仅需几 KB</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// 注意：不要同时运行，平台线程 10k 可能让系统变慢</span>
-<span class="w">        </span><span class="n">virtualThreads</span><span class="p">();</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">hashCode</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Objects</span><span class="p">.</span><span class="na">hash</span><span class="p">(</span><span class="n">userId</span><span class="p">);</span><span class="w"> </span><span class="c1">// 仅使用业务唯一标识</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p><strong>虚拟线程的关键优势：</strong><br />
-- 创建成本极低：几 KB（仅需栈帧对象）vs 传统线程的几 MB（需要内核栈分配）<br />
-- 切换成本趋近于零：纯用户态方法调用级别，无需系统调用<br />
-- 百万级并发：单台 JVM 可创建数百万虚拟线程<br />
-- I/O 阻塞时自动 yield：虚拟线程执行 I/O 操作时自动让出平台线程，不浪费 CPU</p>
-<hr />
-<h3 id="_5">第二层：底层原理</h3>
-<h4 id="cpu">CPU 的工作模式与上下文切换</h4>
-<p>CPU 运行在两种模式下：<br />
-- <strong>内核态（Kernel Mode）</strong>：可以执行特权指令，访问所有内存空间<br />
-- <strong>用户态（User Mode）</strong>：只能执行普通指令，访问受限内存</p>
-<p><strong>进程/线程切换 → 需要系统调用（System Call）→ 从用户态切换到内核态 → 执行调度器代码 → 切回用户态</strong></p>
-<p>涉及的关键步骤：</p>
-<div class="highlight"><pre><span></span><code>用户态 → int 0x80/syscall 指令 → 内核态 → 
-  保存用户态寄存器 + 栈指针 → 
-  调度器选择下一任务 → 
-  切换页表 / 修改 CR3 寄存器（进程切换时才需要）→ 
-  恢复下一任务寄存器 + 栈指针 → 
-  返回用户态
+<p><strong>为什么必须同时重写</strong>：<br />
+- HashMap 的 get() 方法先通过 <code>hashCode()</code> 定位到桶（Bucket），再通过 <code>equals()</code> 在桶内查找匹配的 key。<br />
+- 若只重写 <code>equals()</code> 而不重写 <code>hashCode()</code>：两个业务相等的对象（equals 返回 true）可能有不同的 hashCode，导致它们被放入不同的桶，get() 时无法正确获取 value（根据第一个 key 的 hashCode 定位到错误的桶）。<br />
+- 若只重写 <code>hashCode()</code> 而不重写 <code>equals()</code>：hashCode 相同但 equals 判断不相等时，会当作不同的 key 存入（但发生了哈希碰撞），get() 时使用 equals 判断进行链表遍历查找。</p>
+<p><strong>《Effective Java》第 11 条的核心约定</strong>：如果两个对象根据 <code>equals(Object)</code> 方法相等，那么调用这两个对象的 <code>hashCode()</code> 方法必须产生相同的整数结果。</p>
+<h4 id="key">常见坑点：可变字段做 key</h4>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Person</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w"> </span><span class="c1">// 可变字段</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">Person</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">setAge</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">hashCode</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Objects</span><span class="p">.</span><span class="na">hash</span><span class="p">(</span><span class="n">age</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">o</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* 比较 age */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 错误使用</span>
+<span class="n">Map</span><span class="o">&lt;</span><span class="n">Person</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="n">Person</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="mi">25</span><span class="p">);</span>
+<span class="n">map</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;data&quot;</span><span class="p">);</span>
+<span class="n">p</span><span class="p">.</span><span class="na">setAge</span><span class="p">(</span><span class="mi">30</span><span class="p">);</span><span class="w"> </span><span class="c1">// key 的 hashCode 发生变化！</span>
+<span class="n">map</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">p</span><span class="p">);</span><span class="w">   </span><span class="c1">// 返回 null！因为 hashCode 变了，定位到错误桶</span>
 </code></pre></div>
 
-<p><strong>协程切换</strong>只发生在用户态：</p>
-<div class="highlight"><pre><span></span><code>当前协程 → 主动 yield() → 协程调度器 → 选择下一协程 → 恢复其栈帧 → 继续执行
+<p><strong>问题本质</strong>：HashMap 在 put() 时根据当时 key 的 hashCode 确定存储位置。若 key 对象的 hashCode 依赖的字段在放入后被修改，则哈希值发生变化，get() 时 <code>(n - 1) &amp; hash</code> 将定位到另一个桶或在该桶内找不到原节点（因为 hashCode 不匹配）。</p>
+<p><strong>最佳实践</strong>：使用 <code>String</code> 或 <code>Integer</code> 等不可变类（Immutable Class）作为 key，或在自定义类中使用不可变字段（final 修饰）参与 hashCode 计算。</p>
+<h3 id="_9">深入思考</h3>
+<h4 id="_10">线程安全问题</h4>
+<p>HashMap 在<strong>多线程环境（Multi-Threading Environment）</strong>下存在以下安全问题：</p>
+<p><strong>1. JDK 1.7 的死循环（Infinite Loop）问题</strong></p>
+<p>JDK 1.7 的 resize() 采用头插法迁移链表，在多线程并发扩容时，可能形成<strong>环形链表（Circular Linked List）</strong>，导致后续 get() 操作死循环（CPU 100%）。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 伪代码：JDK 1.7 扩容迁移逻辑（头插法）</span>
+<span class="c1">// 线程 A 和线程 B 同时执行以下代码时可能产生环形链表</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">transfer</span><span class="p">(</span><span class="n">Entry</span><span class="o">[]</span><span class="w"> </span><span class="n">newTable</span><span class="p">,</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="n">rehash</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">newCapacity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newTable</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">table</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">while</span><span class="p">(</span><span class="kc">null</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">next</span><span class="p">;</span><span class="w">    </span><span class="c1">// 记录下一个节点</span>
+<span class="w">            </span><span class="n">e</span><span class="p">.</span><span class="na">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newTable</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span><span class="w">        </span><span class="c1">// 头插：新节点指向当前桶头</span>
+<span class="w">            </span><span class="n">newTable</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">;</span><span class="w">             </span><span class="c1">// 替换桶头为当前节点</span>
+<span class="w">            </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="p">;</span><span class="w">                    </span><span class="c1">// 处理下一个节点</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
-<p>全程在用户态内完成，无需 <strong>syscall</strong>、无需修改 CR3（页表寄存器），因此开销极低（纳秒级）。</p>
-<h4 id="java">Java 虚拟线程的调度机制</h4>
-<p>虚拟线程采用 <strong>Work-Stealing（工作窃取）调度</strong>：<br />
-- JVM 维护一个 <strong>FIFO 任务队列</strong>，平台线程（称为 Carrier Thread）从中"窃取"虚拟线程执行<br />
-- 当虚拟线程执行到阻塞操作（I/O、<code>sleep()</code>、<code>lock()</code>）时，JVM 将其从平台线程上<strong>卸载（Unmount）</strong>，挂回队列<br />
-- 平台线程转而执行队列中下一个就绪的虚拟线程<br />
-- 阻塞操作完成后，虚拟线程重新加入就绪队列</p>
-<div class="highlight"><pre><span></span><code><span class="k">[虚拟线程池]                    [平台线程（Carrier Threads）]</span>
-<span class="w">  </span><span class="na">VT1 (running)     ───────→    PT1 (执行 VT1)</span>
-<span class="w">  </span><span class="na">VT2 (ready)       ───────→    PT2 (执行 VT2)</span>
-<span class="w">  </span><span class="na">VT3 (blocked/I/O)              PT3 (VT3 yield → 执行 VT4)</span>
-<span class="w">  </span><span class="na">VT4 (ready)       ───────→    ...</span>
+<p>并发场景下，线程 A 在执行过程中被挂起，线程 B 完成扩容，线程 A 恢复执行后使用旧引用操作已被线程 B 修改的结构，产生环形链表。</p>
+<p><strong>JDK 1.8 改为尾插法后</strong>，链表元素顺序不变，从根本上避免了环形链表问题，但并发 put 仍有<strong>数据覆盖（Data Loss）</strong>问题：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// JDK 1.8 putVal 中的数据覆盖场景</span>
+<span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tab</span><span class="o">[</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">hash</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">    </span><span class="n">tab</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newNode</span><span class="p">(</span><span class="n">hash</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">);</span><span class="w"> </span><span class="c1">// 线程 A 和线程 B 同时执行到此行</span>
 </code></pre></div>
 
-<hr />
-<h3 id="_6">第三层：实践应用</h3>
-<h4 id="_7">三者对比表格</h4>
+<p>两个线程同时判断某个桶为空并同时插入，后写入的数据会覆盖先写入的数据，导致数据丢失。</p>
+<p><strong>2. 数据丢失（Data Loss）</strong>：<br />
+- 多线程同时 put 时，后写入的 value 可能覆盖先写入的 value（发生在同一 key 或同一桶位置）。<br />
+- 多线程同时触发 resize()，多个线程同时创建新数组并迁移数据，最终只有一个数组被赋值给 table，其他线程的迁移结果全部丢失。</p>
+<p><strong>3. <code>++size</code> 的非原子性（Non-Atomicity）</strong>：<br />
+<code>++size</code> 是<strong>读-改-写（Read-Modify-Write）</strong>操作，不是原子操作。两个线程同时执行 <code>++size</code>，可能都读到相同的旧值、都加 1 写回，导致 size 值偏小，影响扩容判断。</p>
+<h4 id="concurrenthashmap">ConcurrentHashMap 对比</h4>
 <table>
 <thead>
 <tr>
 <th>维度</th>
-<th>进程（Process）</th>
-<th>线程（Thread）</th>
-<th>协程/虚拟线程（Coroutine/Virtual Thread）</th>
+<th>JDK 1.7 ConcurrentHashMap</th>
+<th>JDK 1.8 ConcurrentHashMap</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>调度者</strong></td>
-<td>操作系统内核</td>
-<td>操作系统内核</td>
-<td>程序自身（用户态）</td>
+<td>并发控制</td>
+<td>分段锁 Segment（ReentrantLock）</td>
+<td>CAS（Compare-And-Swap）+ synchronized</td>
 </tr>
 <tr>
-<td><strong>内存占用</strong></td>
-<td>大（独立 4GB 虚拟地址空间）</td>
-<td>中等（约 1MB 栈/线程）</td>
-<td>极小（几 KB / 协程）</td>
+<td>锁粒度</td>
+<td>一个 Segment 管理多个桶（默认 16 个 Segment）</td>
+<td>单个数组元素（单桶锁定）</td>
 </tr>
 <tr>
-<td><strong>创建开销</strong></td>
-<td>大（需复制页表、PCB等）</td>
-<td>中等（需系统调用分配内核栈）</td>
-<td>极小（纯用户态对象分配）</td>
+<td>并发级别</td>
+<td>由 Segment 数量决定（最大 16）</td>
+<td>由数组长度决定（更大并发度）</td>
 </tr>
 <tr>
-<td><strong>切换开销</strong></td>
-<td>大（切换页表 + 刷新 TLB）</td>
-<td>中等（寄存器 + 栈切换）</td>
-<td>极小（用户态栈帧切换）</td>
+<td>查找操作</td>
+<td>读不加锁（volatile 保证可见性）</td>
+<td>读不加锁（volatile 保证可见性）</td>
 </tr>
 <tr>
-<td><strong>通信方式</strong></td>
-<td>IPC（Pipe、Socket、共享内存等）</td>
-<td>共享内存 + 同步机制</td>
-<td>共享内存 + 通道（Channel）</td>
-</tr>
-<tr>
-<td><strong>隔离性</strong></td>
-<td>完全隔离，互不影响</td>
-<td>共享地址空间，一个崩溃影响全部</td>
-<td>共享地址空间，但协作式调度更可控</td>
-</tr>
-<tr>
-<td><strong>适用场景</strong></td>
-<td>多进程架构、高隔离性需求</td>
-<td>CPU 密集型、并行计算</td>
-<td>I/O 密集型、高并发 Web 服务</td>
-</tr>
-<tr>
-<td><strong>Java 实现</strong></td>
-<td><code>ProcessBuilder</code> / <code>Runtime.exec()</code></td>
-<td><code>Thread</code>、<code>ThreadPoolExecutor</code></td>
-<td><code>Thread.startVirtualThread()</code> (JDK 21+)</td>
+<td>扩容机制</td>
+<td>每个 Segment 独立扩容</td>
+<td>整个数组扩容（支持多线程协助扩容）</td>
 </tr>
 </tbody>
 </table>
-<h4 id="_8">实际场景选择</h4>
-<p><strong>I/O 密集型（I/O-Bound）—— 首选协程/虚拟线程</strong></p>
-<p>场景：Web 服务器、API Gateway、数据库中间件</p>
-<p>每个请求涉及大量的 I/O 等待（网络 I/O、磁盘 I/O），CPU 大部分时间在等待。协程的"阻塞即切换"特性完美解决线程资源浪费。</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// 虚拟线程版 HTTP 服务器（JDK 21+）</span>
-<span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="kd">var</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">executor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="c1">// 每个请求是一个虚拟线程，阻塞时自动让出平台线程</span>
-<span class="w">            </span><span class="n">HttpClient</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HttpClient</span><span class="p">.</span><span class="na">newHttpClient</span><span class="p">();</span>
-<span class="w">            </span><span class="n">HttpRequest</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HttpRequest</span><span class="p">.</span><span class="na">newBuilder</span><span class="p">()</span>
-<span class="w">                </span><span class="p">.</span><span class="na">uri</span><span class="p">(</span><span class="n">URI</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;https://api.example.com/data&quot;</span><span class="p">))</span>
-<span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
-<span class="w">            </span><span class="n">HttpResponse</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">request</span><span class="p">,</span><span class="w"> </span>
-<span class="w">                </span><span class="n">HttpResponse</span><span class="p">.</span><span class="na">BodyHandlers</span><span class="p">.</span><span class="na">ofString</span><span class="p">());</span>
-<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="na">body</span><span class="p">();</span>
-<span class="w">        </span><span class="p">});</span>
-<span class="w">    </span><span class="p">});</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<p><strong>CPU 密集型（CPU-Bound）—— 首选线程池</strong></p>
-<p>场景：视频编解码、加密解密、科学计算</p>
-<p>线程数不宜超过 CPU 核心数，避免上下文切换带来的额外开销。线程池的 <strong>CachedThreadPool</strong> 或 <strong>FixedThreadPool</strong> 配合核心数配置最为高效。</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// CPU 密集型任务 —— 线程池最佳实践</span>
-<span class="kt">int</span><span class="w"> </span><span class="n">cores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Runtime</span><span class="p">.</span><span class="na">getRuntime</span><span class="p">().</span><span class="na">availableProcessors</span><span class="p">();</span>
-<span class="n">ThreadPoolExecutor</span><span class="w"> </span><span class="n">cpuExecutor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
-<span class="w">    </span><span class="n">cores</span><span class="p">,</span><span class="w">       </span><span class="c1">// corePoolSize = CPU 核心数</span>
-<span class="w">    </span><span class="n">cores</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w">   </span><span class="c1">// maximumPoolSize = 可稍大，处理突发</span>
-<span class="w">    </span><span class="mi">60L</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span>
-<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
-<span class="p">);</span>
-
-<span class="c1">// 执行 CPU 密集型计算任务</span>
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cpuExecutor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// 纯 CPU 计算，不需要 I/O 等待</span>
-<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1_000_000</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">sin</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">cos</span><span class="p">(</span><span class="n">j</span><span class="p">);</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
-<span class="w">    </span><span class="p">});</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<h4 id="java_1">Java 虚拟线程学习要点</h4>
+<p><strong>JDK 1.8 改进的核心动机</strong>：<br />
+- <strong>细粒度锁（Fine-Grained Locking）</strong>：JDK 1.8 使用 CAS + synchronized 锁定单个数组元素，不再需要 Segment 的继承层级，锁粒度更细，并发度更高。<br />
+- <strong>避免退化</strong>：分段锁（Segment Lock）在 Segment 内部发生哈希碰撞时，仍然只能逐桶操作；而 CAS 在无竞争时无锁化操作（Lock-Free）。<br />
+- <strong>协助扩容（Helping in Transfer）</strong>：put 操作检测到正在扩容时，可参与协助迁移数据，提升扩容效率。</p>
+<h4 id="jdk-18">JDK 1.8 的优化动机总结</h4>
 <ol>
-<li><strong>不适用于 CPU 密集型</strong>：虚拟线程的 yield 发生在阻塞时，纯计算不会 yield 也无优势</li>
-<li><strong>不要池化虚拟线程</strong>：每个虚拟线程成本极低，无需池化，<code>Executors.newVirtualThreadPerTaskExecutor()</code> 直接创建即可</li>
-<li><strong>谨慎使用 ThreadLocal</strong>：虚拟线程数量庞大，ThreadLocal 会导致大量对象残留，增大 GC 压力</li>
-<li><strong>synchronized 优化</strong>：JDK 21 对虚拟线程中的 <code>synchronized</code> 做了优化，不会固定（pin）平台线程</li>
+<li><strong>性能提升</strong>：引入红黑树将最坏情况时间复杂度从 O(n) 降为 O(log n)；简化扰动函数（9 次位运算 → 2 次）；扩容无需 rehash。</li>
+<li><strong>避免死锁</strong>：尾插法替代头插法，从根本上解决多线程扩容死循环问题。</li>
+<li><strong>内存优化</strong>：延迟初始化（Lazy Initialization），仅在首次 put 时分配数组。</li>
+<li><strong>提升可读性</strong>：重构 putVal() 和 resize() 方法，将不同职责的逻辑拆分清晰。</li>
 </ol>
-<div class="highlight"><pre><span></span><code><span class="c1">// 虚拟线程的最佳实践：不要池化，需要即创建</span>
-<span class="c1">// 推荐</span>
-<span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="kd">var</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">//...</span>
-<span class="p">}</span>
-
-<span class="c1">// 不推荐 —— 虚拟线程池化没有意义</span>
-<span class="n">ExecutorService</span><span class="w"> </span><span class="n">bad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newFixedThreadPool</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span>
-<span class="w">    </span><span class="n">Thread</span><span class="p">.</span><span class="na">ofVirtual</span><span class="p">().</span><span class="na">factory</span><span class="p">());</span><span class="w"> </span><span class="c1">// 虚拟线程池化，浪费</span>
-</code></pre></div>
-
 <hr />
-<h3 id="_9">第四层：深入思考</h3>
-<h4 id="1">1. 为什么进程切换比线程切换慢？</h4>
-<p>根本原因在于<strong>地址空间切换</strong>。线程只切换执行上下文（寄存器、栈指针），但进程切换需要：<br />
-- 切换页表目录基址寄存器（x86 的 CR3 → 刷新全部 TLB &gt; 需要从内存重新加载页表项 &gt; 多次缺页中断<br />
-- 进程的调度数据结构（PCB）比线程的 TCB 大得多<br />
-- 如果是写时拷贝（Copy-On-Write）的进程 fork，还可能触发缺页异常（Page Fault）</p>
-<h4 id="2-kotlin-coroutinego-goroutine">2. 虚拟线程与传统协程（如 Kotlin Coroutine、Go Goroutine）有何不同？</h4>
+<h2 id="_11">🗺️ 回答思路</h2>
+<h3 id="_12">答题逻辑框架</h3>
+<p>面试回答 HashMap 应采用 <strong>"总-分-总"的三层结构</strong>，既展示广度又体现深度：</p>
+<p><strong>第一层（总览）—— 30 秒内完成</strong><br />
+- <strong>开篇定调</strong>：直接点明 HashMap 是哈希表（Hash Table）的 Java 实现，采用 数组+链表+红黑树 的组合结构，存储键值对（Key-Value Pair），非线程安全（Not Thread-Safe）。<br />
+- <strong>定位版本</strong>：明确说明"本文以 JDK 1.8 为例讲解"。这是一个关键技巧——因为 JDK 1.7 和 1.8 的 HashMap 差异很大，锁定版本可以避免答混，也展示了面试者的版本意识。<br />
+- <strong>一句话总起</strong>："当插入一个元素时，HashMap 经历哈希计算、下标定位、冲突处理、可能的树化或扩容等多个步骤，下面我将逐层展开。"</p>
+<p><strong>第二层（分述）—— 2-3 分钟主体论述</strong><br />
+- <strong>按 put() 流程依次展开</strong>：从 hash() 计算 → 下标定位 → 空桶直接插入 → 冲突处理 → 链表遍历/树化处理 → value 替换 → 扩容判断，每一个步骤都给出关键源码和原理。<br />
+- <strong>每讲一步就点出一个关键优化</strong>：如讲下标定位时同步说明 <code>(n-1) &amp; hash</code> 替代取模的原因；讲树化时同步说明泊松分布选择 8 的理由。<br />
+- <strong>穿插对比</strong>：在讲链表插入时对比头插法 vs 尾插法；讲扩容时对比 JDK 1.7 rehash vs JDK 1.8 高低位拆分。<br />
+- <strong>适时深入</strong>：面试官若追问某个点（如"为什么负载因子是 0.75"），立即展开到时间空间权衡分析和泊松分布计算。</p>
+<p><strong>第三层（总结收束）—— 30 秒</strong><br />
+- <strong>回顾主线</strong>："综上所述，HashMap 的 put 操作围绕哈希映射（Hash Mapping）和容量管理（Capacity Management）两条主线展开。"<br />
+- <strong>引出扩展</strong>："由于不是线程安全的，在多线程场景下需使用 ConcurrentHashMap，其演进思路与 HashMap 的优化有相似之处——都是通过细粒度并发控制（Fine-Grained Concurrency Control）提升性能。"<br />
+- <strong>留有钩子</strong>：主动提及"如果面试官需要，我还可以进一步对比 JDK 1.7 和 1.8 的 resize 细节差异，或分析 ConcurrentHashMap 的 CAS 实现。"——展示主动性和思维广度。</p>
+<h3 id="_13">重点得分点</h3>
+<p>面试官在 HashMap 问题上最关注以下 6 个得分点：</p>
+<ol>
+<li><strong>哈希函数设计原理</strong>（得分权重：高）</li>
+<li>说出扰动函数（Perturbation Function）的含义：高 16 位与低 16 位异或。</li>
+<li>解释"为什么需要高位参与运算"：因为 <code>(n-1) &amp; hash</code> 只用了低位，高位差异会丢失。</li>
+<li>
+<p>对比 JDK 1.7 的 9 次扰动 vs JDK 1.8 的 1 次扰动，说明性能考量。</p>
+</li>
+<li>
+<p><strong>put() 执行流程完整度</strong>（得分权重：极高）</p>
+</li>
+<li>至少说出 5 个以上关键步骤，完整流程为 7 步（见深度解答部分）。</li>
+<li>每个步骤都要结合源码叙述，而非仅描述逻辑。</li>
+<li>
+<p>能够手写出 putVal() 核心判断逻辑（三个主要分支）。</p>
+</li>
+<li>
+<p><strong>扩容机制优化</strong>（得分权重：高）</p>
+</li>
+<li>说出 JDK 1.8 不需要 rehash 的原因：利用 <code>(e.hash &amp; oldCap)</code> 判断高低位。</li>
+<li>解释低位链（Low-Tail）和高位链（High-Tail）的含义。</li>
+<li>
+<p>说明为什么容量是 2 的幂——位运算、均匀分布、扩容优化三者合一。</p>
+</li>
+<li>
+<p><strong>树化阈值分析</strong>（得分权重：中高）</p>
+</li>
+<li>准确说出三个常量的值：TREEIFY_THRESHOLD=8、UNTREEIFY_THRESHOLD=6、MIN_TREEIFY_CAPACITY=64。</li>
+<li>说出泊松分布（Poisson Distribution）的概率计算（链表长度 8 的概率约六千万分之一）。</li>
+<li>
+<p>解释为什么 8 和 6 之间保留 2 的差值（防振荡 Oscillation）。</p>
+</li>
+<li>
+<p><strong>线程安全问题认知</strong>（得分权重：中）</p>
+</li>
+<li>说出 JDK 1.7 的死循环（Infinite Loop）问题及根因（头插法 + 并发扩容）。</li>
+<li>说出 JDK 1.8 仍有数据覆盖（Data Loss）问题。</li>
+<li>
+<p>准确对比 ConcurrentHashMap 的解决方式。</p>
+</li>
+<li>
+<p><strong>负载因子 0.75 的合理性</strong>（得分权重：中）</p>
+</li>
+<li>说出 0.75 是时间开销与空间开销的折中。</li>
+<li>能够简要解释泊松分布参数和经验取值依据。</li>
+</ol>
+<p><strong>关键展示技巧</strong>：每个得分点都尽量<strong>结合源码叙述</strong>，面试官对源码的印象远大于对概念背诵的印象。</p>
+<h3 id="_14">常见误区</h3>
+<p>以下是在 HashMap 面试中容易说错或被面试官抓住的 10 个误区：</p>
+<ol>
+<li><strong>"HashMap 是线程安全的"</strong> —— 这是最常见错误。HashMap 是 Not Thread-Safe，多线程下应用 ConcurrentHashMap。</li>
+<li><strong>"JDK 1.8 的红黑树在链表长度到 8 时就立即转换"</strong> —— 漏掉了 <code>MIN_TREEIFY_CAPACITY=64</code> 的前置条件。长度为 8 时先检查数组长度是否 &gt;= 64，若不足则优先扩容。</li>
+<li><strong>"key 可以为 null，value 不能为 null"</strong> —— 实际上 key 和 value 都可以为 null。key=null 时 hash=0，放在 table[0] 位置。</li>
+<li><strong>"HashMap 使用取模运算 <code>hash % n</code> 计算下标"</strong> —— 实际使用位运算 <code>(n-1) &amp; hash</code>，且在 n 为 2 的幂时才等价。</li>
+<li><strong>"初始容量就是 HashMap 中能存储元素的最大数量"</strong> —— 初始容量是数组大小，实际最多能存储 <code>容量 * 负载因子</code> 个元素才会触发扩容。如容量 16，负载因子 0.75，实际存 12 个就会扩容。</li>
+<li><strong>"自定义 key 只需要重写 equals 即可"</strong> —— 必须同时重写 hashCode() 和 equals()。只重写 equals 会导致 equals 相等但 hashCode 不同，定位到不同桶。</li>
+<li><strong>"JDK 1.8 中 HashMap 完全解决了线程安全问题"</strong> —— JDK 1.8 通过尾插法（Tail Insertion）解决了死循环（Infinite Loop），但仍有数据覆盖（Data Loss）和 ++size 非原子问题。</li>
+<li><strong>"红黑树转换后永远不会退化为链表"</strong> —— 扩容时如果红黑树节点数 &lt;= 6，会通过 untreeify() 退化为链表。</li>
+<li><strong>"HashMap 中 Entry 是内部类"</strong> —— JDK 1.8 中用 Node（普通节点）和 TreeNode（红黑树节点）替代了 JDK 1.7 的 Entry。</li>
+<li><strong>"扩容时每个元素都重新计算哈希值"</strong> —— JDK 1.8 扩容不重新计算 hash，hash 值（即 hashCode 扰动后的结果）存储在 Node 对象的 hash 字段中保持不变，仅通过 <code>(e.hash &amp; oldCap)</code> 判断迁移位置。</li>
+</ol>
+<h3 id="_15">时间分配建议</h3>
+<p>假设面试官给的整体回答时间为 <strong>3-5 分钟</strong>，建议如下分配：</p>
 <table>
 <thead>
 <tr>
-<th>特性</th>
-<th>Java 虚拟线程</th>
-<th>Kotlin Coroutine</th>
-<th>Go Goroutine</th>
+<th>内容模块</th>
+<th>建议时间</th>
+<th>占比</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>语言支持</td>
-<td>JDK 21 内置</td>
-<td>库支持</td>
-<td>语言内置</td>
+<td>总览（核心概念+数据结构）</td>
+<td>20-30 秒</td>
+<td>~10%</td>
+<td>简要说明 HashMap 是什么和总体结构</td>
 </tr>
 <tr>
-<td>调度</td>
-<td>JVM 管理（ForkJoinPool）</td>
-<td>协程上下文调度器</td>
-<td>Go 运行时（G-M-P模型）</td>
+<td>put() 流程逐步分析</td>
+<td>60-90 秒</td>
+<td>~30%</td>
+<td>这是核心中的核心，重点展开</td>
 </tr>
 <tr>
-<td>堆栈</td>
-<td>可动态增长（类似 OS 线程的栈）</td>
-<td>编译期挂起、状态机</td>
-<td>可动态增长（初始 2KB）</td>
+<td>扩容机制+优化</td>
+<td>40-60 秒</td>
+<td>~15%</td>
+<td>展示 JDK 1.8 的优化理解</td>
 </tr>
 <tr>
-<td>阻塞语义</td>
-<td>自动 yield（不阻塞平台线程）</td>
-<td>必须使用 <code>suspend</code> 函数</td>
-<td>自动 yield</td>
+<td>树化+泊松分布</td>
+<td>30-40 秒</td>
+<td>~10%</td>
+<td>展示源码级深度</td>
+</tr>
+<tr>
+<td>负载因子+容量设计</td>
+<td>20-30 秒</td>
+<td>~8%</td>
+<td>简要点出折中原理</td>
+</tr>
+<tr>
+<td>线程安全+ConcurrentHashMap</td>
+<td>30-50 秒</td>
+<td>~12%</td>
+<td>展示全面性和对比能力</td>
+</tr>
+<tr>
+<td>实践应用</td>
+<td>20-30 秒</td>
+<td>~8%</td>
+<td>展示工程实践经验</td>
+</tr>
+<tr>
+<td>总结收束</td>
+<td>10-20 秒</td>
+<td>~5%</td>
+<td>回顾并引出扩展话题</td>
 </tr>
 </tbody>
 </table>
-<p>Java 虚拟线程的最大优势是<strong>对现有代码的侵入性极小</strong>——几乎不需要修改代码就能享受协程的并发能力，只需将 <code>new Thread()</code> 替换为 <code>Thread.startVirtualThread()</code>，将 <code>newFixedThreadPool</code> 替换为 <code>newVirtualThreadPerTaskExecutor</code>。</p>
-<h4 id="3">3. 百万协程背后的操作系统限制</h4>
-<p>虽然协程可以轻松创建百万级并发，但底层操作系统资源仍有瓶颈：<br />
-- <strong>文件描述符（File Descriptor, FD）</strong>：默认 1024 个/进程，需调大 <code>ulimit -n 65535</code><br />
-- <strong>端口号（Port Number）</strong>：一个客户端 IP 可用的临时端口约 28k 个<br />
-- <strong>内存</strong>：百万虚拟线程约 2-4 GB（每个约 2-4KB），对 16GB JVM 可接受</p>
-<h4 id="4">4. 未来的并发编程趋势</h4>
-<p>随着 Java 虚拟线程的成熟，传统的 <strong>Reactor 模型</strong>（Netty、WebFlux）和 <strong>异步回调</strong> 范式将逐渐被虚拟线程的<strong>同步阻塞</strong>写法替代——代码更直观、调试更方便，而性能和吞吐量不输异步模型。Java 的并发编程正在经历一场"返回同步"的革命。</p>
+<p><strong>总时间应控制在 3-4 分钟</strong>，既覆盖全面又不显拖沓。若面试官追问某个子问题（如"泊松分布具体怎么算的"），则根据追问深度展开，不必严格遵循此时间分配。</p>
+<p><strong>压缩方案</strong>（若面试官示意简短回答、时间紧张至 1-2 分钟时）：保留 put() 流程和扩容优化两个核心模块，压缩或略去负载因子、线程安全对比等细节。面试官感兴趣时会主动追问。</p>
+<p><strong>扩展方案</strong>（若面试官表现出高度兴趣或要求在 HashMap 上展开）：补充 ConcurrentHashMap 的 CAS 实现细节、红黑树的左旋右旋（Left-Rotation / Right-Rotation）操作、HashMap 在 JDK 8-17 之间的演进（如红黑树的退化逻辑优化等）。</p>
+<h3 id="_16">过渡话术</h3>
+<p>在面试回答中使用<strong>自然过渡（Transition）</strong>，使论述连贯流畅，而非生硬地切换话题：</p>
+<p><strong>从总览到 put 流程的过渡</strong>：</p>
+<blockquote>
+<p>"以上是 HashMap 的整体架构。接下来我从 put() 方法的视角，逐步拆解元素的插入流程。首先是哈希值的计算——"</p>
+</blockquote>
+<p><strong>从 put 流程到扩容机制的过渡</strong>：</p>
+<blockquote>
+<p>"在插入完成后，有一个关键的判断：是否需要进行扩容（Resize）。这也是 JDK 1.8 引入了一个重要优化的地方——"</p>
+</blockquote>
+<p><strong>从树化阈值到负载因子的过渡</strong>：</p>
+<blockquote>
+<p>"刚才提到的 8 这个阈值并非随意设定，而是基于泊松分布（Poisson Distribution）的概率计算得出的。说到概率，与之相关的另一个重要参数就是负载因子（Load Factor），它的取值 0.75 背后同样有时间和空间成本的权衡——"</p>
+</blockquote>
+<p><strong>从深度解答到工程实践的过渡</strong>：</p>
+<blockquote>
+<p>"以上是从源码角度对 HashMap 底层原理的分析。在实际开发中，这些原理有几个非常重要的实践指导意义——"</p>
+</blockquote>
+<p><strong>遇到不确定时的过渡</strong>（给自己思考时间）：</p>
+<blockquote>
+<p>"这个问题我分两个层面来回答：先从 JDK 1.8 的实现机制入手，再延伸到和 JDK 1.7 的对比差异。第一层面来说……"</p>
+</blockquote>
+<p><strong>回答结束的收束过渡</strong>：</p>
+<blockquote>
+<p>"以上就是我对 HashMap 插入流程的完整梳理。总结来看，put 操作涉及哈希扰动、下标定位、冲突处理和扩容管理四个环节，每个环节都有设计上的精妙考量。如果有需要，我可以进一步深入某个环节展开说明。"</p>
+</blockquote>
 <hr />
-<h2 id="_10">🗺️ 回答思路</h2>
-<p>面试中回答此题时，建议按以下思路组织语言：</p>
-<p><strong>1. 开篇定义（30秒）</strong>：用一句话概括三者本质<br />
-- "进程是操作系统资源分配的最小单位，线程是 CPU 调度的最小单位，协程是用户态的轻量级线程"<br />
-- 用"别墅-房间-书桌"的比喻让面试官一秒理解</p>
-<p><strong>2. 核心区别展开（2分钟）</strong>：<br />
-- 从<strong>资源隔离</strong>角度：进程独立地址空间 vs 线程共享进程资源 vs 协程共享线程资源<br />
-- 从<strong>切换开销</strong>角度：页表+TLB vs 寄存器+栈 vs 纯用户态栈帧<br />
-- 从<strong>通信方式</strong>角度：IPC 复杂机制 vs 共享内存+锁 vs 通道/共享变量<br />
-- 展示对比表格（前面已准备）</p>
-<p><strong>3. 代码示例（1分钟）</strong>：<br />
-- 展示 Java 虚拟线程 vs 传统线程的对比代码<br />
-- 强调 10k vs 100k 的差异，突出虚拟线程的轻量</p>
-<p><strong>4. 底层原理延伸（1分钟）</strong>：<br />
-- 解释为什么进程切换慢：CR3 寄存器切换 → TLB 刷新 → 缺页中断<br />
-- 解释协程为什么快：纯用户态、无需 syscall</p>
-<p><strong>5. 实践场景（1分钟）</strong>：<br />
-- I/O 密集型 → 虚拟线程/协程（展示 Executors.newVirtualThreadPerTaskExecutor）<br />
-- CPU 密集型 → 线程池（展示 ThreadPoolExecutor 配合 corePoolSize）<br />
-- 引出 Java 虚拟线程的注意事项（不要池化、谨慎 ThreadLocal）</p>
-<p><strong>6. 加分项（30秒）</strong>：<br />
-- 对比 Kotlin Coroutine、Go Goroutine 和 Java Virtual Thread 的异同<br />
-- 提出"同步阻塞回归"的趋势思考<br />
-- 呼应面试官的深入研究</p>
-<p><strong>时间控制</strong>：总计约 5-6 分钟<br />
-<strong>话术技巧</strong>："我们可以从三个维度来理解——资源维度、调度维度、通信维度……"<br />
-<strong>误区避免</strong>：<br />
-- 不要只说概念，必须有代码<br />
-- 不要混淆"进程切换"和"线程切换"的开销差异<br />
-- 不要说"协程比线程快"这种绝对化表述，要区分场景</p>
+<h2 id="_17">文档元信息</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>文档标题</strong></td>
+<td>HashMap 底层实现：插入元素时会发生什么</td>
+</tr>
+<tr>
+<td><strong>题目数量</strong></td>
+<td>1 道</td>
+</tr>
+<tr>
+<td><strong>分类标签</strong></td>
+<td>Java / 集合框架 / HashMap</td>
+</tr>
+<tr>
+<td><strong>生成日期</strong></td>
+<td>2026-07-04</td>
+</tr>
+<tr>
+<td><strong>内容结构</strong></td>
+<td>🧠 联想记忆法 → 📖 深度解答 → 🗺️ 回答思路</td>
+</tr>
+<tr>
+<td><strong>来源文件</strong></td>
+<td><code>HashMap-answer.md</code></td>
+</tr>
+</tbody>
+</table>
 <hr />
 <blockquote>
-<p>📋 <strong>分类</strong>: 操作系统<br />
-🏷️ <strong>标签</strong>: <code>协程</code> <code>并发</code> <code>线程</code> <code>进程</code> <code>虚拟线程</code> <code>并发编程</code><br />
-📊 <strong>难度</strong>: 进阶<br />
-📅 <strong>归档时间</strong>: 2026-07-04 14:27:07</p>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-04 14:28:11</p>
 </blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0034')">
