@@ -1,8 +1,8 @@
 ---
-id: q0015
+id: q0025
 question: "Redis 主从切换、异常导致锁丢失，有什么补救措施"
 category: redis
-tags: ["分布式锁", "Redis", "主从复制", "CAP", "RedLock", "ZooKeeper"]
+tags: ["分布式锁", "Redis", "主从复制", "CAP", "RedLock", "Fencing Token", "幂等"]
 difficulty: hard
 created: 2026-07-04 16:30:00
 source: /面经助手-20260704
@@ -10,182 +10,294 @@ source: /面经助手-20260704
 
 # Redis 主从切换、异常导致锁丢失，有什么补救措施
 
-## 🧠 联想记忆法
+---
 
-**口诀：「五把锁，锁住 Redis 锁丢失」**
+### 🧠 联想记忆法
 
-> **Red**Lock — **延**迟重启 — Z**oo**Keeper — **fe**ncing — **幂**等
+**场景记忆口诀：「主挂锁丢，异步之祸」**
 
-取每个方案的首字或关键字：**Red-延-Zoo-fe-幂** → 谐音「红颜祖废密」，想象一个穿红衣（Red）的**红**颜女子，在**祖**屋前**延**迟开门，发现门锁**废**了，用**密**码（幂等）救场。
+把整个问题想象成一个"保险柜交接"的场景：
 
-| 关键词 | 方案 | 一句话记忆 |
-|--------|------|-----------|
-| **Red** | RedLock 红锁 | 向 N 个独立节点请求锁，过半即得锁 |
-| **延** | 延迟重启 | 切换主节点前等够锁过期时间，让旧锁自然消失 |
-| **Zoo** | ZooKeeper | CP 系统，写前先过半确认（ZAB 协议），强一致 |
-| **fe** | fencing token | 每次拿锁配一个递增令牌，写时校验，过期拒绝 |
-| **幂** | 业务幂等 | 锁失效了也不怕，唯一索引 + 乐观锁兜底 |
+1. **主节点 = 老保险柜管理员**，手里拿着客户存的锁（锁数据）
+2. **从节点 = 学徒**，老管理员会在下班后把钥匙清单抄给他（异步复制）
+3. **老管理员突然猝死（主节点宕机）**，学徒紧急上岗（从→主晋升）
+4. **但钥匙清单还没抄完**（锁数据未同步），学徒不知道某些锁的存在
+5. **客户来取锁 → 发现锁没了**（锁丢失）
 
-## 📖 深度解答
+**记忆五个补救措施：用「红延Zoo fence 幂」谐音「红颜Zoo fence幂」**
+- **红** → RedLock（红锁），向多个Redis节点申请锁，多数同意才算
+- **延** → 延迟重启，等旧锁过期再让新主上线
+- **Zoo** → Zookeeper/etcd，CP强一致系统，数据不丢
+- **fence** → fencing token（栅栏令牌），每次取锁带编号，旧号不认
+- **幂** → 业务幂等设计，兜底方案，锁失效也不怕
 
-### 一、核心概念
+---
 
-#### 1.1 问题场景还原
+### 📖 深度解答
 
-在 Redis 分布式锁（Distributed Lock）的典型实现中，客户端向 Redis 主节点（Master）写入一个带有过期时间（TTL）的 Key 来获取锁。Redis 的主从复制（Master-Slave Replication）默认是异步的（Asynchronous Replication）——Master 将命令写入复制积压缓冲区（Replication Backlog），Slave 通过 `replicaof` 命令异步拉取。
+#### 第一层：核心概念 — 问题全景
 
-当出现以下时序时锁会丢失：
+**分布式锁（Distributed Lock）** 是分布式系统中用于协调多个进程对共享资源互斥访问的机制。Redis 凭借其高性能（单机可达 10 万+ QPS）成为实现分布式锁最流行的方案之一。然而，当 Redis 使用**主从架构（Master-Slave Replication）** 时，存在一个经典的**锁丢失（Lock Loss）** 问题。
+
+**问题场景的精确复现：**
+
+1. 客户端 A 向 Redis **主节点（Master）** 申请锁，通过 `SET key value NX PX 30000` 命令成功写入锁数据。
+2. Redis 主节点返回成功给客户端 A，但**尚未通过异步复制（Asynchronous Replication）** 将这条写命令传播到**从节点（Slave）**。
+3. 主节点突然宕机（crash）。
+4. **哨兵（Sentinel）** 或 **集群故障转移（Cluster Failover）** 机制检测到主节点不可用，将一个从节点晋升为新的主节点。
+5. 新主节点上**没有**客户端 A 的锁数据。客户端 B 这时尝试获取同一把锁，发现锁不存在，成功获得锁。
+6. 客户端 A 和客户端 B **同时持有同一把锁**，分布式锁的互斥性（Mutual Exclusion）被破坏。
+
+这就是 **Redis 主从切换导致锁丢失** 问题的核心机制。
+
+#### 第二层：底层原理 — 为什么锁会丢？
+
+**2.1 Redis 主从复制的异步特性（Asynchronous Replication）**
+
+Redis 主从复制的默认模式是**异步复制**。其工作流程为：
+
+- 主节点执行客户端写命令，将结果返回到客户端的内存缓冲区（client output buffer）
+- 主节点将命令写入**复制积压缓冲区（Replication Backlog）**  
+- 主节点通过 `replconf` 命令与从节点保持心跳，将 backlog 中的命令异步发送给从节点
+- 从节点接收到命令后写入自己的内存（可能会额外写入磁盘的 AOF 文件）
+
+**关键问题**：主节点在向客户端返回 `OK` 时，**不保证从节点已经收到这条命令**。根据 Redis 官方文档的表述，主从复制是"最终一致性（Eventual Consistency）"的——从节点最终会追上主节点的状态，但中间存在一个时间窗口。
+
+这个时间窗口的大小取决于：
+- 网络延迟（Network Latency）—— 主从节点之间的 RTT
+- 主节点的写负载 —— 积压的命令数量
+- 从节点的处理能力 —— 是否因持久化操作而阻塞
+
+在极端情况下，如果主节点在命令传播到从节点之前崩溃，这个窗口内的所有写操作**全部丢失**。
+
+**2.2 CAP 理论的权衡**
+
+Redis 主从架构在 CAP 理论中偏重 **AP（Availability + Partition Tolerance）**，即：
+- **A（可用性）**：主节点故障后，快速选举新主，保证服务持续可用
+- **P（分区容错性）**：网络分区时仍然可用
+- **C（一致性）的代价**：作为代价，牺牲了强一致性（Strong Consistency），仅保证最终一致性
+
+这意味着 Redis 在默认配置下**无法保证分布式锁的强一致性**，这是问题的**根本原因（Root Cause）**。
+
+#### 第三层：实践应用 — 5 种补救方案详解
+
+**方案一：RedLock 算法（红锁）**
+
+**提出者**：Redis 作者 antirez（Salvatore Sanfilippo）
+
+**核心思想**：不依赖单个 Redis 节点（及其主从复制），而是向 **N 个完全独立的 Redis 节点**（通常是 5 个）同时申请锁。这些节点之间**不存在主从关系**，彼此独立运行。
+
+**算法步骤：**
+```
+1. 获取当前时间 T1（毫秒）
+2. 依次向 N 个 Redis 节点执行 SET key value NX PX TTL
+   - 每个节点设置超时时间（远小于 TTL）
+   - 如果有节点不可用，跳过继续
+3. 计算获取锁消耗的时间 = T2 - T1
+4. 判断条件：
+   - 在 N/2 + 1 个节点上成功获取锁
+   - 且消耗时间 < TTL
+   - 两个条件同时满足 → 锁获取成功
+   - 否则 → 锁获取失败，向所有节点发送 DEL 释放锁
+5. 使用锁执行业务逻辑
+6. 完成后释放锁（向所有节点发送 DEL）
+```
+
+**优点**：
+- 不依赖主从复制，不受异步复制窗口影响
+- 只要多数节点存活，锁数据就不会丢失
+- 任何一个单节点宕机不影响整体锁的正确性
+
+**缺点**：
+- 需要运行多个独立 Redis 实例，部署和维护成本高
+- 性能较低（需要 N 次网络 RTT）
+- 存在时钟漂移（Clock Drift）问题——依赖系统时间
+- antirez 本人的算法，但 Martin Kleppmann 曾撰文指出其仍存在安全性缺陷（见"深入思考"）
+
+**方案二：延迟重启（Delayed Restart）**
+
+**核心思想**：在主从切换时，新主节点不要立即上线，而是等待**一个锁的最大生存时间（TTL）** 之后再启动。
 
 ```
-T0: Client A 向 Master SET lock:key random_value NX PX 30000  → 加锁成功
-T1: Master 尚未将命令同步到 Slave（异步延迟）
-T2: Master 宕机
-T3: Sentinel 执行故障转移（Failover），Slave 晋升为 Master
-T4: Client B 向新 Master SET lock:key random_value2 NX PX 30000  → **加锁成功！**
-→ Client A 和 Client B 同时认为自己持有锁，锁的互斥性（Mutual Exclusion）被打破
+主节点宕机
+    ↓
+Sentinel 检测到故障
+    ↓
+等待 ≥ 最大锁 TTL（例如 30 秒）
+    ↓
+将从节点晋升为主节点
+    ↓
+新主上线提供服务
 ```
 
-这就是 Redis 分布式锁在主从切换场景下的**锁丢失（Lock Loss）**问题。
+**原理**：等待 TTL 时间后，旧主上所有未同步的锁数据都已经**自然过期**了，任何客户端都无法再持有这些"幽灵锁"。新主上不会有锁数据，客户端需要重新申请锁。
 
-#### 1.2 根因分析
+**优点**：
+- 实现简单，无需额外组件
+- 不需要修改 Redis 本身的配置
 
-| 因素 | 说明 |
-|------|------|
-| **异步复制** | `SET` 命令先返回客户端成功，再异步同步到 Slave，无法保证主从强一致（Strong Consistency） |
-| **AP 倾向** | Redis 设计优先保证可用性（Availability）和分区容错性（Partition Tolerance），牺牲了一致性（Consistency），属于 CAP 理论的 AP 系统 |
-| **故障切换时机** | Failover 可能在复制完成前的任意时刻发生 |
+**缺点**：
+- **服务不可用时间大大延长**：通常 Redis 故障切换期望秒级完成，延迟重启要等几十秒甚至更久
+- 不适用于对可用性要求极高的场景
+- 如果锁 TTL 很短（如 1 秒），但网络延迟不稳定，仍可能丢失
 
-### 二、底层原理
+**方案三：基于 Zookeeper / etcd 实现锁**
 
-#### 2.1 Redis 主从复制的异步机制
+**核心思想**：放弃 Redis 的 AP 特性，改用 CP 系统实现分布式锁。
 
-Redis 主从复制围绕 `replicationId` 和 `replicationOffset` 两个核心概念工作：
+**Zookeeper 锁机制**：
+- 基于 **ZAB（Zookeeper Atomic Broadcast）** 协议，保证强一致性
+- 客户端在某个路径下创建**临时顺序节点（Ephemeral Sequential Node）**
+- 创建序号最小的节点即获得锁
+- 临时节点与会话（Session）绑定，会话断开自动删除，避免死锁
+- ZAB 协议要求**多数节点（Quorum）** 写入成功后才返回客户端
 
-- Master 维护一个**复制积压缓冲区（Replication Backlog）**，默认 1MB 环形缓冲区
-- Slave 发送 `PSYNC {replicationId} {offset}` 命令请求增量同步
-- 如果 slave 的 offset 落后太多或 replicationId 不匹配，触发全量重同步（Full Resynchronization），生成 RDB 快照传输
+**etcd 锁机制**：
+- 基于 **Raft 一致性算法（Raft Consensus Algorithm）**
+- 使用 `txn`（事务）API 实现锁的原子性
+- 租约（Lease）机制替代 Redis 的 TTL
+- Raft 保证写操作在返回前已经被**多数节点持久化**
 
-**关键缺陷**：Master 执行完 `SET lock:key value NX PX 30000` 后立即返回 `+OK` 给客户端，然后将命令写入 backlog。如果 Master 在 backlog 被 Slave 拉取之前宕机，这条锁记录就永远丢失了。
+**优点**：
+- **强一致性**：写操作在返回前已被复制到多数节点，主节点宕机不会丢失数据
+- **天然解决锁丢失问题**：基于共识算法，不存在异步复制窗口
+- Zookeeper 的临时节点可自动释放死锁
 
-Redis 官方在 `redis.conf` 中提供了 `min-replicas-to-write` 和 `min-replicas-max-lag` 参数，可以要求 Master 在写入时至少有一定数量的 Slave 确认（Weakly Acknowledged），但这只能降低概率，**无法从根本解决**——因为这是异步模型的天生局限。
+**缺点**：
+- **性能远低于 Redis**：Zookeeper 写入 QPS 通常在几千到 1 万左右
+- 部署复杂：需要维护 ZK/etcd 集群
+- 需要引入新的依赖系统
 
-#### 2.2 分布式锁的正确性要求
+**方案四：Fencing Token（栅栏令牌）**
 
-一个可靠的分布式锁必须满足三个性质：
+**核心思想**：为每次获取锁分配一个**严格递增的 token**，在操作共享资源时携带此 token，资源端根据 token 的新旧决定是否允许操作。
 
-| 性质 | 英文 | 说明 |
-|------|------|------|
-| **互斥性** | Mutual Exclusion | 任何时刻只有一个客户端持有锁 |
-| **死锁逃生** | Deadlock Freedom | 持有锁的客户端崩溃后，锁能自动释放（通过 TTL 实现） |
-| **容错性** | Fault Tolerance | 部分节点宕机不影响锁的整体正确性 |
+**提出者**：Martin Kleppmann（《数据密集型应用系统设计》作者）
 
-当主从切换发生时，互斥性被破坏——这就是需要补救措施的根源。
+**实现方式**：
+```
+// 锁服务返回递增 token
+token = lockService.acquire("resource_key")
+// token = 100
 
-### 三、实践应用：五大补救方案
+// 操作共享资源时带上 token
+writeToStorage(key, value, token)
 
-#### 方案一：RedLock（红锁算法）
-
-**提出者**：Redis 作者 Antirez（Salvatore Sanfilippo）
-
-**核心思想**：不再依赖单个 Redis 主从结构，而是在 N（通常 N=5）个**完全独立**的 Redis 节点上同时申请锁，只要在 `N/2 + 1` 个节点上成功获取到锁，就认为加锁成功。
-
-**实现步骤**：
-1. 获取当前毫秒时间戳 `start_time`
-2. 依次向 N 个 Redis 节点设置锁，每个 SET 的超时时间远小于锁 TTL（比如锁 TTL=10s，单节点超时=50ms）
-3. 计算获取锁的耗时 `elapsed = now - start_time`
-4. 如果成功节点数 >= N/2+1 **且** elapsed < lock_ttl，则锁有效
-5. 释放锁时，删除所有 N 个节点上的 Key
-
-**Java 伪代码示例**：
-```java
-public class RedLock {
-    private static final int N = 5;
-    private static final long LOCK_TTL_MS = 30000;
-    private static final long PER_NODE_TIMEOUT_MS = 100;
-    private List<RedisClient> nodes = initNodes(N);
-
-    public boolean tryLock(String key, String value) {
-        long start = System.currentTimeMillis();
-        int successCount = 0;
-
-        for (RedisClient node : nodes) {
-            try {
-                String result = node.set(key, value, 
-                    SetArgs.Builder.nx().px(LOCK_TTL_MS), 
-                    PER_NODE_TIMEOUT_MS);
-                if ("OK".equals(result)) successCount++;
-            } catch (TimeoutException e) {
-                // 单个节点超时不影响整体
-            }
-        }
-
-        long elapsed = System.currentTimeMillis() - start;
-        int quorum = N / 2 + 1;
-
-        if (successCount >= quorum && elapsed < LOCK_TTL_MS) {
-            return true;
-        }
-
-        // 加锁失败，立即释放所有节点的锁
-        for (RedisClient node : nodes) {
-            node.delete(key);
-        }
-        return false;
-    }
+// 存储系统检查 token 是否有效
+if (token > lastToken) {
+    acceptWrite()
+    updateLastToken(token)
+} else {
+    rejectWrite()  // 旧 token，说明锁已过期
 }
 ```
 
-**优缺点**：优点是不依赖主从关系，独立节点间故障隔离；缺点是需要 5 个独立节点，运维成本高，依赖客户端时钟同步。适用于对一致性有较高要求、可接受额外硬件成本的场景。
+**优点**：
+- **即使锁丢失也能保证安全性**：旧 token 会被拒绝
+- 独立于锁实现机制，可以叠加在其他方案之上
+- 提供**真正的互斥保证**（不仅仅是锁的互斥，而且是资源的互斥）
 
-#### 方案二：延迟重启（Delay Restart / Delayed Replica Promotion）
+**缺点**：
+- 需要一个**单调递增 token 生成器**，且必须是全局严格递增的
+- 共享存储系统需要支持 token 比较逻辑
+- 增加端到端的复杂度
 
-**核心思想**：在主从切换后，延迟从节点晋升为主节点的时间，等待旧 Master 上尚未同步的锁自然过期（超过 TTL）。实现简单，无需额外组件，但牺牲了可用性。适用于锁 TTL 较短（< 10s）、可用性要求不是极致的情况。
+**方案五：业务层幂等设计（Idempotent Design）**
 
-#### 方案三：使用 ZooKeeper / etcd 实现锁
+**核心思想**：从业务层面兜底，即使锁失效导致并发操作，业务状态也不会因此不一致。
 
-**核心思想**：ZooKeeper 和 etcd 是 CP 系统（Consistency + Partition Tolerance），其底层一致性协议（ZAB / Raft）保证了写入的强一致性——写入必须过半节点确认后才算成功。
+**常用技术**：
+1. **数据库唯一索引（Unique Index）**：重复插入会报错
+2. **乐观锁（Optimistic Locking）**：使用版本号或 CAS（Compare and Swap）
+3. **业务去重表**：利用数据库主键或唯一约束防止重复处理
+4. **状态机校验**：只有特定状态才能转换到下一状态
+5. **业务流水号（Idempotency Key）**：相同流水号的请求只处理一次
 
-ZooKeeper 利用**临时顺序节点（Ephemeral Sequential Node）**实现锁，节点序号最小的持有锁，Watcher 机制监听前一个节点删除事件。etcd 利用 `lease`（租约）和 `revision`（版本号）机制。优点：强一致性保证；缺点：吞吐量低于 Redis。
+**示例**：
+```sql
+-- 乐观锁示例：更新前检查版本号
+UPDATE orders SET status = 'PAID', version = version + 1 
+WHERE order_id = ? AND version = ?
+```
 
-#### 方案四：Fencing Token（栅栏令牌）
+**优点**：
+- 作为兜底方案，**与分布式锁的实现解耦**
+- 可以解决因多种原因（网络延迟、GC停顿等）导致的锁失效问题
+- 实现相对简单，不依赖额外中间件
 
-**提出者**：Martin Kleppmann（《Designing Data-Intensive Applications》作者）
+**缺点**：
+- 不能替代分布式锁（锁用于**性能优化**——防重复请求，幂等用于**正确性保证**——数据最终一致）
+- 需要业务改造，通用性较差
 
-每次锁服务分配锁时返回一个严格递增的全局序号（Token），客户端在操作共享资源时必须附带 Token，资源端拒绝过期 Token 的写入。与具体锁实现解耦，数学上严格保证安全，但需要改共享资源端代码。
+#### 第四层：深入思考 — 方案选型与权衡
 
-#### 方案五：业务层幂等设计（Idempotent Design）
+**4.1 RedLock 的争议**
 
-通过**唯一索引（Unique Index）**、**乐观锁（Optimistic Locking）**、**状态机（State Machine）**等手段兜底。即使锁失效导致同一个操作被执行多次，最终的业务状态仍然正确。这是所有分布式锁场景都应配合的最后防线。
+2016 年，分布式系统专家 Martin Kleppmann 发表文章《How to do distributed locking》，对 RedLock 提出了尖锐批评：
 
-### 四、深入思考
+1. **时钟漂移问题**：RedLock 依赖系统时间判断锁是否过期。如果某个 Redis 节点的系统时间发生跳跃（如 NTP 调整），可能导致锁被错误释放
+2. **GC 暂停问题**：即使锁没有丢失，持有锁的客户端可能因 GC（Garbage Collection）暂停而无法续期，锁超时后被其他客户端获取，此时前一个客户端 GC 恢复后认为自己还持有锁
+3. **没有 fencing token**：RedLock 不提供 fencing token 机制，无法防止客户端在锁实际已过期后继续操作资源
 
-**方案对比总结**：
+antirez 对此进行了回应，承认 GC 暂停问题的存在，但认为时钟漂移在实际系统中可通过配置限制（如禁止 NTP 跳跃调整），且 RedLock 在实际工程中已被广泛验证。
 
-| 方案 | 一致性保证 | 运维复杂度 | 性能影响 | 推荐场景 |
-|------|-----------|-----------|---------|---------|
-| RedLock | 较强（多数同意） | 高 | 中 | 中等一致性要求 |
-| 延迟重启 | 弱（等待过期） | 低 | 低 | 低一致性要求 |
-| ZooKeeper/etcd | **强**（CP系统） | 中-高 | 较低 | **高一致性要求** |
-| Fencing Token | 最强（严格递增） | 中 | 低 | **核心金融场景** |
-| 业务幂等 | 最强（业务级保证） | 中 | 低 | **所有场景兜底** |
+**4.2 组合方案推荐**
 
-**黄金组合建议**：第一层 RedLock/ZooKeeper 预防；第二层 Fencing Token 兜底；第三层业务幂等最后防线。
+在实际生产中，**单一方案难以完美解决问题**，推荐组合使用：
 
-**RedLock 学术争议**：Martin Kleppmann 指出 RedLock 依赖本地时钟且缺少 Fencing Token；Antirez 回应时钟误差可控。工程共识：绝对正确性要求用 ZK/etcd，高吞吐场景用 RedLock。
+| 场景 | 推荐方案组合 |
+|------|------------|
+| 互联网高并发场景（百万 QPS） | RedLock + 业务幂等 |
+| 金融/交易场景（强一致性要求） | Zookeeper/etcd + Fencing Token + 幂等 |
+| 中小规模系统（简化部署） | 延迟重启 + 业务幂等 |
+| 已有 ZK/etcd 基础设施 | 直接使用 ZK/etcd 原生锁 API |
 
-**CAP 理论启示**：Redis 是 AP 系统，ZooKeeper 是 CP 系统，选择取决于业务对一致性的敏感度。
+**4.3 取舍的本质**
 
-## 🗺️ 回答思路
+这个问题的本质是**在分布式系统中如何权衡一致性与可用性**：
+- Redis 方案（含 RedLock）追求**高性能场景下的近似正确性**
+- ZK/etcd 方案追求**强一致性下的安全性**
 
-1. **给出问题场景**：展现场景分析能力，描述 Master 宕机 + 异步复制导致锁丢失的时序
-2. **逐层展开方案**：展现知识体系广度，必须提到 RedLock、ZooKeeper/etcd、业务幂等，加分项是 Fencing Token 和延迟重启
-3. **对比推荐**：金融场景用 ZK+Fencing+幂等三层组合；缓存场景用 RedLock+幂等
-4. **理论支撑**：引用 CAP 理论、RedLock 学术讨论展现深度
-5. **避坑提示**：不要只说 RedLock 结束，不要忽略幂等设计，不要回避 RedLock 争议
+正如分布式系统领域的经典论断：**"没有银弹（No Silver Bullet）"**，方案的选择取决于业务场景对一致性的敏感度。
+
+---
+
+### 🗺️ 回答思路
+
+面试官考察本题的层次：
+
+**第一层（基础 — 60 分）：能描述问题**
+- 说出 Redis 主从切换导致锁丢失的场景
+- 提到异步复制是不一致的根本原因
+
+**第二层（进阶 — 75 分）：能给出一种解决方案**
+- 能详细描述 RedLock 算法的步骤
+- 能说明为什么向多数节点申请锁可以降低风险
+
+**第三层（深度 — 85 分）：能对比多种方案**
+- 能对比 Redis 与 ZK/etcd 在 CAP 上的取舍
+- 能说出每种方案的优缺点和适用场景
+- 能提到 fencing token 和业务幂等设计
+
+**第四层（高度 — 95+ 分）：能深入批判和系统思考**
+- 能说出 RedLock 的争议（时钟漂移、GC 暂停）
+- 能给出组合方案推荐
+- 能提炼问题的本质——分布式系统的 CAP 权衡
+- 能有工程落地的实战经验分享
+
+**推荐回答结构（面试时的时间分配）：**
+1. 先描述问题场景（30 秒）→ 展现对 Redis 复制的理解
+2. 深入分析根本原因（30 秒）→ 异步复制 + 最终一致性
+3. 详细展开 RedLock（1 分钟）→ 核心方案，体现技术深度
+4. 对比其他方案（30 秒）→ 展现知识广度
+5. 深入思考与批判（30 秒）→ 展现架构思维
+6. 总结与工程建议（30 秒）→ 落地方案
+
+总用时控制在 3.5 分钟左右，这是面试官最喜欢的回答长度。
 
 ---
 
 > 📋 **分类**: Redis / 缓存
-> 🏷️ **标签**: `分布式锁` `Redis` `主从复制` `CAP` `RedLock` `ZooKeeper`
+> 🏷️ **标签**: `分布式锁` `Redis` `主从复制` `CAP` `RedLock` `Fencing Token` `幂等`
 > 📊 **难度**: 进阶
-> 📅 **归档时间**: 2026-07-04 16:30:00
+> 📅 **归档时间**: 2026-07-04
