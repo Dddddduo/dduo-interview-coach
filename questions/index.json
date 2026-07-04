@@ -192,13 +192,14 @@
         "EXPLAIN",
         "SQL优化",
         "执行计划",
-        "MySQL"
+        "MySQL",
+        "性能调优"
       ],
       "difficulty": "hard",
       "file": "questions/database/mysql/你是怎么做慢-SQL-分析以及优化.md",
-      "created": "2026-07-04 14:30:00",
-      "source": "面经助手-20260704",
-      "hash": "ab1c2d3e"
+      "created": "2026-07-04 15:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "a1b2c3d4"
     },
     {
       "id": "q0007",
