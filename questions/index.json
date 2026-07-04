@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T15:10:00",
-    "total_questions": 7
+    "last_updated": "2026-07-04 06:20:39",
+    "total_questions": 8
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 1
+      "count": 2
     },
     "python": {
       "name": "Python",
@@ -213,6 +213,23 @@
       "created": "2026-07-04 14:19:46",
       "source": "/面经助手-20260704",
       "hash": "6d07d5c4"
+    },
+    {
+      "id": "q0008",
+      "question": "介绍一下你的 AI 相关项目",
+      "category": "java",
+      "tags": [
+        "AI",
+        "RAG",
+        "LLM",
+        "SpringAI",
+        "LangChain"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/介绍一下你的-AI-相关项目.md",
+      "created": "2026-07-04 06:20:39",
+      "source": "/面经助手-20260704",
+      "hash": "5aace527"
     }
   ]
 }
