@@ -21,13 +21,13 @@
       "name": "Go / Golang",
       "icon": "🔷",
       "description": "Go 语言、并发模型",
-      "count": 1
+      "count": 0
     },
     "mysql": {
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 9
+      "count": 10
     },
     "redis": {
       "name": "Redis / 缓存",
