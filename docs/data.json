@@ -22,13 +22,13 @@
       "name": "Go / Golang",
       "icon": "🔷",
       "description": "Go 语言、并发模型",
-      "count": 1
+      "count": 0
     },
     "mysql": {
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 9
+      "count": 10
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -87,7 +87,7 @@
   },
   "cat_stats": {
     "mysql": {
-      "count": 9
+      "count": 10
     },
     "os": {
       "count": 3
@@ -109,9 +109,6 @@
     },
     "redis": {
       "count": 5
-    },
-    "go": {
-      "count": 1
     },
     "network": {
       "count": 1
@@ -163,11 +160,19 @@
       "count": 3
     },
     {
+      "tag": "事务",
+      "count": 3
+    },
+    {
       "tag": "分布式锁",
       "count": 3
     },
     {
       "tag": "消息队列",
+      "count": 3
+    },
+    {
+      "tag": "InnoDB",
       "count": 3
     },
     {
@@ -188,14 +193,6 @@
     },
     {
       "tag": "JVM",
-      "count": 2
-    },
-    {
-      "tag": "Spring AI",
-      "count": 2
-    },
-    {
-      "tag": "事务",
       "count": 2
     }
   ],
@@ -634,20 +631,21 @@
       },
       {
         "id": "q0028",
-        "placeholder": true,
         "question": "垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）",
         "category": "mysql",
         "tags": [
-          "分表",
-          "分片",
-          "Sharding",
-          "数据库优化",
           "垂直分表",
-          "水平分表"
+          "水平分表",
+          "Partitioning",
+          "Sharding",
+          "数据库架构",
+          "分片策略",
+          "InnoDB",
+          "一致性哈希"
         ],
-        "difficulty": "medium",
+        "difficulty": "hard",
         "file": "questions/database/mysql/垂直分表和水平分表的区别.md",
-        "created": "2026-07-04 14:26:09",
+        "created": "2026-07-04 23:00:00",
         "source": "/面经助手-20260704",
         "hash": "b06eefe1"
       },
@@ -691,12 +689,19 @@
       {
         "id": "q0031",
         "question": "为什么要先写日志，再写入数据库 — Write-Ahead Logging (WAL) 策略深度解答",
-        "category": "go",
-        "tags": [],
+        "category": "mysql",
+        "tags": [
+          "WAL",
+          "事务",
+          "Redo Log",
+          "崩溃恢复",
+          "ACID",
+          "InnoDB"
+        ],
         "difficulty": "medium",
-        "file": "questions\\database\\go\\为什么要先写日志再写入数据库-Write-Ahead-Logging-WAL-策略深度解答.md",
+        "file": "questions/database/mysql/为什么要先写日志再写入数据库-WAL策略深度解答.md",
         "created": "2026-07-04 14:27:43",
-        "source": "C:/Program Files/Git/面经助手-20260704",
+        "source": "/面经助手-20260704",
         "hash": "800c2dbb"
       },
       {
@@ -1214,20 +1219,21 @@
     },
     {
       "id": "q0028",
-      "placeholder": true,
       "question": "垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）",
       "category": "mysql",
       "tags": [
-        "分表",
-        "分片",
-        "Sharding",
-        "数据库优化",
         "垂直分表",
-        "水平分表"
+        "水平分表",
+        "Partitioning",
+        "Sharding",
+        "数据库架构",
+        "分片策略",
+        "InnoDB",
+        "一致性哈希"
       ],
-      "difficulty": "medium",
+      "difficulty": "hard",
       "file": "questions/database/mysql/垂直分表和水平分表的区别.md",
-      "created": "2026-07-04 14:26:09",
+      "created": "2026-07-04 23:00:00",
       "source": "/面经助手-20260704",
       "hash": "b06eefe1"
     },
@@ -1271,12 +1277,19 @@
     {
       "id": "q0031",
       "question": "为什么要先写日志，再写入数据库 — Write-Ahead Logging (WAL) 策略深度解答",
-      "category": "go",
-      "tags": [],
+      "category": "mysql",
+      "tags": [
+        "WAL",
+        "事务",
+        "Redo Log",
+        "崩溃恢复",
+        "ACID",
+        "InnoDB"
+      ],
       "difficulty": "medium",
-      "file": "questions\\database\\go\\为什么要先写日志再写入数据库-Write-Ahead-Logging-WAL-策略深度解答.md",
+      "file": "questions/database/mysql/为什么要先写日志再写入数据库-WAL策略深度解答.md",
       "created": "2026-07-04 14:27:43",
-      "source": "C:/Program Files/Git/面经助手-20260704",
+      "source": "/面经助手-20260704",
       "hash": "800c2dbb"
     },
     {
