@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:28:11",
-    "total_questions": 34
+    "last_updated": "2026-07-04T18:30:00",
+    "total_questions": 35
   },
   "categories": {
     "java": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 8
+      "count": 9
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -642,6 +642,25 @@
       "created": "2026-07-04 14:28:11",
       "source": "C:/Program Files/Git/面经助手-20260704",
       "hash": "5625b037"
+    },
+    {
+      "id": "q0038",
+      "question": "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化",
+      "category": "mysql",
+      "tags": [
+        "B+树",
+        "索引",
+        "MySQL",
+        "InnoDB",
+        "数据结构",
+        "磁盘IO",
+        "索引优化"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/MySQL-索引实现-B树与其他树的区别.md",
+      "created": "2026-07-04 14:21:00",
+      "source": "/面经助手-20260704",
+      "hash": "c37d26bc"
     }
   ]
 }
