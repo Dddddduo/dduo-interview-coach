@@ -1,6 +1,8 @@
 {
   "env": {
-    "CLAUDE_CODE_EFFORT_LEVEL": "max"
+    "CLAUDE_CODE_EFFORT_LEVEL": "max",
+    "GITHUB_TOKEN": "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",
+    "GIT_REMOTE_URL": "https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git"
   },
   "permissions": {
     "allow": [

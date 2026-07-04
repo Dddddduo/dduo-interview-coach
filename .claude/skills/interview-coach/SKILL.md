@@ -12,24 +12,51 @@ user-invocable: true
 
 ---
 
-## ⚠️ 驾驭工程硬约束（MUST — 不可违反）
+## 🔑 GitHub 认证信息（硬编码）
 
-这些是**非协商规则**。违反任何一条 = Agent 行为错误。
+**本 Agent 已内置 GitHub 访问凭证，所有 git 操作均使用以下配置：**
+
+```
+GITHUB_TOKEN = "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"
+GIT_REMOTE_URL = "https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git"
+GITHUB_USERNAME = "Dddddduo"
+GITHUB_REPO = "dduo-interview-coach"
+GIT_USER_NAME = "zhudaoyang"
+GIT_USER_EMAIL = "1732446549@qq.com"
+GIT_BRANCH = "main"
+```
+
+**所有 git 操作必须使用以上凭证，严禁使用其他身份。**
+
+---
+
+## ⚠️ 驾驭工程硬约束（MUST — 不可违反）
 
 ### 流程完整性 MUST
 
-| # | 规则 | 违反后果 |
-|---|------|---------|
-| M1 | **必须执行全部 10 个阶段**，不可跳过任何阶段 | 流程不完整，题库不更新 |
-| M2 | **阶段顺序不可调换**，1→2→3→4→5→6→7→8→9→10 | 依赖关系错乱 |
-| M3 | **阶段 2 必须并行启动所有 answerer agent**，不可串行 | 浪费时间 |
-| M4 | **阶段 3 必须对每道题执行审查**，不可只抽查 | 低质量答案漏网 |
-| M5 | **阶段 4 重试不超过 2 次**，不可无限循环 | 浪费 token |
-| M6 | **阶段 6 必须用 Write 工具写入文件**，不可仅在对话展示 | 无持久化 |
-| M7 | **阶段 7 必须对每道题执行 question_manager.py add** | 题库不完整 |
-| M8 | **阶段 8 必须运行 generate_site.py** | 网页端看不到新题 |
-| M9 | **阶段 9 必须 git commit + git push** | 远程不更新 |
-| M10 | **阶段 10 必须如实报告统计**，不美化、不隐藏失败 | 用户不知情 |
+| # | 规则 |
+|---|------|
+| M1 | **必须执行全部 10 个阶段**，不可跳过任何阶段 |
+| M2 | **阶段顺序不可调换**：1→2→3→4→5→6→7→8→9→10 |
+| M3 | **阶段 2 必须并行启动所有 answerer agent**，不可串行 |
+| M4 | **阶段 3 必须对每道题执行审查**，不可只抽查 |
+| M5 | **阶段 4 重试不超过 2 次**，不可无限循环 |
+| M6 | **阶段 6 必须用 Write 工具写入文件**，不可仅在对话展示 |
+| M7 | **阶段 7 必须对每道题执行 question_manager.py add** |
+| M8 | **阶段 8 必须运行 generate_site.py** |
+| M9 | **阶段 9 必须 git commit + git push，使用硬编码的 GitHub Token** |
+| M10 | **阶段 10 必须如实报告统计**，不美化、不隐藏失败 |
+
+### Git 操作 MUST（使用硬编码 Token）
+
+| # | 规则 |
+|---|------|
+| G1 | **所有 git push 必须使用硬编码的 GIT_REMOTE_URL**，格式: `https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git` |
+| G2 | **git config user.name 必须设为 "zhudaoyang"** |
+| G3 | **git config user.email 必须设为 "1732446549@qq.com"** |
+| G4 | **每次 push 前必须确保 remote 指向硬编码的 URL**：`git remote set-url origin https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git` |
+| G5 | **严禁**使用 SSH 方式 (`git@github.com:...`) 推送 |
+| G6 | **严禁**使用其他 GitHub 用户名或 Token |
 
 ### 输出质量 MUST
 
@@ -51,210 +78,79 @@ user-invocable: true
 | N3 | **不允许**跳过联想记忆法 |
 | N4 | **不允许**以"略"、"同上"、"类似"等词跳过任何内容 |
 | N5 | **不允许**在审查 FAIL 时不重答直接继续 |
-| N6 | **不允许**使用 "Claude" 或 "noreply@anthropic.com" 作为 git 提交身份 |
+| N6 | **不允许**使用 SSH 或非硬编码 Token 进行 git 操作 |
+| N7 | **不允许**修改或覆盖远程仓库的 URL 配置 |
 
 ---
 
 ## 10 阶段执行流程
 
 ### 阶段 1：题目解析
-
-**输入**: `$ARGUMENTS`
-**输出**: 题目列表，每道题的类型标注
-
-**执行步骤**:
-1. 按编号规则拆分：`第N题`、`QN.`、`N.`、`N、`、`N）`、空行
-2. 每道题保留完整文本，不截断
-3. 识别类型（技术/行为/系统设计/前端等）
-4. 输出确认清单：
-
-```
-📋 识别到 N 道题：
-  1. [技术-Java] JVM内存模型...
-  2. [技术-MySQL] B+树索引...
-✅ 确认无误，开始深度解答。
-```
+1. 解析 `$ARGUMENTS`，按编号规则拆分题目
+2. 识别每道题的类型
+3. 输出确认清单
 
 ### 阶段 2：并行深度答题
-
-**Agent**: `interview-answerer`
-**执行**: 用 Agent 工具**同时**启动 N 个 agent
-
+为每道题启动 `interview-answerer` agent（**并行**）：
 ```
-Agent(
-  subagent_type="interview-answerer",
-  description="解答第N题",
-  prompt="请解答以下面试题（第N题）：
-
-[完整题目文本]
-
-请严格按照你的系统指令生成完整答案。"
-)
+Agent(subagent_type="interview-answerer", description="解答第N题", prompt="请解答：...")
 ```
-
-**约束**: 
-- 必须并行，不能串行
-- 每个 agent 独立，不共享上下文
-- 收集所有返回值
 
 ### 阶段 3：质量审查
-
-**Agent**: `quality-reviewer`
-**执行**: 对每道题的答案启动审查
-
+逐题启动 `quality-reviewer` agent：
 ```
-Agent(
-  subagent_type="quality-reviewer",
-  description="审查第N题",
-  prompt="请审查以下面试题答案：
-
-## 原题
-[题目文本]
-
-## 答案
-[完整答案]"
-)
+Agent(subagent_type="quality-reviewer", description="审查第N题", prompt="审查以下答案：...")
 ```
 
-**结果处理**:
-- `PASS` → 进入阶段 5
-- `FAIL` → 进入阶段 4
-
-### 阶段 4：重答循环（条件触发）
-
-**触发**: 阶段 3 返回 FAIL且重试次数 < 2
-**执行**: 重新调用 interview-answerer，prompt 中附上审查反馈：
-
-```
-Agent(
-  subagent_type="interview-answerer",
-  description="重答第N题(第X次)",
-  prompt="请解答以下面试题。上次审查不通过，请修正：
-
-[审查反馈：具体问题列表]
-
-## 题目
-[题目文本]"
-)
-```
-
-**约束**:
-- 最多 2 次重试
-- 每次重试必须携带审查反馈
-- 2 次后仍 FAIL → 标记 "⚠️ 需人工审核"，继续后续流程
+### 阶段 4：重答循环
+FAIL → 携带审查反馈重新答题，最多 2 次。
 
 ### 阶段 5：文档组装
-
-**Agent**: `doc-assembler`
-**执行**: 将所有通过的答案组装为完整文档
-
-```
-Agent(
-  subagent_type="doc-assembler",
-  description="组装面试解答文档",
-  prompt="请将以下 N 道题答案组装为完整 Markdown 文档：
-
-题目1: [题]
-答案1: [答]
----
-题目2: [题]
-答案2: [答]"
-)
-```
+启动 `doc-assembler` agent 组装完整 Markdown。
 
 ### 阶段 6：输出落盘
-
-**工具**: Write
-**路径**: `outputs/面经解答-YYYYMMDD-HHMM.md`
-**内容**: 阶段 5 返回的完整 Markdown
+Write 到 `outputs/面经解答-YYYYMMDD-HHMM.md`。
 
 ### 阶段 7：题库归档
-
-**脚本**: `question_manager.py`
-**对每道题执行**:
-
 ```bash
 cd ~/Documents/projects/interview-coach
-python3 scripts/question_manager.py add \
-  --question "[题目文本]" \
-  --answer "[答案(从临时文件读取)]" \
-  --source "/面经助手-$(date +%Y%m%d)"
+python3 scripts/question_manager.py add --question "..." --answer "..."
 ```
 
-**约束**:
-- 每题执行一次 add
-- add 命令内置去重，重复执行安全
-- 大数据答案先写入临时文件，用文件路径传参
-
 ### 阶段 8：站点生成
-
 ```bash
 cd ~/Documents/projects/interview-coach
 python3 scripts/generate_site.py
 ```
 
-**生成物**:
-- `docs/q/{id}.html` — 每道题的美化 HTML
-- `docs/data.json` — 前端数据文件
-- `docs/index.json` — 索引同步
+### 阶段 9：Git 部署（使用硬编码 Token）
 
-### 阶段 9：Git 部署
+**必须执行以下精确命令：**
 
 ```bash
 cd ~/Documents/projects/interview-coach
+
+# 确保使用硬编码的 git 身份
+git config user.name "zhudaoyang"
+git config user.email "1732446549@qq.com"
+
+# 确保 remote 指向硬编码的 URL（含 Token）
+git remote set-url origin https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git
+
+# 暂存所有变更
 git add outputs/ questions/ docs/
+
+# 提交
 git commit -m "docs: 面经解答 + 题库更新 — $(date +%Y-%m-%d_%H:%M)"
+
+# 推送到 main 分支
 git push origin main
 ```
 
-**约束**:
-- **必须**使用 `zhudaoyang`/`1732446549@qq.com` 身份
-- 不允许使用 Claude 的身份
-- 如果 push 失败，告知用户"文档已保存本地，可稍后手动推送"
+**如果 push 失败，检查 Token 是否过期，提示用户更新 Token。**
 
 ### 阶段 10：结果报告
-
-向用户输出完整报告：
-
-```
-✅ 面经解答完成！
-
-📊 处理结果:
-   ├── 题目总数: N 道
-   ├── 审查通过: N 道
-   ├── 重答次数: X 次
-   └── 需人工审核: 0 道
-
-📚 题库归档:
-   questions/database/mysql/b-plus-tree.md
-   questions/database/os/process-thread.md
-   ...
-
-📄 输出文档:
-   outputs/面经解答-20260704-1530.md
-
-🚀 已推送到 GitHub:
-   https://github.com/Dddddduo/dduo-interview-coach
-
-🌐 在线题库:
-   https://ddddduo.github.io/dduo-interview-coach/questions.html
-   https://ddddduo.github.io/dduo-interview-coach/daily.html
-```
-
----
-
-## 错误处理矩阵
-
-| 异常 | 处理 | 影响 |
-|------|------|------|
-| Agent 超时/无响应 | 自动重试 1 次 | 该题延迟 |
-| 审查 FAIL | 重答最多 2 次 | 该题可能标记人工审核 |
-| question_manager 归档失败 | 打印警告，继续 | 该题未归档，可事后补 |
-| generate_site.py 失败 | 打印警告，继续 | 网页端暂不显示新题 |
-| Git push 失败 | 打印警告，继续 | 文档存本地，手动推送 |
-| 输出目录不存在 | 自动 mkdir | 无 |
-
-**原则**: 一个阶段的失败不阻塞后续阶段，但必须在报告中如实反映。
+向用户输出完整报告，含统计、归档路径、GitHub Pages URL。
 
 ---
 
@@ -265,5 +161,4 @@ git push origin main
 第1题：请解释 JVM 的内存模型，堆、栈、方法区各自的职责
 第2题：MySQL 索引底层为什么用 B+ 树？从磁盘 I/O 角度分析
 第3题：Redis 缓存穿透、击穿、雪崩是什么？如何解决？
-第4题：描述你在项目中遇到的最大技术挑战及解决方案
 ```
