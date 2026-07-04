@@ -1,165 +1,14 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、S — Interview Coach</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <style>
-:root {
-    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
-    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
-    --accent-green: #3fb950; --accent-orange: #d2991d;
-    --accent-purple: #a371f7; --accent-red: #f85149;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: var(--font); background: var(--bg); color: var(--text);
-    line-height: 1.8; font-size: 15px;
-}
+---
+id: q0020
+question: "Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构"
+category: java
+tags: ["缓存"]
+difficulty: hard
+created: 2026-07-04 14:25:42
+source: 面经助手-20260704
+---
 
-/* ===== Layout ===== */
-.q-header {
-    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
-    padding: 20px 0; position: sticky; top: 0; z-index: 10;
-    backdrop-filter: blur(12px);
-}
-.q-header-inner {
-    max-width: 820px; margin: 0 auto; padding: 0 24px;
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-}
-.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
-.q-header .sep { color: var(--text-secondary); }
-.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-.q-meta-item {
-    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
-}
-.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
-.q-meta-diff-easy { color: var(--accent-green); }
-.q-meta-diff-medium { color: var(--accent-orange); }
-.q-meta-diff-hard { color: var(--accent-red); }
-
-.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
-
-/* ===== Typography ===== */
-.q-container h1 {
-    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
-    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
-}
-.q-container h2 {
-    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
-    padding-bottom: 8px; border-bottom: 1px solid var(--border);
-}
-.q-container h3 {
-    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
-}
-.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
-.q-container p { margin: 12px 0; }
-.q-container strong { color: #f0f6fc; font-weight: 600; }
-.q-container em { color: var(--text-secondary); }
-.q-container a { color: var(--accent); text-decoration: none; }
-.q-container a:hover { text-decoration: underline; }
-
-/* ===== Blockquote ===== */
-.q-container blockquote {
-    border-left: 3px solid var(--accent); margin: 16px 0;
-    padding: 12px 20px; background: var(--bg-secondary);
-    border-radius: 0 8px 8px 0; color: var(--text-secondary);
-}
-.q-container blockquote p { margin: 4px 0; }
-
-/* ===== Code ===== */
-.q-container code {
-    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
-    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
-}
-.q-container pre {
-    background: var(--bg-secondary); border: 1px solid var(--border);
-    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
-    margin: 16px 0; line-height: 1.6;
-}
-.q-container pre code {
-    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
-}
-
-/* ===== Tables ===== */
-.q-container table {
-    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
-}
-.q-container th {
-    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
-    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
-}
-.q-container td {
-    padding: 8px 14px; border: 1px solid var(--border);
-}
-
-/* ===== Lists ===== */
-.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
-.q-container li { margin: 6px 0; }
-.q-container li::marker { color: var(--accent); }
-.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
-
-/* ===== Tags ===== */
-.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
-.tag-item {
-    display: inline-block; padding: 4px 12px; border-radius: 20px;
-    background: rgba(163,113,247,0.1); color: var(--accent-purple);
-    font-size: 0.78rem; font-weight: 500;
-}
-
-/* ===== Review Button ===== */
-.review-actions { margin: 32px 0; text-align: center; }
-.btn-review {
-    display: inline-block; padding: 12px 32px; border-radius: 8px;
-    background: var(--accent-green); color: #fff; border: none;
-    font-size: 0.95rem; font-weight: 600; cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
-.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
-
-/* ===== Footer ===== */
-.q-footer {
-    text-align: center; padding: 28px; color: var(--text-secondary);
-    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
-}
-.q-footer a { color: var(--accent); text-decoration: none; }
-
-/* ===== Mobile ===== */
-@media (max-width: 640px) {
-    .q-container { padding: 20px 16px; }
-    .q-container h1 { font-size: 1.3rem; }
-    .q-header-inner { flex-direction: column; align-items: flex-start; }
-    .q-meta { margin-left: 0; }
-}
-</style>
-</head>
-<body>
-
-<header class="q-header">
-    <div class="q-header-inner">
-        <a href="index.html">🏠 首页</a>
-        <span class="sep">/</span>
-        <a href="questions.html">📚 题库</a>
-        <span class="sep">/</span>
-        <span style="font-size:0.85rem;">q0020</span>
-        <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">☕ Java</span>
-            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
-            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
-        </div>
-    </div>
-</header>
-
-<div class="q-container">
-    <h1>Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构</h1>
-    <div class="tag-row"><span class="tag-item">缓存</span></div>
-    <pre># Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构
+# Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构
 
 ### 🧠 联想记忆法
 
@@ -246,7 +95,7 @@ ZSet 根据数据量和元素大小自动选择底层编码：
 zset-max-ziplist-entries 128    # 元素数不超过 128
 zset-max-ziplist-value 64       # 每个元素值（ele）不超过 64 字节
 ```
-当元素个数 &gt; 128 或任一元素值 &gt; 64 字节时，自动从 ziplist 转换为 skiplist+dict，且**不可逆**（只能单向转换，从节省内存转向高性能）。
+当元素个数 > 128 或任一元素值 > 64 字节时，自动从 ziplist 转换为 skiplist+dict，且**不可逆**（只能单向转换，从节省内存转向高性能）。
 
 **为何 ziplist 在小数据量时更优？**
 - ziplist 是连续内存，Cache Locality（缓存局部性）好，一个 CPU 缓存行（Cache Line）可加载多个元素
@@ -263,13 +112,13 @@ zset-max-ziplist-value 64       # 每个元素值（ele）不超过 64 字节
 - 查找时从最高层开始，快速定位区间，逐层下降找到目标
 
 ```
-Level 3:  1 -----------------------------&gt; 9
-Level 2:  1 ------------&gt; 5 ------------&gt; 9
-Level 1:  1 ---&gt; 3 ---&gt; 5 ---&gt; 7 ---&gt; 9
-Level 0:  1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6 -&gt; 7 -&gt; 8 -&gt; 9 -&gt; 10
+Level 3:  1 -----------------------------> 9
+Level 2:  1 ------------> 5 ------------> 9
+Level 1:  1 ---> 3 ---> 5 ---> 7 ---> 9
+Level 0:  1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 ```
 
-查找元素 8 的过程：Level 3 到达 9，发现 9 &gt; 8 → 降 Level 2 从 1 跳到 5 → Level 1 从 5 跳到 7 → Level 0 从 7 遍历到 8。只需 4 步，而原始链表需要 8 步。
+查找元素 8 的过程：Level 3 到达 9，发现 9 > 8 → 降 Level 2 从 1 跳到 5 → Level 1 从 5 跳到 7 → Level 0 从 7 遍历到 8。只需 4 步，而原始链表需要 8 步。
 
 **层数（Level）与随机化：**
 - 每个新节点插入时，随机决定其层数
@@ -277,7 +126,7 @@ Level 0:  1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6 -&gt; 7 -&gt; 8 -&gt; 9 -&gt
 - 层数生成算法：
   ```
   层数 = 1
-  while (random() &lt; 0.25 and 层数 &lt; 64):
+  while (random() < 0.25 and 层数 < 64):
       层数++
   ```
 - 数学期望：平均层数 = 1 / (1 - P) = 1 / 0.75 ≈ 1.33 层
@@ -344,7 +193,7 @@ typedef struct zset {
 ```
 查找 score=8.0 的元素：
 1. 从 header 的最高层（当前 level-1）开始
-2. 在每一层向前移动，直到下一节点的 score &gt; 目标 score
+2. 在每一层向前移动，直到下一节点的 score > 目标 score
 3. 降一层继续
 4. 最终在 level[0] 找到目标
 ```
@@ -358,7 +207,7 @@ typedef struct zset {
 插入 (ele="Bob", score=8.0)：
 1. 查找插入位置，同时记录每层需要更新的节点（update[] 数组）和累积排名（rank[] 数组）
 2. 随机生成新节点的层数 level
-3. 如果新 level &gt; 当前跳表 level，更新 update[] 中更高层指向 header
+3. 如果新 level > 当前跳表 level，更新 update[] 中更高层指向 header
 4. 逐层插入：调整每层 forward 指针和 span 值
 5. 设置 backward 指针
 6. 更新跳表 level 和 length
@@ -409,7 +258,7 @@ ZRANK game:scores "player:1001"
 # 任务到期时间戳作为 score
 ZADD delay:queue 1690000000 "task:send_email"
 # 消费线程轮询到期的任务
-ZRANGEBYSCORE delay:queue 0 &lt;current_timestamp&gt; LIMIT 0 10
+ZRANGEBYSCORE delay:queue 0 <current_timestamp> LIMIT 0 10
 ```
 
 **场景 3：滑动窗口限流**
@@ -417,7 +266,7 @@ ZRANGEBYSCORE delay:queue 0 &lt;current_timestamp&gt; LIMIT 0 10
 # 每个请求的时间戳作为一个成员，score 也设为时间戳
 ZADD rate:limit:user:1001 1690000000 1690000000
 # 删除窗口外的请求
-ZREMRANGEBYSCORE rate:limit:user:1001 0 &lt;window_start&gt;
+ZREMRANGEBYSCORE rate:limit:user:1001 0 <window_start>
 # 统计窗口内请求数
 ZCARD rate:limit:user:1001
 ```
@@ -438,19 +287,19 @@ import java.util.*;
  *  - 随机层数（P=0.25，同 Redis）
  *  - 支持查找、插入、删除、范围查询
  */
-public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
+public class SkipList<K extends Comparable<? super K>, V> {
 
     private static final double P = 0.25;        // 概率因子，同 Redis ZSKIPLIST_P
     private static final int MAX_LEVEL = 64;     // 最大层数，同 Redis
 
-    private final Node&lt;K, V&gt; header;            // 哨兵头节点
+    private final Node<K, V> header;            // 哨兵头节点
     private int level;                           // 当前最大层数
     private int size;                            // 元素个数
 
-    static class Node&lt;K, V&gt; {
+    static class Node<K, V> {
         K key;
         V value;
-        Node&lt;K, V&gt;[] forward;   // 每层的前进指针
+        Node<K, V>[] forward;   // 每层的前进指针
         int nodeLevel;          // 该节点的层数
 
         @SuppressWarnings("unchecked")
@@ -463,7 +312,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
     }
 
     public SkipList() {
-        this.header = new Node&lt;&gt;(null, null, MAX_LEVEL);
+        this.header = new Node<>(null, null, MAX_LEVEL);
         this.level = 1;
         this.size = 0;
     }
@@ -475,7 +324,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
     private int randomLevel() {
         int lvl = 1;
         Random rand = new Random();
-        while (rand.nextDouble() &lt; P &amp;&amp; lvl &lt; MAX_LEVEL) {
+        while (rand.nextDouble() < P && lvl < MAX_LEVEL) {
             lvl++;
         }
         return lvl;
@@ -486,17 +335,17 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
      * 返回与 key 关联的 value，不存在返回 null
      */
     public V search(K key) {
-        Node&lt;K, V&gt; current = header;
+        Node<K, V> current = header;
         // 从最高层向下查找
-        for (int i = level - 1; i &gt;= 0; i--) {
+        for (int i = level - 1; i >= 0; i--) {
             while (current.forward[i] != null
-                    &amp;&amp; current.forward[i].key.compareTo(key) &lt; 0) {
+                    && current.forward[i].key.compareTo(key) < 0) {
                 current = current.forward[i];
             }
         }
         // 到达第 0 层，检查下一个节点
         current = current.forward[0];
-        if (current != null &amp;&amp; current.key.compareTo(key) == 0) {
+        if (current != null && current.key.compareTo(key) == 0) {
             return current.value;
         }
         return null;
@@ -508,13 +357,13 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
      */
     public void insert(K key, V value) {
         // update[] 记录每层需要更新的节点
-        Node&lt;K, V&gt;[] update = new Node[MAX_LEVEL];
-        Node&lt;K, V&gt; current = header;
+        Node<K, V>[] update = new Node[MAX_LEVEL];
+        Node<K, V> current = header;
 
         // 1. 查找插入位置，记录每层的前驱
-        for (int i = level - 1; i &gt;= 0; i--) {
+        for (int i = level - 1; i >= 0; i--) {
             while (current.forward[i] != null
-                    &amp;&amp; current.forward[i].key.compareTo(key) &lt; 0) {
+                    && current.forward[i].key.compareTo(key) < 0) {
                 current = current.forward[i];
             }
             update[i] = current;
@@ -522,7 +371,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
         current = current.forward[0];
 
         // 2. 如果 key 已存在，更新 value
-        if (current != null &amp;&amp; current.key.compareTo(key) == 0) {
+        if (current != null && current.key.compareTo(key) == 0) {
             current.value = value;
             return;
         }
@@ -530,17 +379,17 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
         // 3. 随机生成新节点层数
         int newNodeLevel = randomLevel();
 
-        // 4. 如果新层数 &gt; 当前跳表层数，更新 update 数组
-        if (newNodeLevel &gt; level) {
-            for (int i = level; i &lt; newNodeLevel; i++) {
+        // 4. 如果新层数 > 当前跳表层数，更新 update 数组
+        if (newNodeLevel > level) {
+            for (int i = level; i < newNodeLevel; i++) {
                 update[i] = header;
             }
             level = newNodeLevel;
         }
 
         // 5. 创建新节点并逐层插入
-        Node&lt;K, V&gt; newNode = new Node&lt;&gt;(key, value, newNodeLevel);
-        for (int i = 0; i &lt; newNodeLevel; i++) {
+        Node<K, V> newNode = new Node<>(key, value, newNodeLevel);
+        for (int i = 0; i < newNodeLevel; i++) {
             newNode.forward[i] = update[i].forward[i];
             update[i].forward[i] = newNode;
         }
@@ -553,13 +402,13 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
      * 返回被删除节点的 value，不存在返回 null
      */
     public V delete(K key) {
-        Node&lt;K, V&gt;[] update = new Node[MAX_LEVEL];
-        Node&lt;K, V&gt; current = header;
+        Node<K, V>[] update = new Node[MAX_LEVEL];
+        Node<K, V> current = header;
 
         // 1. 查找待删除节点，记录每层的前驱
-        for (int i = level - 1; i &gt;= 0; i--) {
+        for (int i = level - 1; i >= 0; i--) {
             while (current.forward[i] != null
-                    &amp;&amp; current.forward[i].key.compareTo(key) &lt; 0) {
+                    && current.forward[i].key.compareTo(key) < 0) {
                 current = current.forward[i];
             }
             update[i] = current;
@@ -572,7 +421,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
         }
 
         // 3. 逐层删除
-        for (int i = 0; i &lt; level; i++) {
+        for (int i = 0; i < level; i++) {
             if (update[i].forward[i] != current) {
                 break;  // 更高层不包含此节点
             }
@@ -580,7 +429,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
         }
 
         // 4. 更新跳表层数（可能降低）
-        while (level &gt; 1 &amp;&amp; header.forward[level - 1] == null) {
+        while (level > 1 && header.forward[level - 1] == null) {
             level--;
         }
 
@@ -592,22 +441,22 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
      * 范围查询 — 跳表的核心优势
      * 返回 key 在 [from, to] 范围内的所有键值对
      */
-    public List&lt;Map.Entry&lt;K, V&gt;&gt; rangeQuery(K from, K to) {
-        List&lt;Map.Entry&lt;K, V&gt;&gt; result = new ArrayList&lt;&gt;();
-        Node&lt;K, V&gt; current = header;
+    public List<Map.Entry<K, V>> rangeQuery(K from, K to) {
+        List<Map.Entry<K, V>> result = new ArrayList<>();
+        Node<K, V> current = header;
 
         // 找到 from 的起始位置
-        for (int i = level - 1; i &gt;= 0; i--) {
+        for (int i = level - 1; i >= 0; i--) {
             while (current.forward[i] != null
-                    &amp;&amp; current.forward[i].key.compareTo(from) &lt; 0) {
+                    && current.forward[i].key.compareTo(from) < 0) {
                 current = current.forward[i];
             }
         }
 
         // 沿第 0 层遍历
         current = current.forward[0];
-        while (current != null &amp;&amp; current.key.compareTo(to) &lt;= 0) {
-            result.add(new AbstractMap.SimpleEntry&lt;&gt;(current.key, current.value));
+        while (current != null && current.key.compareTo(to) <= 0) {
+            result.add(new AbstractMap.SimpleEntry<>(current.key, current.value));
             current = current.forward[0];
         }
 
@@ -620,7 +469,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
 
     // 测试
     public static void main(String[] args) {
-        SkipList&lt;Integer, String&gt; sl = new SkipList&lt;&gt;();
+        SkipList<Integer, String> sl = new SkipList<>();
 
         sl.insert(3, "Alice");
         sl.insert(1, "Bob");
@@ -632,8 +481,8 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
         System.out.println("查找 key=6: " + sl.search(6));     // null
 
         System.out.println("\n范围查询 [2, 4]: ");
-        for (Map.Entry&lt;Integer, String&gt; e : sl.rangeQuery(2, 4)) {
-            System.out.println("  " + e.getKey() + " -&gt; " + e.getValue());
+        for (Map.Entry<Integer, String> e : sl.rangeQuery(2, 4)) {
+            System.out.println("  " + e.getKey() + " -> " + e.getValue());
         }
 
         System.out.println("\n删除 key=3: " + sl.delete(3));   // Alice
@@ -695,61 +544,7 @@ public class SkipList&lt;K extends Comparable&lt;? super K&gt;, V&gt; {
 
 ---
 
-&gt; 📋 **分类**: Java
-&gt; 🏷️ **标签**: `缓存`
-&gt; 📊 **难度**: 进阶
-&gt; 📅 **归档时间**: 2026-07-04 14:25:42</pre>
-    <div class="review-actions">
-        <button class="btn-review" id="review-btn" onclick="toggleReview('q0020')">
-            ✅ Mark as Reviewed Today
-        </button>
-        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
-    </div>
-</div>
-
-<footer class="q-footer">
-    <p>
-        <a href="questions.html">📚 题库浏览器</a> ·
-        <a href="daily.html">📅 每日复习</a> ·
-        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
-    </p>
-    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
-</footer>
-
-<script>
-hljs.highlightAll();
-
-// 复习打卡
-function toggleReview(qid) {
-    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
-    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
-    const btn = document.getElementById('review-btn');
-    const status = document.getElementById('review-status');
-
-    if (reviewed.includes(qid)) {
-        reviewed = reviewed.filter(id => id !== qid);
-        btn.textContent = '✅ Mark as Reviewed Today';
-        btn.classList.remove('reviewed');
-        status.textContent = '';
-    } else {
-        reviewed.push(qid);
-        btn.textContent = '✓ Reviewed Today!';
-        btn.classList.add('reviewed');
-        status.textContent = '🎉 Great job! Keep up the momentum!';
-    }
-    localStorage.setItem(key, JSON.stringify(reviewed));
-}
-
-// 初始化打卡状态
-(function() {
-    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
-    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
-    if (reviewed.includes('q0020')) {
-        const btn = document.getElementById('review-btn');
-        btn.textContent = '✓ Reviewed Today!';
-        btn.classList.add('reviewed');
-    }
-})();
-</script>
-</body>
-</html>
+> 📋 **分类**: Java
+> 🏷️ **标签**: `缓存`
+> 📊 **难度**: 进阶
+> 📅 **归档时间**: 2026-07-04 14:25:42

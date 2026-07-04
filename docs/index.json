@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:24:32",
-    "total_questions": 21
+    "last_updated": "2026-07-04T18:30:00",
+    "total_questions": 26
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 2
+      "count": 5
     },
     "python": {
       "name": "Python",
@@ -27,13 +27,13 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 6
+      "count": 7
     },
     "redis": {
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 3
+      "count": 4
     },
     "spring": {
       "name": "Spring 框架",
@@ -45,13 +45,13 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 1
+      "count": 3
     },
     "os": {
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 2
+      "count": 1
     },
     "network": {
       "name": "计算机网络",
@@ -257,13 +257,11 @@
         "Copilot",
         "Claude Code",
         "Trae",
-        "AI编码",
-        "IDE",
-        "Agent"
+        "编码工具"
       ],
       "difficulty": "medium",
-      "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
-      "created": "2026-07-04 15:44:00",
+      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
+      "created": "2026-07-04 14:21:17",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
     },
@@ -318,7 +316,7 @@
       "difficulty": "hard",
       "file": "questions/database/mysql/MySQL事务过程中有哪些日志各自作用.md",
       "created": "2026-07-04 15:10:00",
-      "source": "面经助手-20260704",
+      "source": "/面经助手-20260704",
       "hash": "fcc8d5b0"
     },
     {
@@ -360,14 +358,12 @@
       "question": "Redis 分布式锁如何实现",
       "category": "redis",
       "tags": [
-        "缓存",
-        "分布式锁",
-        "高可用"
+        "缓存"
       ],
       "difficulty": "medium",
-      "file": "questions\\database\\redis\\Redis-分布式锁如何实现.md",
+      "file": "questions/database/redis/Redis-分布式锁如何实现.md",
       "created": "2026-07-04 14:23:58",
-      "source": "/面经助手-20260704(更新)",
+      "source": "C:/Program Files/Git/面经助手-20260704",
       "hash": "42408072"
     },
     {
@@ -378,9 +374,11 @@
         "Redis",
         "分布式锁",
         "缓存",
-        "原子性"
+        "原子性",
+        "Lua",
+        "并发编程"
       ],
-      "difficulty": "medium",
+      "difficulty": "hard",
       "file": "questions/database/redis/setnx-setx-setnx.md",
       "created": "2026-07-04 06:24:01",
       "source": "面经助手-20260704",
@@ -388,58 +386,128 @@
     },
     {
       "id": "q0018",
-      "question": "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化",
-      "category": "mysql",
-      "tags": [
-        "B+树",
-        "索引",
-        "MySQL",
-        "InnoDB",
-        "数据结构",
-        "磁盘IO",
-        "索引优化"
-      ],
-      "difficulty": "hard",
-      "file": "questions/database/mysql/MySQL-索引实现-B树与其他树的区别.md",
-      "created": "2026-07-04 14:21:00",
-      "source": "/面经助手-20260704",
-      "hash": "5013ef6b"
-    },
-    {
-      "id": "q0017",
-      "question": "[技术-Redis] Redis 集群、哨兵的作用",
+      "question": "Redis 常用数据结构；zset（有序集合）底层跳表原理",
       "category": "redis",
       "tags": [
-        "redis",
-        "哨兵",
-        "集群",
-        "高可用",
-        "分片",
-        "Sentinel",
-        "Cluster"
+        "Redis",
+        "数据结构",
+        "ZSet",
+        "跳表",
+        "Skip List",
+        "压缩列表"
       ],
-      "difficulty": "medium",
-      "file": "questions/database/redis/Redis集群哨兵的作用.md",
-      "created": "2026-07-04 16:00:00",
+      "difficulty": "hard",
+      "file": "questions/database/redis/Redis常用数据结构zset有序集合底层跳表原理.md",
+      "created": "2026-07-04 12:50:00",
       "source": "/面经助手-20260704",
-      "hash": "redis_cluster_sentinel"
+      "hash": "fd559544"
+    },
+    {
+      "id": "q0019",
+      "question": "MySQL 事务过程中有哪些日志，各自作用？请深入讲解 InnoDB 的 Undo Log、Redo Log、Binlog 以及两阶段提交",
+      "category": "mysql",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\mysql\\MySQL-事务过程中有哪些日志各自作用请深入讲解-InnoDB-的-Undo-LogRedo-LogBinlog-以及.md",
+      "created": "2026-07-04 14:25:09",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "633baf63"
     },
     {
       "id": "q0020",
-      "question": "常用 Linux 指令操作 — 请按类别系统讲解常用 Linux 命令（文件操作、查看编辑、权限管理、进程管理、网络、系统信息、压缩解压、管道重定向、面试组合场景）",
-      "category": "os",
+      "question": "Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构",
+      "category": "java",
       "tags": [
-        "运维",
-        "Linux",
-        "命令行",
-        "网络协议",
-        "Shell"
+        "缓存"
+      ],
+      "difficulty": "hard",
+      "file": "questions\\database\\java\\Redis-常用数据结构有哪些ZSet有序集合底层跳表原理是什么请深入讲解-StringListHashSetZSetB.md",
+      "created": "2026-07-04 14:25:42",
+      "source": "面经助手-20260704",
+      "hash": "856cdc58"
+    },
+    {
+      "id": "q0021",
+      "question": "使用 Kafka 时如何保证数据不丢失",
+      "category": "distributed",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\distributed\\使用-Kafka-时如何保证数据不丢失.md",
+      "created": "2026-07-04 14:25:43",
+      "source": "/面经助手-20260704",
+      "hash": "2ca6ce66"
+    },
+    {
+      "id": "q0022",
+      "question": "Redis 主从切换、异常导致锁丢失，有什么补救措施",
+      "category": "mysql",
+      "tags": [
+        "缓存"
       ],
       "difficulty": "medium",
-      "file": "questions\\database\\os\\常用-Linux-指令操作-请按类别系统讲解常用-Linux-命令文件操作查看编辑权限管理进程管理网络系统信息压缩解压管.md",
-      "created": "2026-07-04 14:24:32",
+      "file": "questions\\database\\mysql\\Redis-主从切换异常导致锁丢失有什么补救措施.md",
+      "created": "2026-07-04 14:25:44",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "cd60d4e5"
+    },
+    {
+      "id": "q0023",
+      "question": "MQ 的作用；项目中哪里用到了 MQ",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\java\\MQ-的作用项目中哪里用到了-MQ.md",
+      "created": "2026-07-04 14:25:45",
+      "source": "面经助手-20260704",
+      "hash": "3dcbc8ba"
+    },
+    {
+      "id": "q0024",
+      "question": "消费者收到重复的支付消息如何处理（幂等设计）",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\java\\消费者收到重复的支付消息如何处理幂等设计.md",
+      "created": "2026-07-04 14:25:46",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "cea7373a"
+    },
+    {
+      "id": "q0025",
+      "question": "Redis 主从切换、异常导致锁丢失，有什么补救措施",
+      "category": "redis",
+      "tags": [
+        "分布式锁",
+        "Redis",
+        "主从复制",
+        "CAP",
+        "RedLock",
+        "ZooKeeper",
+        "幂等"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/redis/Redis-主从切换异常导致锁丢失有什么补救措施.md",
+      "created": "2026-07-04 16:30:00",
       "source": "/面经助手-20260704",
-      "hash": "1cc13222"
+      "hash": "redislock0704"
+    },
+    {
+      "id": "q0022",
+      "question": "如何保证信息不重复消费 — 消息幂等性方案深度解答",
+      "category": "distributed",
+      "tags": [
+        "消息队列",
+        "MQ",
+        "幂等性",
+        "分布式系统",
+        "去重",
+        "At-Least-Once"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/distributed/消息幂等性方案深度解答.md",
+      "created": "2026-07-04 18:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "9a8b7c6d"
     }
   ]
 }

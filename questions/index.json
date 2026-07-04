@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T16:30:00",
-    "total_questions": 25
+    "last_updated": "2026-07-04T18:30:00",
+    "total_questions": 26
   },
   "categories": {
     "java": {
@@ -45,7 +45,7 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 2
+      "count": 3
     },
     "os": {
       "name": "操作系统",
@@ -374,9 +374,11 @@
         "Redis",
         "分布式锁",
         "缓存",
-        "原子性"
+        "原子性",
+        "Lua",
+        "并发编程"
       ],
-      "difficulty": "medium",
+      "difficulty": "hard",
       "file": "questions/database/redis/setnx-setx-setnx.md",
       "created": "2026-07-04 06:24:01",
       "source": "面经助手-20260704",
@@ -488,6 +490,24 @@
       "created": "2026-07-04 16:30:00",
       "source": "/面经助手-20260704",
       "hash": "redislock0704"
+    },
+    {
+      "id": "q0022",
+      "question": "如何保证信息不重复消费 — 消息幂等性方案深度解答",
+      "category": "distributed",
+      "tags": [
+        "消息队列",
+        "MQ",
+        "幂等性",
+        "分布式系统",
+        "去重",
+        "At-Least-Once"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/distributed/消息幂等性方案深度解答.md",
+      "created": "2026-07-04 18:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "9a8b7c6d"
     }
   ]
 }
