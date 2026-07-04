@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T21:30:00",
-    "total_questions": 27
+    "last_updated": "2026-07-04T14:26:09",
+    "total_questions": 28
   },
   "categories": {
     "java": {
@@ -39,7 +39,7 @@
       "name": "Spring 框架",
       "icon": "🍃",
       "description": "Spring Boot、Spring Cloud",
-      "count": 2
+      "count": 3
     },
     "distributed": {
       "name": "分布式系统",
@@ -260,7 +260,7 @@
         "编码工具"
       ],
       "difficulty": "medium",
-      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
+      "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
       "created": "2026-07-04 14:21:17",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
@@ -526,6 +526,25 @@
       "created": "2026-07-04 21:30:00",
       "source": "/面经助手-20260704",
       "hash": "kafka_order_concurrency"
+    },
+    {
+      "id": "q0028",
+      "question": "垂直分表和水平分表的区别（Difference between Vertical Partitioning and Horizontal Partitioning）",
+      "category": "spring",
+      "tags": [
+        "分表",
+        "水平分表",
+        "Sharding",
+        "数据库优化",
+        "分片",
+        "垂直分表",
+        "分区"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\spring\\垂直分表和水平分表的区别Difference-between-Vertical-Partitioning-and-Hor.md",
+      "created": "2026-07-04 14:26:09",
+      "source": "/面经助手-20260704",
+      "hash": "b06eefe1"
     }
   ]
 }
