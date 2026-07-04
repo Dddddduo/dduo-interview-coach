@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T22:00:00",
-    "total_questions": 33
+    "last_updated": "2026-07-04T14:28:11",
+    "total_questions": 34
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 5
+      "count": 6
     },
     "python": {
       "name": "Python",
@@ -540,7 +540,7 @@
         "水平分表"
       ],
       "difficulty": "medium",
-      "file": "questions/database/mysql/垂直分表和水平分表的区别Difference-between-Vertical-Partitioning-and-Hor.md",
+      "file": "questions/database/mysql/垂直分表和水平分表的区别.md",
       "created": "2026-07-04 14:26:09",
       "source": "/面经助手-20260704",
       "hash": "b06eefe1"
@@ -631,6 +631,17 @@
       "created": "2026-07-04 14:30:00",
       "source": "/面经助手-20260704",
       "hash": "p3c0r0ut1n3"
+    },
+    {
+      "id": "q0034",
+      "question": "HashMap 底层实现，插入元素时会发生什么",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\java\\HashMap-底层实现插入元素时会发生什么.md",
+      "created": "2026-07-04 14:28:11",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "5625b037"
     }
   ]
 }
