@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04 06:20:39",
-    "total_questions": 8
+    "last_updated": "2026-07-04 14:21:17",
+    "total_questions": 10
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 2
+      "count": 3
     },
     "python": {
       "name": "Python",
@@ -81,7 +81,7 @@
       "name": "DevOps / 运维",
       "icon": "🔧",
       "description": "CI/CD、Docker、K8s",
-      "count": 0
+      "count": 1
     }
   },
   "difficulty_levels": {
@@ -230,6 +230,40 @@
       "created": "2026-07-04 06:20:39",
       "source": "/面经助手-20260704",
       "hash": "5aace527"
+    },
+    {
+      "id": "q0009",
+      "question": "项目中 Excel 批量导入相关问题（包含三个子问题：1. Excel 批量导入的上限是否有控制？2. 一批插入失败如何处理？3. 业务限定单次上传 500/1000 条，用户需要上传 1 万多条如何处理？）",
+      "category": "java",
+      "tags": [
+        "Excel导入",
+        "EasyExcel",
+        "批量处理",
+        "事务",
+        "异步导入"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/Excel批量导入相关问题.md",
+      "created": "2026-07-04 15:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "5e2c74a3"
+    },
+    {
+      "id": "q0010",
+      "question": "使用 AI 工具的情况（Codex、Claude Code、Trae），如何使用，对 Trae 的评价",
+      "category": "devops",
+      "tags": [
+        "AI工具",
+        "Copilot",
+        "Claude Code",
+        "Trae",
+        "编码工具"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
+      "created": "2026-07-04 14:21:17",
+      "source": "/面经助手-20260704",
+      "hash": "11ab3af8"
     }
   ]
 }
