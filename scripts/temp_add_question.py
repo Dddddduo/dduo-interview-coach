@@ -9,7 +9,22 @@ question = "线程、进程、协程相关知识点"
 # Read the answer from the output file
 answer_path = r'C:\Users\28757\dduo-interview-coach\outputs\面经解答-20260704-线程进程协程.md'
 with open(answer_path, 'r', encoding='utf-8') as f:
-    answer = f.read()
+    content = f.read()
+
+# Remove the top-level title but keep everything else
+# The output file starts with "# 线程、进程、协程相关知识点 深度解答\n\n---\n\n"
+# We want everything after the first title and separator
+lines = content.split('\n')
+if lines[0].startswith('# '):
+    # Find where the actual content starts (after --- separator and blank lines)
+    idx = 0
+    for i, line in enumerate(lines):
+        if line.strip() == '---':
+            idx = i + 1
+            break
+    answer = '\n'.join(lines[idx:]).strip()
+else:
+    answer = content
 
 manager = QuestionManager()
 result = manager.add(

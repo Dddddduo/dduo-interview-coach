@@ -416,12 +416,18 @@
     {
       "id": "q0020",
       "question": "Redis 常用数据结构有哪些？ZSet（有序集合）底层跳表原理是什么？请深入讲解 String、List、Hash、Set、ZSet、Bitmap、HyperLogLog、GEO、Stream 各用途，以及 ZSet 的 ziplist/skiplist+dict 编码转换、跳表多级索引原理、随机层数机制、与红黑树对比、Redis 源码实现结构",
-      "category": "java",
+      "category": "redis",
       "tags": [
-        "缓存"
+        "Redis",
+        "ZSet",
+        "跳表",
+        "Skip List",
+        "数据结构",
+        "压缩列表",
+        "skiplist+dict"
       ],
       "difficulty": "hard",
-      "file": "questions\\database\\java\\Redis-常用数据结构有哪些ZSet有序集合底层跳表原理是什么请深入讲解-StringListHashSetZSetB.md",
+      "file": "questions/database/redis/Redis数据结构ZSet跳表原理.md",
       "created": "2026-07-04 14:25:42",
       "source": "面经助手-20260704",
       "hash": "856cdc58"
@@ -465,11 +471,15 @@
       "id": "q0024",
       "question": "消费者收到重复的支付消息如何处理（幂等设计）",
       "category": "java",
-      "tags": [],
+      "tags": [
+        "幂等设计",
+        "支付系统",
+        "分布式系统"
+      ],
       "difficulty": "medium",
       "file": "questions\\database\\java\\消费者收到重复的支付消息如何处理幂等设计.md",
       "created": "2026-07-04 14:25:46",
-      "source": "C:/Program Files/Git/面经助手-20260704",
+      "source": "/面经助手-20260704",
       "hash": "cea7373a"
     },
     {
