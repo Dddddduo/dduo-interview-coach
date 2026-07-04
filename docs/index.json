@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T17:00:00",
-    "total_questions": 20
+    "last_updated": "2026-07-04T14:24:32",
+    "total_questions": 21
   },
   "categories": {
     "java": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 5
+      "count": 6
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -51,7 +51,7 @@
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 1
+      "count": 2
     },
     "network": {
       "name": "计算机网络",
@@ -423,6 +423,23 @@
       "created": "2026-07-04 16:00:00",
       "source": "/面经助手-20260704",
       "hash": "redis_cluster_sentinel"
+    },
+    {
+      "id": "q0020",
+      "question": "常用 Linux 指令操作 — 请按类别系统讲解常用 Linux 命令（文件操作、查看编辑、权限管理、进程管理、网络、系统信息、压缩解压、管道重定向、面试组合场景）",
+      "category": "os",
+      "tags": [
+        "运维",
+        "Linux",
+        "命令行",
+        "网络协议",
+        "Shell"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\os\\常用-Linux-指令操作-请按类别系统讲解常用-Linux-命令文件操作查看编辑权限管理进程管理网络系统信息压缩解压管.md",
+      "created": "2026-07-04 14:24:32",
+      "source": "/面经助手-20260704",
+      "hash": "1cc13222"
     }
   ]
 }
