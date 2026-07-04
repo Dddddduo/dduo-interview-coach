@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:22:16",
-    "total_questions": 13
+    "last_updated": "2026-07-04T14:20:00",
+    "total_questions": 15
   },
   "categories": {
     "java": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 3
+      "count": 4
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -69,7 +69,7 @@
       "name": "系统设计",
       "icon": "🏗️",
       "description": "架构设计、高并发、高可用",
-      "count": 0
+      "count": 1
     },
     "frontend": {
       "name": "前端开发",
@@ -302,12 +302,50 @@
       "id": "q0013",
       "question": "MySQL 事务过程中有哪些日志，各自作用",
       "category": "mysql",
-      "tags": [],
+      "tags": [
+        "事务",
+        "日志",
+        "InnoDB",
+        "MySQL"
+      ],
       "difficulty": "medium",
-      "file": "questions\\database\\mysql\\MySQL-事务过程中有哪些日志各自作用.md",
+      "file": "questions/database/mysql/MySQL-事务过程中有哪些日志各自作用.md",
       "created": "2026-07-04 14:22:16",
-      "source": "C:/Program Files/Git/面经助手-20260704",
+      "source": "/面经助手-20260704",
       "hash": "3945a3fb"
+    },
+    {
+      "id": "q0014",
+      "question": "联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引",
+      "category": "mysql",
+      "tags": [
+        "索引优化",
+        "B+树",
+        "MySQL",
+        "查询优化"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/联合索引-abc查询条件-where-c2-and-a1是否走索引.md",
+      "created": "2026-07-04",
+      "source": "/面经助手-20260704",
+      "hash": "2a3b4c5d"
+    },
+    {
+      "id": "q0015",
+      "question": "是否了解 Harness Engineering（驾驭工程）？请深入讲解其核心定义、与传统Prompt Engineering的区别、10大维度、实际应用案例、以及与Agentic Workflow/AI Agents的关系。",
+      "category": "system-design",
+      "tags": [
+        "Harness Engineering",
+        "AI Engineering",
+        "Agent",
+        "Prompt Engineering",
+        "系统设计"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
+      "created": "2026-07-04 14:20:00",
+      "source": "/面经助手-20260704",
+      "hash": "ed1f46d0"
     }
   ]
 }
