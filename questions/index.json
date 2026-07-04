@@ -546,5 +546,16 @@
       "source": "/面经助手-20260704",
       "hash": "b06eefe1"
     }
+    {
+      "id": "q0029",
+      "question": "使用 Kafka 时如何保证数据不丢失（从Producer-Broker-Consumer全链路分析）",
+      "category": "distributed",
+      "tags": ["Kafka", "消息队列", "分布式", "数据可靠性", "ISR", "ACK"],
+      "difficulty": "hard",
+      "file": "questions/database/distributed/使用Kafka时如何保证数据不丢失.md",
+      "created": "2026-07-04 18:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "kafka_data_loss_prevention"
+    }
   ]
 }
