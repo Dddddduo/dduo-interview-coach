@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:28:29",
-    "total_questions": 36
+    "last_updated": "2026-07-04T14:33:16",
+    "total_questions": 37
   },
   "categories": {
     "java": {
@@ -51,7 +51,7 @@
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 3
+      "count": 4
     },
     "network": {
       "name": "计算机网络",
@@ -588,7 +588,14 @@
       "id": "q0031",
       "question": "为什么要先写日志，再写入数据库 — Write-Ahead Logging (WAL) 策略深度解答",
       "category": "mysql",
-      "tags": ["WAL", "事务", "Redo Log", "崩溃恢复", "ACID", "InnoDB"],
+      "tags": [
+        "WAL",
+        "事务",
+        "Redo Log",
+        "崩溃恢复",
+        "ACID",
+        "InnoDB"
+      ],
       "difficulty": "medium",
       "file": "questions/database/mysql/为什么要先写日志再写入数据库-WAL策略深度解答.md",
       "created": "2026-07-04 14:27:43",
@@ -676,6 +683,19 @@
       "created": "2026-07-04 14:28:29",
       "source": "用户输入",
       "hash": "50b3b24b"
+    },
+    {
+      "id": "q0040",
+      "question": "线程、进程、协程相关知识点：深入讲解三者的区别和联系，必须涵盖进程(IPC等)、线程(Java实现、同步机制等)、协程(虚拟线程)、对比表格、I/O密集型和CPU密集型选型",
+      "category": "os",
+      "tags": [
+        "并发编程"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\os\\线程进程协程相关知识点深入讲解三者的区别和联系必须涵盖进程IPC等线程Java实现同步机制等协程虚拟线程对比表格IO密集.md",
+      "created": "2026-07-04 14:33:16",
+      "source": "面经助手-20260704",
+      "hash": "1c51dc6e"
     }
   ]
 }
