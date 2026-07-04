@@ -1,10 +1,10 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T15:00:00",
-    "total_questions": 5
+    "last_updated": "2026-07-04T15:10:00",
+    "total_questions": 6
   },
-  "total": 5,
+  "total": 6,
   "categories": {
     "java": {
       "name": "Java",
@@ -28,7 +28,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 1
+      "count": 2
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -86,7 +86,7 @@
     }
   },
   "cat_stats": {
-    "mysql": { "count": 1 },
+    "mysql": { "count": 2 },
     "os": { "count": 1 },
     "distributed": { "count": 1 },
     "behavioral": { "count": 1 }
@@ -110,7 +110,15 @@
     { "tag": "自我介绍", "count": 1 },
     { "tag": "行为面试", "count": 1 },
     { "tag": "面试技巧", "count": 1 },
-    { "tag": "STAR框架", "count": 1 }
+    { "tag": "STAR框架", "count": 1 },
+    { "tag": "实习经历", "count": 1 },
+    { "tag": "STAR-PLUS", "count": 1 },
+    { "tag": "面试框架", "count": 1 },
+    { "tag": "索引优化", "count": 1 },
+    { "tag": "慢查询", "count": 1 },
+    { "tag": "EXPLAIN", "count": 1 },
+    { "tag": "SQL优化", "count": 1 },
+    { "tag": "执行计划", "count": 1 }
   ],
   "dates": ["2026-07-04"],
   "by_date": {
@@ -169,6 +177,17 @@
         "created": "2026-07-04 14:17:00",
         "source": "/面经助手-20260704",
         "hash": "b8a3f2c1"
+      },
+      {
+        "id": "q0006",
+        "question": "你是怎么做慢 SQL 分析以及优化的？",
+        "category": "mysql",
+        "tags": ["索引优化", "慢查询", "EXPLAIN", "SQL优化", "执行计划", "MySQL"],
+        "difficulty": "hard",
+        "file": "questions/database/mysql/你是怎么做慢-SQL-分析以及优化.md",
+        "created": "2026-07-04 14:30:00",
+        "source": "面经助手-20260704",
+        "hash": "ab1c2d3e"
       }
     ]
   },
@@ -227,6 +246,17 @@
       "created": "2026-07-04 14:17:00",
       "source": "/面经助手-20260704",
       "hash": "b8a3f2c1"
+    },
+    {
+      "id": "q0006",
+      "question": "你是怎么做慢 SQL 分析以及优化的？",
+      "category": "mysql",
+      "tags": ["索引优化", "慢查询", "EXPLAIN", "SQL优化", "执行计划", "MySQL"],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/你是怎么做慢-SQL-分析以及优化.md",
+      "created": "2026-07-04 14:30:00",
+      "source": "面经助手-20260704",
+      "hash": "ab1c2d3e"
     }
   ]
-}
+}}
