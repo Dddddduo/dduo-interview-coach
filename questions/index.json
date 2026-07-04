@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T18:00:00",
-    "total_questions": 20
+    "last_updated": "2026-07-04T14:25:09",
+    "total_questions": 19
   },
   "categories": {
     "java": {
@@ -33,7 +33,7 @@
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 2
+      "count": 3
     },
     "spring": {
       "name": "Spring 框架",
@@ -45,13 +45,13 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 2
+      "count": 1
     },
     "os": {
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 2
+      "count": 1
     },
     "network": {
       "name": "计算机网络",
@@ -257,13 +257,11 @@
         "Copilot",
         "Claude Code",
         "Trae",
-        "AI编码",
-        "IDE",
-        "Agent"
+        "编码工具"
       ],
       "difficulty": "medium",
-      "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
-      "created": "2026-07-04 15:44:00",
+      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
+      "created": "2026-07-04 14:21:17",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
     },
@@ -318,7 +316,7 @@
       "difficulty": "hard",
       "file": "questions/database/mysql/MySQL事务过程中有哪些日志各自作用.md",
       "created": "2026-07-04 15:10:00",
-      "source": "面经助手-20260704",
+      "source": "/面经助手-20260704",
       "hash": "fcc8d5b0"
     },
     {
@@ -360,70 +358,58 @@
       "question": "Redis 分布式锁如何实现",
       "category": "redis",
       "tags": [
-        "缓存",
-        "分布式锁",
-        "高可用"
+        "缓存"
       ],
       "difficulty": "medium",
-      "file": "questions\\database\\redis\\Redis-分布式锁如何实现.md",
+      "file": "questions/database/redis/Redis-分布式锁如何实现.md",
       "created": "2026-07-04 14:23:58",
-      "source": "/面经助手-20260704(更新)",
+      "source": "C:/Program Files/Git/面经助手-20260704",
       "hash": "42408072"
     },
     {
       "id": "q0017",
-      "question": "[技术-Redis] Redis 集群、哨兵的作用",
+      "question": "setnx 和 setx 区别；setnx 如何释放锁",
       "category": "redis",
       "tags": [
-        "redis",
-        "哨兵",
-        "集群",
-        "高可用",
-        "分片",
-        "Sentinel",
-        "Cluster"
+        "Redis",
+        "分布式锁",
+        "缓存",
+        "原子性"
       ],
       "difficulty": "medium",
-      "file": "questions/database/redis/Redis集群哨兵的作用.md",
-      "created": "2026-07-04 16:00:00",
-      "source": "/面经助手-20260704",
-      "hash": "redis_cluster_sentinel"
+      "file": "questions/database/redis/setnx-setx-setnx.md",
+      "created": "2026-07-04 06:24:01",
+      "source": "面经助手-20260704",
+      "hash": "6336ff0c"
     },
     {
       "id": "q0018",
-      "question": "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化",
-      "category": "mysql",
+      "question": "Redis 常用数据结构；zset（有序集合）底层跳表原理",
+      "category": "redis",
       "tags": [
-        "B+树",
-        "索引",
-        "MySQL",
-        "InnoDB",
+        "Redis",
         "数据结构",
-        "磁盘IO",
-        "索引优化"
+        "ZSet",
+        "跳表",
+        "Skip List",
+        "压缩列表"
       ],
       "difficulty": "hard",
-      "file": "questions/database/mysql/MySQL-索引实现-B树与其他树的区别.md",
-      "created": "2026-07-04 14:21:00",
+      "file": "questions/database/redis/Redis常用数据结构zset有序集合底层跳表原理.md",
+      "created": "2026-07-04 12:50:00",
       "source": "/面经助手-20260704",
-      "hash": "5013ef6b"
+      "hash": "fd559544"
     },
     {
-      "id": "q0020",
-      "question": "常用 Linux 指令操作 — 请按类别系统讲解常用 Linux 命令（文件操作、查看编辑、权限管理、进程管理、网络、系统信息、压缩解压、管道重定向、面试组合场景）",
-      "category": "os",
-      "tags": [
-        "运维",
-        "Linux",
-        "命令行",
-        "网络协议",
-        "Shell"
-      ],
+      "id": "q0019",
+      "question": "MySQL 事务过程中有哪些日志，各自作用？请深入讲解 InnoDB 的 Undo Log、Redo Log、Binlog 以及两阶段提交",
+      "category": "mysql",
+      "tags": [],
       "difficulty": "medium",
-      "file": "questions\\database\\os\\常用-Linux-指令操作-请按类别系统讲解常用-Linux-命令文件操作查看编辑权限管理进程管理网络系统信息压缩解压管.md",
-      "created": "2026-07-04 14:24:32",
-      "source": "/面经助手-20260704",
-      "hash": "1cc13222"
+      "file": "questions\\database\\mysql\\MySQL-事务过程中有哪些日志各自作用请深入讲解-InnoDB-的-Undo-LogRedo-LogBinlog-以及.md",
+      "created": "2026-07-04 14:25:09",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "633baf63"
     }
   ]
 }
