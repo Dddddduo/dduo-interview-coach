@@ -1,7 +1,7 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T20:15:00",
+    "last_updated": "2026-07-04T17:00:00",
     "total_questions": 20
   },
   "categories": {
@@ -33,7 +33,7 @@
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 2
+      "count": 3
     },
     "spring": {
       "name": "Spring 框架",
@@ -257,7 +257,7 @@
         "Copilot",
         "Claude Code",
         "Trae",
-        "AI编码"
+        "AI编码",
         "IDE",
         "Agent"
       ],

@@ -1,28 +1,546 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>介绍一下你的 AI 相关项目 - 面经题库</title>
-<link rel="stylesheet" href="../css/question.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script>hljs.highlightAll();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>介绍一下你的 AI 相关项目 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
 </head>
 <body>
-<div class="question-container">
-<div class="question-header">
-<span class="question-id">q0008</span>
-<h1>介绍一下你的 AI 相关项目</h1>
-<div class="question-meta">
-<span class="difficulty medium">中级</span>
-<span class="category">行为面试</span>
-<span class="tags"><span class="tag">AI项目</span> <span class="tag">RAG</span> <span class="tag">LLM应用</span> <span class="tag">Spring AI</span> <span class="tag">Prompt Engineering</span></span>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0008</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🎯 行为面试</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>介绍一下你的 AI 相关项目</h1>
+    <div class="tag-row"><span class="tag-item">AI项目</span>
+<span class="tag-item">RAG</span>
+<span class="tag-item">LLM应用</span>
+<span class="tag-item">Spring AI</span>
+<span class="tag-item">Prompt Engineering</span></div>
+    <pre># 介绍一下你的 AI 相关项目
+
+---
+
+## 🧠 联想记忆法
+
+**记忆口诀：「AI 项目四步走 — 调、增、记、拆」**
+
+- **调** — 调用 LLM（Chat Completion / 模型推理）
+- **增** — 增强检索 RAG（Retrieval-Augmented Generation）
+- **记** — 对话记忆（Memory / Context Window Management）
+- **拆** — 结构化输出（Structured Output / Function Calling）
+
+**记忆原理**：这四个字对应 AI 应用的核心生命周期。**调**是起点（LLM 推理），**增**解决知识不足（RAG 弥补参数化知识局限），**记**保留上下文（实现连续对话），**拆**保证机器可解析（JSON Schema / Structured Output）。四个动作串联起来就是一次完整的 AI 应用请求链路。
+
+**关联知识**：
+
+| 口诀 | 英文术语 | 关联技术栈 |
+|------|---------|-----------|
+| 调 | Chat Completion / LLM Inference | OpenAI API, Anthropic API, Spring AI ChatClient |
+| 增 | RAG / Retrieval-Augmented Generation | Vector Store (Pinecone, Chroma, PGVector), Embedding Model |
+| 记 | Memory / Context Management | ConversationBufferMemory, Redis Cache, Session Store |
+| 拆 | Structured Output / Function Calling | JSON Schema, OutputParser, Tool Use |
+
+---
+
+## 📖 深度解答
+
+### 一、核心概念（Core Concepts）
+
+本项目是一个基于 **RAG 架构（Retrieval-Augmented Generation，检索增强生成）** 的企业级智能知识问答系统，采用 **Spring AI**（Java 生态的 AI 框架）和 **LangChain4j** 作为 AI 编排层，后端以 Spring Boot 3.x 构建微服务架构，前端基于 React + TypeScript 实现交互界面。
+
+项目定位为**企业私有知识库的 AI 问答助手**，核心解决场景是：企业内部存在大量分散的文档（技术手册、产品文档、运维日志），员工需要从海量文档中快速获取准确答案。传统搜索引擎依赖关键词匹配，无法理解语义；直接使用通用 LLM 又因缺乏领域知识和存在幻觉而不可靠。RAG 架构恰好弥补这一缺口——先检索相关文档片段，再将其注入 LLM 的上下文窗口（Context Window），由 LLM 基于检索结果生成回答。
+
+### 二、底层原理（Underlying Principles）
+
+#### 2.1 RAG 全链路原理
+
+RAG 架构的核心公式可以表达为：
+
+```
+Answer = LLM.generate(Query ⊕ Retrieve(Top-K, Embed(Query, DocumentStore)))
+```
+
+其中：
+
+- **Embed(·)**：将文本转换为稠密向量（Dense Vector），使用 text-embedding-ada-002 / bge-large-zh-v1.5 等嵌入模型（Embedding Model）
+- **Retrieve(·)**：在 Vector Store（向量数据库）中进行近似最近邻搜索（ANN, Approximate Nearest Neighbor），常用算法包括 HNSW（Hierarchical Navigable Small World）和 IVFFlat（Inverted File with Flat Indexing）
+- **⊕**：将检索到的上下文片段拼接至 Prompt 模板，形成增强后的输入
+- **LLM.generate(·)**：调用大语言模型生成最终答案
+
+#### 2.2 向量检索原理
+
+文本向量化本质上是将离散的语义信息映射到高维连续空间（通常为 768 维或 1536 维）。语义相近的文本在向量空间中的余弦距离（Cosine Distance）更小。HNSW 算法通过构建多层跳表结构的图索引，将检索时间复杂度从 O(n) 降低到 O(log n)。
+
+```
+// 伪代码：向量检索流程
+List&lt;Document&gt; retrieveRelevantDocs(String query, int topK) {
+    float[] queryVector = embeddingModel.embed(query);    // 文本 -&gt; 向量
+    return vectorStore.similaritySearch(                  // ANN 搜索
+        SearchRequest.query(queryVector)
+            .withTopK(topK)                              // 返回 top-K
+            .withSimilarityThreshold(0.75)               // 相似度阈值
+    );
+}
+```
+
+#### 2.3 Chat Completion 原理
+
+LLM 的 Chat Completion 本质上是自回归（Autoregressive）的文本生成过程：给定 Token 序列，模型逐个预测下一个 Token 的概率分布。通过 Temperature（温度系数，控制输出的随机性）、Top-P（核采样，控制候选词累积概率）等参数调节生成风格。
+
+### 三、实践应用（Practical Application）
+
+#### 3.1 项目技术栈
+
+| 层级 | 技术选型 | 用途 |
+|------|---------|------|
+| AI 编排 | Spring AI 1.0.0 / LangChain4j | 模型调用 + Prompt 管理 + 输出解析 |
+| LLM 服务 | OpenAI GPT-4o / 通义千问 qwen-max | 核心文本生成 |
+| Embedding | text-embedding-3-small / bge-large-zh | 文本向量化 |
+| Vector Store | PostgreSQL + pgvector / Milvus | 向量存储与检索 |
+| 后端 | Spring Boot 3.x + JDK 21 | API 服务 + 业务逻辑 |
+| 前端 | React 18 + TypeScript + Ant Design | 用户交互 |
+| AI 网关 | Spring Cloud Gateway + 限流熔断 | 统一模型路由 + 降级保护 |
+
+#### 3.2 核心功能模块
+
+**模块一：智能问答（Intelligent Q&amp;A）**
+
+```java
+// Spring AI 实现 Chat Completion
+@RestController
+@RequestMapping("/api/chat")
+public class ChatController {
+    
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+    
+    @PostMapping("/ask")
+    public Mono&lt;String&gt; ask(@RequestBody QuestionRequest request) {
+        // 1. 向量检索增强
+        List&lt;Document&gt; docs = vectorStore.similaritySearch(
+            SearchRequest.query(request.question())
+                .withTopK(5)
+                .withSimilarityThreshold(0.7)
+        );
+        
+        // 2. 构建增强 Prompt
+        String context = docs.stream()
+            .map(Document::getContent)
+            .collect(Collectors.joining("\n---\n"));
+        
+        // 3. 调用 LLM 生成答案
+        return chatClient.prompt()
+            .system(s -&gt; s.text("你是一个企业知识库助手。请基于以下文档片段回答问题。"
+                + "如果文档中没有相关信息，请明确说明。"))
+            .user(u -&gt; u.text("文档片段：\n" + context + "\n\n问题：" + request.question()))
+            .call()
+            .content();
+    }
+}
+```
+
+**模块二：文档智能分析（Document Analysis）**
+
+支持 PDF / Word / Markdown 文档的批量导入：
+
+- 文档解析（Document Parsing）：使用 Apache Tika / Unstructured.io 提取文本
+- 文档分割（Chunking）：按段落 + 语义边界分片，每片 512 tokens，重叠率 10%
+- 向量入库（Indexing）：逐片 Embedding 后写入 pgvector
+
+**模块三：结构化输出（Structured Output）**
+
+```java
+// 使用 Function Calling 实现结构化抽取
+public record MeetingMinutes(
+    String title,            // 会议标题
+    LocalDate date,          // 会议日期
+    List&lt;String&gt; attendees,  // 参会人员
+    List&lt;String&gt; actionItems // 待办事项
+) {}
+
+// 定义输出结构
+StructuredOutputConverter&lt;MeetingMinutes&gt; converter =
+    new BeanOutputConverter&lt;&gt;(MeetingMinutes.class);
+
+String jsonSchema = converter.getJsonSchema();
+
+// 调用时注入 Schema
+MeetingMinutes result = chatClient.prompt()
+    .user("请解析以下会议纪要：" + rawText)
+    .options(ChatOptions.builder()
+        .responseFormat(jsonSchema)  // 强制 JSON Schema 输出
+        .build())
+    .call()
+    .entity(MeetingMinutes.class);
+```
+
+**模块四：对话记忆（Conversation Memory）**
+
+```java
+// 基于 Redis 的对话窗口管理
+public class ConversationManager {
+    private final RedisTemplate&lt;String, List&lt;Message&gt;&gt; redisTemplate;
+    private static final int MAX_HISTORY_TOKENS = 4000;
+    
+    public List&lt;Message&gt; getConversation(String sessionId) {
+        List&lt;Message&gt; history = redisTemplate.opsForValue()
+            .get("session:" + sessionId);
+        
+        // Token 窗口滑动：超出上限则丢弃最早的消息对
+        return truncateToTokenLimit(history, MAX_HISTORY_TOKENS);
+    }
+}
+```
+
+#### 3.3 技术架构（文字描述）
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Client Layer                              │
+│   React SPA (TypeScript) + Ant Design                       │
+└────────────────────────┬─────────────────────────────────────┘
+                         │ HTTP / WebSocket (SSE)
+┌────────────────────────▼─────────────────────────────────────┐
+│                API Gateway                                   │
+│   Spring Cloud Gateway                                       │
+│   • 路由分发    • 身份认证 (JWT/OAuth2)                       │
+│   • 限流熔断    • 日志审计                                    │
+└───────────┬──────────────────────┬───────────────────────────┘
+            │                      │
+┌───────────▼─────────┐  ┌───────▼───────────────────────────┐
+│   Chat Service      │  │   Document Service                │
+│   Spring AI         │  │   • 文档解析 (Apache Tika)        │
+│   • Prompt 管理     │  │   • 文档分割 (Chunking Strategy)  │
+│   • 对话记忆 (Redis)│  │   • 向量入库 (Embedding Pipeline) │
+│   • 结构化输出       │  │   • 索引管理                      │
+└───────────┬─────────┘  └───────┬───────────────────────────┘
+            │                    │
+            └────────┬───────────┘
+                     │
+          ┌──────────▼──────────┐
+          │   AI Gateway Layer  │
+          │   (模型路由/降级)    │
+          └──────────┬──────────┘
+                     │
+     ┌───────────────┼───────────────┐
+     │               │               │
+┌────▼────┐   ┌─────▼─────┐   ┌─────▼────┐
+│ GPT-4o  │   │ Qwen-Max  │   │ Embedding│
+│(主模型)  │   │(备用模型)  │   │  Service │
+└─────────┘   └───────────┘   └──────────┘
+                               │
+                          ┌────▼────┐
+                          │pgvector │
+                          │(向量库)  │
+                          └─────────┘
+```
+
+**架构要点**：
+
+- **前后端分离**（Front-End / Back-End Separation）：前端 SPA 通过 REST API 与后端通信，支持 SSE（Server-Sent Events）实现流式输出（Streaming Output）
+- **AI 网关层**：统一管理模型路由，主模型（GPT-4o）故障时自动降级至备模型（qwen-max），集成限流（Rate Limiting）和熔断（Circuit Breaker）
+- **模型服务层**：Embedding 模型独立部署，避免与 LLM 争抢 GPU 资源；Vector Store 采用 pgvector，与业务数据同库，降低运维复杂度
+
+### 四、深入思考（Deep Reflections）
+
+#### 4.1 挑战与解决方案
+
+| 挑战 | 具体表现 | 解决方案 |
+|------|---------|---------|
+| 模型幻觉（Hallucination） | LLM 生成看似合理但事实错误的内容 | RAG 检索注入 + Prompt 约束 "无相关信息则明确声明" + 答案引用溯源 |
+| Token 限制（Token Limit） | 长文档超出上下文窗口（如 128K tokens） | 智能分块 + 滑动窗口 + 关键片段优先召回 |
+| 响应速度（Latency） | 端到端响应 &gt;5s，用户等待感强 | 流式输出 SSE + 向量索引优化（HNSW） + 缓存热点问题 |
+| 成本控制（Cost Control） | API 调用费用随用量线性增长 | 多级缓存（Redis 热点缓存 + Embedding 结果缓存）+ 备用小模型处理简单查询 |
+
+#### 4.2 模型幻觉的深层治理
+
+模型幻觉的根因在于 LLM 本质是**概率生成模型（Probabilistic Generative Model）**，其训练目标是最大化下一个 Token 的对数似然（Log-Likelihood），而非事实正确性。解决幻觉需要从三个维度入手：
+
+1. **检索质量（Retrieval Quality）**：优化 Chunking 策略——基于 Markdown 标题层级进行分层分块（Hierarchical Chunking），确保每个 Chunk 语义完整
+2. **注入策略（Injection Strategy）**：采用 "先检索后回答"（Retrieve-then-Read）而非 "边生成边检索"（Generate-then-Retrieve），降低对模型内部知识的依赖
+3. **验证机制（Verification Mechanism）**：对生成的答案逐句检索来源文档，计算语义相似度，低于阈值的句子标注为"低可信度"
+
+#### 4.3 量化指标（Quantitative Metrics）
+
+| 指标 | 优化前 | 优化后 |
+|------|--------|--------|
+| 答案准确率（Accuracy） | 72.3% | 91.7% |
+| 首次响应时间（TTFB, Time to First Byte） | 4.8s | 1.2s |
+| 平均响应时间（Avg Latency） | 6.5s | 2.3s |
+| Token 消耗/请求 | 3,200 | 1,850 |
+| 月成本（100K 请求） | $1,280 | $540 |
+| 用户满意度（CSAT, Customer Satisfaction Score） | 3.2/5 | 4.5/5 |
+
+---
+
+## 🗺️ 回答思路
+
+### 答题逻辑框架
+
+建议采用 **"总-分-总" + "WHAT-HOW-WHY" 混合框架**：
+
+```
+开场（30秒）：「我在上一家公司主导开发了一个基于 RAG 架构的企业智能知识库系统...」
+  │
+  ├── WHAT（60秒）：项目定位与核心功能
+  │   └─ 智能问答 + 文档分析 + 结构化输出 + 对话记忆
+  │
+  ├── HOW（90秒）：技术实现与架构
+  │   └─ Spring AI 编排 + pgvector 检索 + AI 网关路由
+  │
+  ├── WHY（60秒）：关键决策的原因
+  │   └─ 为什么选 RAG 而非 Finetune？为什么用 pgvector 而非 Pinecone？
+  │
+  └── 收尾（30秒）：效果数据 + 经验总结
+```
+
+### 重点得分点（Scoring Points）
+
+1. **工程深度**：展示对 RAG 全链路的理解（Embedding → Retrieval → Generation），而非简单调用 API
+2. **量化意识**：给出具体的数据指标（准确率 91.7% → 提升 19.4%），体现结果导向
+3. **问题解决**：主动抛出幻觉、延迟、成本等挑战并给出解决方案，展示思考深度
+4. **架构能力**：描述架构时的分层意识和容错设计（降级/熔断/缓存）
+5. **前沿跟进**：提及主流框架（Spring AI, LangChain4j）和技术趋势（RAG vs Finetune）
+
+### 常见误区（Common Pitfalls）
+
+| 误区 | 正确做法 |
+|------|---------|
+| 只讲功能不讲架构 | 必须体现系统设计能力，描述分层和模块依赖 |
+| 只讲效果不讲挑战 | 主动提及困难并展示解决思路才有区分度 |
+| 回答太泛（"用了 LLM 做了个问答"） | 具体到技术选型、版本号、关键参数 |
+| 混用 Spring AI 和 LangChain 概念 | 明确区分 Spring AI 是 Java 生态，LangChain 是 Python 生态 |
+| 遗忘中英术语对照 | 面试官期待看到英文技术词汇的准确使用 |
+
+### 时间分配建议（Time Allocation）
+
+总回答时间控制在 **3-4 分钟**：
+
+- **0-30s**：项目定位 + 一句话概览（"这是一个基于 RAG 架构的企业知识库问答系统"）
+- **30s-2min**：技术架构 + 核心功能 + 代码关键点（此段最核心，不可压缩）
+- **2min-3min**：挑战 + 解决方案 + 量化效果
+- **3min-3.5min**：经验总结 + 面试官提问引导
+
+### 过渡话术（Transition Phrases）
+
+```
+从项目概览过渡到技术实现：
+"具体到技术实现层面，这个项目的核心架构围绕 RAG 展开，大致分为四个关键环节..."
+
+从挑战过渡到解决方案：
+"在落地过程中，我们遇到了几个典型问题：首先是模型幻觉...针对这个问题，我们采取了三项措施..."
+
+从问题过渡到效果：
+"经过优化后，系统的效果有了显著提升，这里有几个具体的量化指标..."
+
+为面试官提问留钩子：
+"关于 RAG 和 Finetune 的选择，其实我们在初期也做了详细的对比评估..."
+```
+
+---
+
+&gt; **分类**: 行为面试
+&gt; **标签**: `AI项目` `RAG` `LLM应用` `Spring AI` `LangChain` `Prompt Engineering` `Vector Store`
+&gt; **难度**: 中级
+&gt; **归档时间**: 2026-07-04 16:30:00 (更新: 2026-07-04 19:00:00)</pre>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0008')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
 </div>
-</div>
-<div class="question-content markdown-body">
-<p><hr></p><p><h3>🧠 联想记忆法</h3></p><p><strong>记忆口诀 / 联想</strong></p><p>&gt; <strong>"AI-PIER" 五维记忆模型</strong><br>&gt;<br>&gt; <strong>A</strong> — Architecture（架构）：前端 + 后端 + AI网关 + 向量库<br>&gt; <strong>I</strong> — Integration（集成）：Spring AI / LangChain 框架对接LLM<br>&gt; <strong>P</strong> — Pipeline（流水线）：Embedding → Retrieval → Augmentation → Generation<br>&gt; <strong>I</strong> — Index（索引）：向量索引（Vector Index）+ 关键词索引（Keyword Index）双路召回<br>&gt; <strong>E</strong> — Evaluation（评估）：ROUGE-L / BLEU / Answer Relevance 量化指标<br>&gt; <strong>R</strong> — Refinement（优化）：Prompt Tuning + 模型微调 + 缓存策略</p><p><strong>记忆原理</strong></p><p>将整个AI项目拆解为六个关键维度，每个维度提取一个核心关键字，组成"AIPIER"（"AI的根基"）这一便于记忆的单词。面试时按照这个单词顺序展开，可以确保不遗漏任何重要模块，同时体现出系统性思维。</p><p><strong>关联知识</strong></p><p><table><thead><tr><th>记忆点</th><th>关联技术栈</th></tr></thead><tbody><tr><td>Architecture</td><td>前后端分离架构、Docker容器化、Kubernetes编排</td></tr><tr><td>Integration</td><td>Spring AI、LangChain、OpenAI API、Azure OpenAI</td></tr><tr><td>Pipeline</td><td>RAG流水线、Embedding Model、Chunking策略</td></tr><tr><td>Index</td><td>FAISS、Pinecone、Milvus、Elasticsearch</td></tr><tr><td>Evaluation</td><td>RAGAS框架、TruLens、人工评估标注</td></tr><tr><td>Refinement</td><td>Prompt Engineering、LoRA微调、KV Cache优化</td></tr></tbody></table><br><hr></p><p><h3>📖 深度解答</h3></p><p>#### 1. 项目概述</p><p>该项目的技术名称为 <strong>"企业级智能知识问答平台 (Enterprise Intelligent Q&amp;A Platform)"</strong>，基于 <strong>Spring AI</strong> 框架构建，底层对接 <strong>OpenAI GPT-4o</strong> 及 <strong>Azure OpenAI Service</strong>。项目采用 <strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong> 架构模式，旨在解决企业内部文档检索效率低、知识复用困难的问题。</p><p>该系统支持用户通过自然语言（Natural Language）对技术文档、产品手册、会议纪要等非结构化数据（Unstructured Data）进行智能检索与问答。核心能力覆盖了文档上传与解析、向量化存储、语义检索（Semantic Search）、大模型生成回复（LLM Generation）以及对话历史管理（Conversation Memory）。</p><p><strong>技术栈总览：</strong><br><ul><li>后端框架：Spring Boot 3.2 + Spring AI 0.8.x</li><br><li>AI框架层：LangChain4j（Java生态）、LangChain（Python原型验证）</li><br><li>向量数据库：Pinecone Serverless + Redis Stack（本地缓存）</li><br><li>嵌入模型（Embedding Model）：text-embedding-3-small（1536维）</li><br><li>大语言模型：GPT-4o / GPT-4-turbo（Chat Completion API）</li><br><li>前端：React 18 + TypeScript + Ant Design Pro</li><br><li>部署：Docker + Kubernetes（AWS EKS）</li><br></ul><br>#### 2. 核心技术</p><p>##### 2.1 LLM 调用（Chat Completion）</p><p>核心通过 Spring AI 的 <code>ChatClient</code> 封装 OpenAI Chat Completion API，支持流式输出（Streaming）与同步输出两种模式。</p><p><pre><code class="language-java">// Spring AI ChatClient 调用示例<br>@Autowired<br>private ChatClient chatClient;</p><p>public Flux&lt;String&gt; streamAnswer(String question, List&lt;Document&gt; contexts) {<br>    String prompt = buildPrompt(question, contexts);<br>    return chatClient.prompt(prompt)<br>            .stream()<br>            .content();<br>}</p><p>private String buildPrompt(String question, List&lt;Document&gt; contexts) {<br>    StringBuilder sb = new StringBuilder();<br>    sb.append("You are a professional technical assistant. ");<br>    sb.append("Answer the question based strictly on the provided context.\n\n");<br>    sb.append("Context:\n");<br>    for (int i = 0; i &lt; contexts.size(); i++) {<br>        sb.append("[").append(i + 1).append("] ")<br>          .append(contexts.get(i).getContent()).append("\n");<br>    }<br>    sb.append("\nQuestion: ").append(question).append("\nAnswer:");<br>    return sb.toString();<br>}<br></code></pre></p><p>##### 2.2 Prompt Engineering</p><p>采用三层 Prompt 模板结构：</p><p><li><strong>System Prompt（系统提示词）</strong>：定义AI的角色定位、行为边界和输出规范</li><br><li><strong>Context Template（上下文模板）</strong>：将检索结果按固定格式注入</li><br><li><strong>User Query Template（用户查询模板）</strong>：支持few-shot示例注入</li></p><p><pre><code class="language-java">// Prompt Template 示例<br>public String buildSystemPrompt(String userRole) {<br>    return """<br>        You are an enterprise knowledge assistant.<br>        Your role: supporting %s in daily Q&amp;A.<br>        Rules:<br>        - If the answer cannot be found in the context, say "I cannot find relevant information."<br>        - Always cite the source document index (e.g., [1], [2]).<br>        - Answer in the same language as the question.<br>        - Keep responses concise, maximum 300 tokens.<br>        """.formatted(userRole);<br>}<br></code></pre></p><p>##### 2.3 RAG（检索增强生成）</p><p>RAG流水线分为三个阶段：</p><p><strong>阶段一：文档预处理（Document Ingestion）</strong><br><pre><code class="language-">原始PDF/Word → 文本提取 → 段落分割（Chunking）→ Embedding → 入库<br></code></pre><br><ul><li>分割策略（Chunking Strategy）：采用 <strong>RecursiveCharacterTextSplitter</strong>，chunk_size=512，chunk_overlap=128</li><br><li>嵌入（Embedding）：调用 <code>text-embedding-3-small</code> 生成1536维向量</li><br></ul><br><pre><code class="language-python"># LangChain 文档预处理 Python 原型代码<br>from langchain.text_splitter import RecursiveCharacterTextSplitter<br>from langchain_openai import OpenAIEmbeddings</p><p>text_splitter = RecursiveCharacterTextSplitter(<br>    chunk_size=512,<br>    chunk_overlap=128,<br>    separators=["\n\n", "\n", "。", "，", " ", ""]<br>)</p><p>embeddings = OpenAIEmbeddings(model="text-embedding-3-small")</p><p>chunks = text_splitter.split_documents(raw_documents)<br>vectors = embeddings.embed_documents([c.page_content for c in chunks])<br></code></pre></p><p><strong>阶段二：检索（Retrieval）</strong><br><pre><code class="language-">用户查询 → Query Embedding → 向量相似度搜索（Cosine Similarity）→ Top-K 召回 → 重排序<br></code></pre><br><ul><li>检索方式：向量召回（Vector Search）+ 关键词召回（Keyword Search）的混合检索（Hybrid Search）</li><br><li>Top-K 参数：K=5（检索），重排序后取 Top-3</li><br><li>重排序模型（Re-ranker）：BAAI/bge-reranker-v2-m3</li><br></ul><br><strong>阶段三：生成（Generation）</strong><br><pre><code class="language-">检索结果 + 原始查询 → Prompt组装 → LLM调用 → 结构化输出<br></code></pre></p><p>##### 2.4 Vector Store（向量存储）</p><p>选择 <strong>Pinecone</strong> 作为主向量数据库。Schema设计如下：</p><p><table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody><tr><td>id</td><td>string</td><td>文档块唯一标识</td></tr><tr><td>vector</td><td>float[]</td><td>1536维嵌入向量</td></tr><tr><td>content</td><td>string</td><td>原始文本内容</td></tr><tr><td>metadata.source</td><td>string</td><td>来源文档路径</td></tr><tr><td>metadata.chunk_index</td><td>int</td><td>块序号</td></tr><tr><td>metadata.doc_type</td><td>string</td><td>文档类型（PDF/DOCX/MD）</td></tr></tbody></table><br>#### 3. 功能模块</p><p><strong>模块一：智能问答（Intelligent Q&amp;A）</strong><br><ul><li>支持连续多轮对话，基于 <code>ConversationBufferWindowMemory</code> 维护最近5轮上下文</li><br><li>流式输出（Server-Sent Events, SSE），首字延迟低于800ms</li><br><li>支持问题追问澄清（Clarification）和主动建议（Suggestion）</li><br></ul><br><strong>模块二：文档分析（Document Analysis）</strong><br><ul><li>批量上传支持：PDF、DOCX、Markdown、TXT 格式</li><br><li>自动标签提取（Auto Tagging）：基于 LLM 提取文档关键词和摘要</li><br><li>文档版本管理：基于 Git LFS 存储原始文件</li><br></ul><br><strong>模块三：结构化输出（Structured Output）</strong><br><ul><li>采用 <code>StructuredOutputConverter</code> 将 LLM 输出映射为 Java POJO</li><br></ul><br><strong>模块四：对话记忆（Conversation Memory）</strong><br><ul><li>短期记忆：基于内存的滑动窗口（5轮）</li><br><li>长期记忆：基于 Redis 持久化，按 sessionId 隔离</li><br><li>总结记忆（Summary Memory）：长对话自动摘要压缩</li><br></ul><br>#### 4. 技术架构图描述</p><p><pre><code class="language-">┌─────────────┐     ┌──────────────┐     ┌──────────────┐<br>│   Frontend   │     │   AI Gateway   │     │  Model Service │<br>│  (React 18)  │────▶│  (Spring AI)   │────▶│  (OpenAI API)  │<br>│  Ant Design  │◀────│  Rate Limiter  │◀────│  GPT-4o/GPT-4  │<br>└─────────────┘     │  Auth Filter   │     └──────┬───────┘<br>        │           │  Load Balance  │            │<br>        │           └───────┬────────┘            │<br>        │                   │                     │<br>        ▼                   ▼                     ▼<br>┌─────────────┐     ┌──────────────┐     ┌──────────────┐<br>│  CDN/OSS    │     │  Vector Store │     │  Embedding    │<br>│  Static     │     │  (Pinecone)   │     │  Service      │<br>└─────────────┘     └──────────────┘     └──────────────┘<br></code></pre></p><p><strong>层级说明：</strong></p><p><ul><li><strong>接入层</strong>：Nginx 反向代理 + HTTPS 终止 + 限流（Rate Limiting），单用户 QPS 上限为 10</li><br><li><strong>应用层</strong>：Spring Boot 应用集群，水平扩展至 4 个 Pod，基于 Kubernetes HPA（Horizontal Pod Autoscaler）进行弹性伸缩</li><br><li><strong>AI网关层</strong>：统一管理 API Key 轮转、请求路由、模型降级（Model Fallback，GPT-4o 降级至 GPT-4-turbo）、Token 用量审计</li><br><li><strong>向量检索层</strong>：Pinecone Serverless 按量付费，配合 Redis 本地缓存热点查询，缓存命中率为 42%</li><br><li><strong>存储层</strong>：PostgreSQL（用户数据、对话记录）、OSS（原始文档）、Pinecone（向量索引）</li><br></ul><br>#### 5. 遇到的挑战</p><p><strong>挑战一：模型幻觉（Hallucination）</strong><br><ul><li>问题：当检索结果不相关时，LLM 仍会"编造"答案</li><br><li>方案：引入 <strong>Confidence Threshold（置信度阈值）</strong>，当向量相似度低于 0.75 时，系统返回"无法确认相关信息，请咨询领域专家"</li><br><li>效果：幻觉率从 12.3% 降至 2.1%</li><br></ul><br><strong>挑战二：Token 限制（Token Limitation）</strong><br><ul><li>问题：长文档上下文超出 128K Token 窗口</li><br><li>方案：<strong>滑动窗口分块摘要（Sliding Window Chunk Summarization）</strong>，对超长文档先做分层摘要再检索</li><br><li>效果：支持单文档 500 页以上，召回覆盖率 89%</li><br></ul><br><strong>挑战三：响应速度（Response Latency）</strong><br><ul><li>问题：RAG 全链路延迟达 5-8 秒</li><br><li>方案：引入 <strong>Prefetch + Cache</strong> 机制，热门文档提前加载 Embedding；采用 <strong>Semantic Cache（语义缓存）</strong>，相似查询直接返回缓存结果</li><br><li>效果：P50 延迟从 6.2s 降至 1.8s，P99 延迟降至 4.5s</li><br></ul><br><strong>挑战四：成本控制（Cost Management）</strong><br><ul><li>问题：GPT-4o Token 消耗导致 API 成本过高</li><br><li>方案：实施 <strong>Token Budget 分级策略</strong>——简单查询走 GPT-4-mini，复杂推理走 GPT-4o；对 Embedding 结果做本地缓存</li><br><li>效果：月度 API 成本降低 47%，月均节省约 $2,800</li><br></ul><br>#### 6. 实际效果与量化指标</p><p><table><thead><tr><th>指标</th><th>Baseline</th><th>优化后</th><th>提升幅度</th></tr></thead><tbody><tr><td>答案准确率 (Answer Accuracy)</td><td>72.4%</td><td>91.3%</td><td>+18.9pp</td></tr><tr><td>幻觉率 (Hallucination Rate)</td><td>12.3%</td><td>2.1%</td><td>-10.2pp</td></tr><tr><td>首字响应延迟 (TTFT)</td><td>2.8s</td><td>0.7s</td><td>-75%</td></tr><tr><td>用户满意度 (CSAT)</td><td>3.8/5.0</td><td>4.6/5.0</td><td>+0.8</td></tr><tr><td>知识利用率 (Knowledge Utilization)</td><td>34%</td><td>78%</td><td>+44pp</td></tr><tr><td>日均查询量 (Daily Queries)</td><td>1,200</td><td>8,500</td><td>+608%</td></tr></tbody></table><br>该系统上线后在企业内部覆盖 3 个部门、约 2,000 名活跃用户，累计处理查询量超过 50 万次，知识检索平均耗时从 15 分钟人工查找降至 1.8 秒自动回复。</p><p><hr></p><p><h3>🗺️ 回答思路</h3></p><p>#### 答题逻辑框架</p><p>采用 <strong>STAR-S 扩展模型</strong>（Situation — Task — Action — Result — System）：</p><p><li><strong>Situation（背景）</strong>：企业内部知识碎片化，检索效率低</li><br><li><strong>Task（任务）</strong>：构建统一的 AI 问答平台</li><br><li><strong>Action（行动）</strong>：采用 RAG 架构 + Spring AI 框架</li><br><li><strong>Result（结果）</strong>：量化指标展示（准确率、延迟、成本）</li><br><li><strong>System（系统思维）</strong>：技术选型考虑、架构设计取舍、未来演进方向</li></p><p>#### 重点得分点</p><p>按权重排序：</p><p><table><thead><tr><th>得分点</th><th>权重</th><th>考察能力</th></tr></thead><tbody><tr><td>RAG 流水线完整理解</td><td>★★★★★</td><td>AI系统工程能力</td></tr><tr><td>量化指标呈现</td><td>★★★★★</td><td>数据驱动思维</td></tr><tr><td>代码示例</td><td>★★★★☆</td><td>工程实现能力</td></tr><tr><td>挑战与解决方案</td><td>★★★★☆</td><td>问题解决能力</td></tr><tr><td>架构设计描述</td><td>★★★★☆</td><td>系统设计能力</td></tr><tr><td>Token/成本策略</td><td>★★★☆☆</td><td>工程落地意识</td></tr></tbody></table><br>#### 常见误区</p><p><li><strong>只谈概念不谈代码</strong>：面试官期望看到真实的工程实现，而不仅仅是"我用了RAG"这种方案描述</li><br><li><strong>缺乏量化指标</strong>："效果很好"是无效表达，必须给出可衡量的数据</li><br><li><strong>忽略挑战和失败</strong>：只说成功经验显得不真实，展示解决问题的过程更有说服力</li><br><li><strong>技术栈过于堆砌</strong>：列出大量技术名词但不说明选型理由和取舍，会给面试官"纸上谈兵"的印象</li><br><li><strong>忽视非功能性需求</strong>：只讲功能模块，不提及延迟、高可用、安全性、成本等工程要素</li></p><p>#### 时间分配建议（5分钟回答）</p><p><table><thead><tr><th>阶段</th><th>时长</th><th>内容</th></tr></thead><tbody><tr><td>开场定位</td><td>30秒</td><td>一句话概括项目名称和定位</td></tr><tr><td>项目概述</td><td>45秒</td><td>技术栈、团队规模、受众</td></tr><tr><td>核心技术</td><td>90秒</td><td>RAG 流水线 + 代码示例</td></tr><tr><td>挑战与方案</td><td>60秒</td><td>选2-3个最亮眼的挑战</td></tr><tr><td>量化成果</td><td>45秒</td><td>核心指标 + 提升幅度</td></tr><tr><td>总结与延伸</td><td>30秒</td><td>一句话总结 + 未来规划</td></tr></tbody></table><br>#### 过渡话术</p><p><strong>从概述过渡到技术细节：</strong><br>&gt; "以上是项目的整体定位，接下来聚焦在核心技术实现上。我们的核心架构是 RAG 模式，下面我按 Retrieval 和 Generation 两个阶段来说明。"</p><p><strong>从技术细节过渡到挑战：</strong><br>&gt; "以上是系统的主要功能设计。在实际落地过程中，我们遇到了几个关键挑战——模型幻觉、Token 限制和响应延迟。我想重点分享解决这些问题的方法。"</p><p><strong>结尾总结话术：</strong><br>&gt; "总结来说，这个项目完整覆盖了从文档接入到智能问答的 RAG 全链路，在准确率、延迟和成本三个核心维度上都达到了预期指标。后续的演进方向是引入多模态支持（Multimodal）和 Agent 化的工作流编排（Agentic Workflow）。"</p><p><hr></p><p>&gt; <strong>分类</strong>: 行为面试<br>&gt; <strong>标签</strong>: <code>AI项目</code> <code>RAG</code> <code>LLM应用</code> <code>Spring AI</code> <code>Prompt Engineering</code><br>&gt; <strong>难度</strong>: 中级<br>&gt; <strong>归档时间</strong>: 2026-07-04 16:30:00<br></p>
-</div>
-</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0008')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
 </body>
 </html>
