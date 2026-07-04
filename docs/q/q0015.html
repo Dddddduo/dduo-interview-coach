@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>是否了解 Harness Engineering（驾驭工程）？请深入讲解其核心定义、与传统Prompt Engineer — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0015</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🏗️ 系统设计</span>
+            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>是否了解 Harness Engineering（驾驭工程）？请深入讲解其核心定义、与传统Prompt Engineering的区别、10大维度、实际应用案例、以及与Agentic Workflow/AI Agents的关系。</h1>
+    <div class="tag-row"><span class="tag-item">Harness Engineering</span>
+<span class="tag-item">AI Engineering</span>
+<span class="tag-item">Agent</span>
+<span class="tag-item">Prompt Engineering</span>
+<span class="tag-item">系统设计</span></div>
+    <pre># 是否了解 Harness Engineering（驾驭工程）
+
+&gt; 📋 **分类**: 系统设计
+&gt; 🏷️ **标签**: `Harness Engineering` `AI Engineering` `Agent` `Prompt Engineering` `系统设计`
+&gt; 📊 **难度**: 进阶
+&gt; 📅 **归档时间**: 2026-07-04 14:20
+
+---
+
+## 🧠 联想记忆法
+
+**记忆口诀**：「十缰绳策马，三骑手把关」—— 想象驾驭一辆由 AI 驱动的马车。
+
+**记忆原理**：「Harness」原意是马的缰绳或挽具。将 AI 想象为一匹动力强劲但需要引导的"骏马"，而 Harness Engineering 就是为这匹马配备的**十根缰绳**（10 大维度），以及**三位骑手**（3 个 Agent）各司其职。骑手 A 负责领路答题，骑手 B 负责检查路线是否正确，骑手 C 负责整理行囊。十根缰绳分别控制马的速度、方向、稳定性和安全性，确保马车（AI 系统）始终行驶在预设轨道上，不会脱缰失控。
+
+**关联知识**：如果你熟悉 CI/CD 流水线（Pipeline），Harness Engineering 可以理解为 CI/CD 思想在 AI 行为工程上的应用——用流水线、质量门控（Quality Gate）、自动化部署来"驯化" AI 输出。如果你熟悉 DevOps，其中的"基础设施即代码"（Infrastructure as Code）思想在这里映射为"AI 行为即工程"（AI Behavior as Engineering）。
+
+---
+
+## 📖 深度解答
+
+### 一、核心概念（是什么）
+
+**Harness Engineering（驾驭工程）** 是一套以工程化手段构建和控制 AI 行为的方法论体系。其核心思想是：不依赖 LLM（大语言模型，Large Language Model）的"自觉"来保证输出质量，而是通过一套可编排、可门控、可追溯的工程架构，为 AI 行为构建"缰绳"（Harness），确保输出**可控、可追溯、可验证**。
+
+#### 与传统 Prompt Engineering（提示工程）的本质区别
+
+传统 Prompt Engineering 的核心假设是：通过精心设计的提示词（Prompt）来引导 LLM 输出期望结果。这种方法存在几个根本性缺陷：
+
+| 对比维度 | 传统 Prompt Engineering | Harness Engineering |
+|---------|----------------------|-------------------|
+| **质量控制** | 依赖模型自觉，无强制检查 | 专用审查 Agent + 15 项清单逐项检查 |
+| **失败处理** | 输出错误则静默失败 | 自动重答 + 审查反馈修正，最多 2 次 |
+| **知识沉淀** | 对话结束即丢失 | 强制归档到结构化题库 |
+| **流程控制** | 模型自主决策下一步 | 10 阶段硬编码编排，不可跳过 |
+| **可观测性** | 黑箱输出 | 每阶段可见中间产物 |
+| **复用性** | 重新输入相同 Prompt | MD5 去重保证幂等性 |
+
+传统 Prompt 工程是在"写一个聪明的 Prompt"，而 Harness Engineering 是在**构建一套 AI 行为的生产流水线**——就像工业革命中从手工作坊到流水线生产的跃迁。
+
+### 二、底层原理（为什么）
+
+#### 2.1 设计哲学：工程化驯服概率性
+
+LLM 本质上是概率模型（Probabilistic Model），其输出天然具有不确定性和不可重复性。Harness Engineering 的底层哲学是：**用确定性工程框架约束概率性模型行为**。这不是消除概率性——那是不可能的——而是通过多层约束将不确定性控制在可接受的范围内。
+
+具体而言，约束分为三类层级：
+
+- **设计时约束（Design-time Constraints）**：在系统设计阶段就确定的结构性约束，包括关注点分离（Separation of Concerns）、Skill 封装（Skill Encapsulation）、多 Agent 协作契约。这些约束在代码编写时就已固化。
+
+- **运行时约束（Runtime Constraints）**：在系统执行阶段强制执行的流程约束，包括确定性编排（Deterministic Orchestration）、质量门控（Quality Gate）、幂等性（Idempotency）保证。这些约束保证每次执行都遵循既定路径。
+
+- **交付时约束（Delivery-time Constraints）**：在结果输出阶段保证数据完整性的约束，包括强制持久化（Forced Persistence）、自动部署（Auto-deployment）、失败可恢复（Failure Recovery）、可观测性（Observability）。
+
+#### 2.2 机械论 vs 有机论
+
+Harness Engineering 采用了一种独特的"机械论+有机论"混合哲学：
+
+- **机械论部分**：流程编排、质量门控、持久化——这些是确定的、可预测的、可测试的，像钟表机械一样精确。
+- **有机论部分**：Agent 的答题能力、审查判断——这些是利用 LLM 的智能涌现能力，像生物一样灵活。
+
+关键洞见在于：**不是让 LLM 既负责思考又负责执行，而是让 LLM 只负责最擅长的"思考"部分，执行部分交给确定性代码**。这类似于人脑与身体的关系——大脑（LLM）负责决策和创造，而神经系统和肌肉（工程框架）负责将决策转化为精准的动作。
+
+#### 2.3 质量内建（Build Quality In）
+
+传统开发流程中，质量是"检查"出来的——先生产，后检验，不合格则返工。Harness Engineering 将质量门控嵌入流程的每一个关键节点，但不只是"检查"，更重要的是提供反馈闭环（Feedback Loop）。当质量审查 FAIL 时，系统不仅仅是标记错误，而是将审查意见作为 Prompt 的一部分传递给答题 Agent，形成"答题→审查→反馈→修正"的闭环。这与控制理论（Control Theory）中的负反馈回路（Negative Feedback Loop）原理一致：通过持续的误差检测和修正来逼近目标状态。
+
+### 三、实践应用（怎么用）
+
+#### 3.1 实际案例：/面经助手 的 3 Agent x 10 阶段流水线
+
+以 Interview Coach 项目中的 `/面经助手` 为例，Harness Engineering 的实践体现为完整的 3 Agent × 10 阶段流水线：
+
+**三个 Agent 的职责分工：**
+
+| Agent | 模型 | 职责 | 输入 | 输出 |
+|-------|------|------|------|------|
+| interview-answerer | Opus | 深度答题 | 一道面试题 | 记忆法 + 原理拆解 + 答题思路 |
+| quality-reviewer | Sonnet | 质量审查 | 原题 + 答案 | PASS/FAIL + 15项检查结果 |
+| doc-assembler | Sonnet | 文档组装 | N 道题答案 | 完整 Markdown 文档 |
+
+**10 阶段的执行流程：**
+
+```
+阶段 1: 题目解析          用户输入 → 按编号规则拆分 → 识别类型（技术/行为/系统设计）
+阶段 2: 并行深度答题      N 个 answerer Agent 并行启动，每道题独立
+阶段 3: 质量审查          15 项清单逐项检查，每道题独立审查
+阶段 4: 重答循环          审查 FAIL 则携带反馈重答，最多 2 次
+阶段 5: 文档组装          所有通过答案 → 生成可点击目录的 Markdown
+阶段 6: 输出落盘          强制 Write 到 outputs/ 目录
+阶段 7: 题库归档          question_manager.py add × N，自动分类 + 去重
+阶段 8: 站点生成          generate_site.py → MD 转 HTML + data.json
+阶段 9: Git 部署          git add + commit + push → GitHub Pages
+阶段 10: 结果报告         统计通过数、重试数、归档路径、URL
+```
+
+#### 3.2 幂等性的实现
+
+```python
+# question_manager.py 中的 MD5 去重逻辑
+import hashlib
+
+def is_duplicate(question_text):
+    question_hash = hashlib.md5(question_text.encode()).hexdigest()
+    index = load_index()
+    for entry in index["questions"]:
+        if entry.get("md5") == question_hash:
+            return True
+    return False
+```
+
+同一道题即使多次输入，系统只会归档一次。`generate_site.py` 也是增量生成——如果 MD 文件未变化，则跳过 HTML 重建。
+
+#### 3.3 失败可恢复的分级降级策略
+
+```
+Agent 超时/无响应    → 自动重试 1 次          → 该题延迟
+审查 FAIL            → 重答最多 2 次           → 标记"需人工审核"
+question_manager 失败 → 打印警告，继续          → 该题未归档
+generate_site 失败   → 打印警告，继续          → 网页端暂不显示
+Git push 失败        → 打印警告，告知用户手动推送 → 文档存本地
+```
+
+关键原则：**一个阶段的失败不阻塞后续阶段**，但必须在报告中如实反映。
+
+### 四、深入思考（注意事项）
+
+#### 4.1 与 Agentic Workflow（智能体工作流）的关系
+
+Harness Engineering 与 Agentic Workflow 有交集但并不等同。
+
+- **Agentic Workflow** 强调 Agent 自主决策的灵活性——Agent 可以自己决定调用什么工具、按什么顺序执行。例如 LangChain 的 Agent Executor、AutoGPT 等，Agent 拥有较大的自主权。
+- **Harness Engineering** 则强调**确定性编排**——流程由工程代码硬编码，Agent 不可自主跳过或调换顺序。
+
+两者的关系可以理解为：**Agentic Workflow 是"放权"模式，Harness Engineering 是"收权"模式**。在实际系统中，可以采用混合策略：在 Harness Engineering 的确定框架内部，允许 Agent 在特定阶段（如答题阶段）发挥自主性。
+
+#### 4.2 与 AI Agents 概念的关系
+
+AI Agents（AI 智能体）通常指具有感知、推理、行动能力的自主系统。Harness Engineering 中的"Agent"概念更窄——它是**一个有明确职责边界、输入输出契约的工程组件**，而不是一个追求通用自主性的"智能体"。也可以说，Harness Engineering 借鉴了 AI Agents 中的"智能分工"思想，但用工程手段限制了每个 Agent 的自主范围，避免其越界行为破坏系统稳定性。
+
+#### 4.3 适用场景与局限性
+
+**适用场景：**
+- 需要稳定、可重复输出的 AI 生产系统
+- 多步骤、多角色的复杂 AI 工作流
+- 对输出质量有严格要求的场景（如面试备考、文档生成、代码审查）
+- 需要知识沉淀和可追溯性的长期运行系统
+
+**局限性：**
+- 过度工程化（Over-engineering）风险——对于简单的一次性对话任务，Harness Engineering 的 10 阶段流水线显得过重
+- 灵活性牺牲——确定性编排意味着难以应对未预见的流程变化
+- Agent 间通信成本——多 Agent 协作意味着多次 LLM 调用，Token 消耗增加
+
+#### 4.4 面试中可能的追问
+
+- "你认为 Harness Engineering 最大的设计挑战是什么？" → 回答：如何在确定性和灵活性之间取得平衡。过度确定则僵化，过度灵活则失控。
+- "如果质量审查持续 FAIL，如何处理？" → 回答：设置重试上限（本项目 2 次），仍 FAIL 则标记"需人工审核"，不阻塞整体流程，保证系统的可用性（Availability）高于单次任务的完美性。
+- "Harness Engineering 与传统软件工程的三层架构（表现层/业务层/数据层）有何异同？" → 回答：思想相通，但 Harness Engineering 的核心差异在于引入了 LLM 作为"不可靠组件"，需要额外的质量门控和确定性编排来补偿其不可靠性。
+
+---
+
+## 🗺️ 回答思路
+
+### 答题逻辑框架
+
+在面试中回答"是否了解 Harness Engineering"时，建议采用以下结构：
+
+```
+总起（15 秒）→ 核心定义（30 秒）→ 对比 Prompt 工程（30 秒）
+→ 10 大维度分层讲解（2 分钟）→ 实际案例（1 分钟）
+→ 概念关系辨析（30 秒）→ 总结升华（15 秒）
+```
+
+**总起句示例**：「Harness Engineering 是我在实际项目中深度实践的一套 AI 行为工程方法论。它的核心是用工程化的确定性约束来驾驭 LLM 的概率性输出。」
+
+**过渡到 10 大维度**：「这 10 个维度可以分成三类来理解——设计时约束、运行时保障、交付时保证，每类对应不同的阶段和目标。」
+
+**过渡到案例**：「以我参与的面经助手系统为例，这套方法论如何落地？3 个 Agent 各司其职，10 个阶段完整串联……」
+
+**总结升华**：「归根结底，Harness Engineering 是对 AI 系统工程化的一个探索——它承认 LLM 的强大，但不盲信 LLM 的可靠，而是用工程的力量构建信任。」
+
+### 重点得分点
+
+1. **点出本质区别**：不是"写 Prompt"，而是"建流水线"——这是让面试官眼前一亮的关键洞察
+2. **10 维度分类法**：用"设计时/运行时/交付时"三分类来组织回答，体现结构化思维
+3. **具体案例支撑**：有真实项目经验的描述远胜于抽象理论——准备好 1-2 个具体数字（如"15 项审查清单"、"2 次重试上限"）
+4. **概念边界清晰**：能说清楚与 Agentic Workflow、AI Agents 等热门概念的关系，体现对 AI 工程领域全景的理解
+5. **坦诚局限性**：主动提及适用场景和局限性，展示辩证思考能力
+
+### 常见误区
+
+- **误区一**：把 Harness Engineering 等同于"写系统 Prompt"。纠正：系统 Prompt 只是其中一小部分，核心是工程架构而非提示词技巧。
+- **误区二**：认为多 Agent = Harness Engineering。纠正：多 Agent 只是 10 个维度之一，缺少确定性编排和质量门控就不算完整的驾驭工程。
+- **误区三**：认为 Harness Engineering 适用于所有场景。纠正：对简单对话任务过度工程化，反而增加复杂度和成本。
+
+### 时间分配建议
+
+| 部分 | 时间 | 内容重点 |
+|------|------|---------|
+| 总起 + 核心定义 | 30 秒 | 一句话定义 + 与传统 Prompt 工程的关键区别 |
+| 10 大维度 | 2 分钟 | 用"三类约束"框架组织，每个维度 10-15 秒 |
+| 实际案例 | 1 分钟 | 3 Agent × 10 阶段，讲清职责分工 |
+| 概念关系辨析 | 30 秒 | Harness vs Agentic Workflow vs AI Agents |
+| 局限性 + 升华 | 30 秒 | 坦诚适用场景限制 + 总结工程哲学 |
+| **总计** | **约 4.5 分钟** | — |</pre>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0015')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0015')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

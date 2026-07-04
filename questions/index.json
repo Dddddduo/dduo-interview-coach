@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T16:50:00",
-    "total_questions": 16
+    "last_updated": "2026-07-04T15:10:00",
+    "total_questions": 14
   },
   "categories": {
     "java": {
@@ -27,13 +27,13 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 3
+      "count": 4
     },
     "redis": {
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 1
+      "count": 0
     },
     "spring": {
       "name": "Spring 框架",
@@ -69,7 +69,7 @@
       "name": "系统设计",
       "icon": "🏗️",
       "description": "架构设计、高并发、高可用",
-      "count": 1
+      "count": 0
     },
     "frontend": {
       "name": "前端开发",
@@ -103,13 +103,7 @@
       "id": "q0001",
       "question": "请解释MySQL的索引底层数据结构，为什么选用B+树而不是红黑树或Hash？",
       "category": "mysql",
-      "tags": [
-        "磁盘IO",
-        "数据结构",
-        "MySQL",
-        "B+树",
-        "索引"
-      ],
+      "tags": ["磁盘IO", "数据结构", "MySQL", "B+树", "索引"],
       "difficulty": "medium",
       "file": "questions/database/mysql/请解释MySQL的索引底层数据结构为什么选用B树而不是红黑树或Hash.md",
       "created": "2026-07-04 02:46:47",
@@ -120,13 +114,7 @@
       "id": "q0002",
       "question": "进程和线程的区别是什么？请从资源分配和执行调度的角度分析",
       "category": "os",
-      "tags": [
-        "进程",
-        "并发",
-        "操作系统",
-        "Linux",
-        "线程"
-      ],
+      "tags": ["进程", "并发", "操作系统", "Linux", "线程"],
       "difficulty": "easy",
       "file": "questions/database/os/进程和线程的区别是什么请从资源分配和执行调度的角度分析.md",
       "created": "2026-07-04 02:46:47",
@@ -137,13 +125,7 @@
       "id": "q0003",
       "question": "什么是 CAP 理论？在分布式系统中如何权衡？",
       "category": "distributed",
-      "tags": [
-        "CAP",
-        "分布式",
-        "一致性",
-        "可用性",
-        "BASE"
-      ],
+      "tags": ["CAP", "分布式", "一致性", "可用性", "BASE"],
       "difficulty": "medium",
       "file": "questions/database/distributed/什么是-CAP-理论在分布式系统中如何权衡.md",
       "created": "2026-07-04 02:46:47",
@@ -154,12 +136,7 @@
       "id": "q0004",
       "question": "自我介绍（请给出一个通用的自我介绍框架和范例，包含：开场（基本信息+技术栈）→ 亮点经历（实习/项目）→ 技术特长 → 职业规划的结构）",
       "category": "behavioral",
-      "tags": [
-        "自我介绍",
-        "行为面试",
-        "面试技巧",
-        "STAR框架"
-      ],
+      "tags": ["自我介绍", "行为面试", "面试技巧", "STAR框架"],
       "difficulty": "easy",
       "file": "questions/database/behavioral/自我介绍.md",
       "created": "2026-07-04 15:00:00",
@@ -170,12 +147,7 @@
       "id": "q0005",
       "question": "介绍一下你的实习经历",
       "category": "behavioral",
-      "tags": [
-        "实习经历",
-        "STAR-PLUS",
-        "行为面试",
-        "面试框架"
-      ],
+      "tags": ["实习经历", "STAR-PLUS", "行为面试", "面试框架"],
       "difficulty": "easy",
       "file": "questions/database/behavioral/介绍一下你的实习经历-STAR-PLUS框架.md",
       "created": "2026-07-04 14:17:00",
@@ -186,15 +158,7 @@
       "id": "q0006",
       "question": "你是怎么做慢 SQL 分析以及优化的？",
       "category": "mysql",
-      "tags": [
-        "索引优化",
-        "慢查询",
-        "EXPLAIN",
-        "SQL优化",
-        "执行计划",
-        "MySQL",
-        "性能调优"
-      ],
+      "tags": ["索引优化", "慢查询", "EXPLAIN", "SQL优化", "执行计划", "MySQL", "性能调优"],
       "difficulty": "hard",
       "file": "questions/database/mysql/你是怎么做慢-SQL-分析以及优化.md",
       "created": "2026-07-04 15:00:00",
@@ -205,9 +169,7 @@
       "id": "q0007",
       "question": "简单介绍 Java 的垃圾回收机制",
       "category": "java",
-      "tags": [
-        "JVM"
-      ],
+      "tags": ["JVM"],
       "difficulty": "medium",
       "file": "questions/database/java/简单介绍-Java-的垃圾回收机制.md",
       "created": "2026-07-04 14:19:46",
@@ -218,13 +180,7 @@
       "id": "q0008",
       "question": "介绍一下你的 AI 相关项目",
       "category": "behavioral",
-      "tags": [
-        "AI项目",
-        "RAG",
-        "LLM应用",
-        "Spring AI",
-        "Prompt Engineering"
-      ],
+      "tags": ["AI项目", "RAG", "LLM应用", "Spring AI", "Prompt Engineering"],
       "difficulty": "medium",
       "file": "questions/database/behavioral/介绍一下你的-AI-相关项目.md",
       "created": "2026-07-04 16:30:00",
@@ -235,13 +191,7 @@
       "id": "q0009",
       "question": "项目中 Excel 批量导入相关问题（包含三个子问题：1. Excel 批量导入的上限是否有控制？2. 一批插入失败如何处理？3. 业务限定单次上传 500/1000 条，用户需要上传 1 万多条如何处理？）",
       "category": "java",
-      "tags": [
-        "Excel导入",
-        "EasyExcel",
-        "批量处理",
-        "事务",
-        "异步导入"
-      ],
+      "tags": ["Excel导入", "EasyExcel", "批量处理", "事务", "异步导入"],
       "difficulty": "medium",
       "file": "questions/database/java/Excel批量导入相关问题.md",
       "created": "2026-07-04 15:30:00",
@@ -252,15 +202,9 @@
       "id": "q0010",
       "question": "使用 AI 工具的情况（Codex、Claude Code、Trae），如何使用，对 Trae 的评价",
       "category": "devops",
-      "tags": [
-        "AI工具",
-        "Copilot",
-        "Claude Code",
-        "Trae",
-        "编码工具"
-      ],
+      "tags": ["AI工具", "Copilot", "Claude Code", "Trae", "编码工具"],
       "difficulty": "medium",
-      "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
+      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
       "created": "2026-07-04 14:21:17",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
@@ -269,11 +213,7 @@
       "id": "q0011",
       "question": "Spring、SpringBoot、SpringCloud 三者区别",
       "category": "spring",
-      "tags": [
-        "Spring",
-        "分布式",
-        "微服务"
-      ],
+      "tags": ["Spring", "分布式", "微服务"],
       "difficulty": "medium",
       "file": "questions/database/spring/Spring-SpringBoot-SpringCloud-三者区别.md",
       "created": "2026-07-04 14:30:00",
@@ -284,14 +224,7 @@
       "id": "q0012",
       "question": "Spring AI 结构化输出实现旅游报告生成，将 AI 回复转为结构化价格对象，展开讲解",
       "category": "spring",
-      "tags": [
-        "Spring AI",
-        "Structured Output",
-        "BeanOutputConverter",
-        "JSON Schema",
-        "LLM",
-        "POJO映射"
-      ],
+      "tags": ["Spring AI", "Structured Output", "BeanOutputConverter", "JSON Schema", "LLM", "POJO映射"],
       "difficulty": "hard",
       "file": "questions/database/spring/Spring-AI-结构化输出实现旅游报告生成.md",
       "created": "2026-07-04 14:40:00",
@@ -302,49 +235,23 @@
       "id": "q0013",
       "question": "MySQL 事务过程中有哪些日志，各自作用",
       "category": "mysql",
-      "tags": [],
-      "difficulty": "medium",
-      "file": "questions/database/mysql/MySQL-事务过程中有哪些日志各自作用.md",
-      "created": "2026-07-04 14:22:16",
-      "source": "/面经助手-20260704",
-      "hash": "3945a3fb"
+      "tags": ["事务", "日志", "UndoLog", "RedoLog", "Binlog", "两阶段提交", "崩溃恢复", "MVCC", "WAL"],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/MySQL事务过程中有哪些日志各自作用.md",
+      "created": "2026-07-04 15:10:00",
+      "source": "面经助手-20260704",
+      "hash": "fcc8d5b0"
     },
     {
       "id": "q0014",
-      "question": "是否了解 Harness Engineering（驾驭工程）",
-      "category": "system-design",
-      "tags": [
-        "Harness Engineering",
-        "驾驭工程",
-        "AI工程",
-        "LLM",
-        "Agent",
-        "Prompt Engineering"
-      ],
+      "question": "联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引",
+      "category": "mysql",
+      "tags": ["索引优化", "B+树", "MySQL", "查询优化"],
       "difficulty": "medium",
-      "file": "questions/database/system-design/是否了解-Harness-Engineering-驾驭工程.md",
-      "created": "2026-07-04 15:00:00",
+      "file": "questions/database/mysql/联合索引-abc查询条件-where-c2-and-a1是否走索引.md",
+      "created": "2026-07-04",
       "source": "/面经助手-20260704",
-      "hash": "914ad275"
-    },
-    {
-      "id": "q0016",
-      "question": "缓存击穿、穿透、雪崩了解吗？请深入讲解三个概念的区别和解决方案",
-      "category": "redis",
-      "tags": [
-        "缓存",
-        "Redis",
-        "缓存穿透",
-        "缓存击穿",
-        "缓存雪崩",
-        "布隆过滤器",
-        "高可用"
-      ],
-      "difficulty": "medium",
-      "file": "questions/database/redis/缓存击穿穿透雪崩了解吗.md",
-      "created": "2026-07-04 16:50:00",
-      "source": "/面经助手 2026-07-04",
-      "hash": "f4c8e2a1"
+      "hash": "2a3b4c5d"
     }
   ]
 }

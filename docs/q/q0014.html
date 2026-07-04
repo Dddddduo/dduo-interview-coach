@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0014</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引</h1>
+    <div class="tag-row"><span class="tag-item">索引优化</span>
+<span class="tag-item">B+树</span>
+<span class="tag-item">MySQL</span>
+<span class="tag-item">查询优化</span></div>
+    <pre># 联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引
+
+---
+
+### 🧠 联想记忆法
+
+**记忆口诀/联想**: **"引擎自动调顺序，最左前缀是铁律"**
+
+口诀前半句"引擎自动调顺序"对应 MySQL 优化器会自动重排 WHERE 条件（`c=2 AND a=1` → `a=1 AND c=2`），因此不要求 SQL 书写顺序与索引列顺序一致。口诀后半句"最左前缀是铁律"对应索引使用的根本原则：必须从最左列开始匹配，中间不能断。
+
+**记忆原理**: 将"优化器自动性"和"最左前缀原则"这两个关键点压缩成一句对仗口诀，朗朗上口。"调顺序"和"是铁律"形成对比反差——优化器可以灵活调整 WHERE 顺序，但最左前缀原则是不可突破的底线。
+
+**关联知识**: 类比字典查找——联合索引 (a, b, c) 就像一本电话簿先按姓氏(a)排、再按名字(b)排、最后按电话号码(c)排。查询时优化器会自动把你问的问题重新组织成最高效的查找顺序，但无论怎么组织，没有姓氏(a)就直接查名字(b)和电话(c)是找不到的。
+
+---
+
+### 📖 深度解答
+
+**1. 核心概念（是什么）**
+
+**直接答案：会走索引，但只使用了联合索引中的 a 列，c 列无法通过索引直接定位。**
+
+具体来说：
+
+| 索引使用情况 | 说明 |
+|---|---|
+| a 列 | **走索引** —— 通过 B+ 树定位到 a=1 的记录范围 |
+| b 列 | **未使用** —— 条件中没有 b 的等值条件 |
+| c 列 | **通过 ICP（Index Condition Pushdown，索引条件下推）或回表后过滤**，无法通过索引直接定位 |
+
+MySQL 优化器（Optimizer）会自动将 `WHERE c=2 AND a=1` 重写为 `WHERE a=1 AND c=2`，因此 SQL 的书写顺序不影响索引使用。
+
+**2. 底层原理（为什么）**
+
+**2.1 联合索引的 B+ 树结构**
+
+联合索引 (a, b, c) 的 B+ 树按照以下规则构建：
+
+- **第一排序键**：按 a 列升序排列
+- **第二排序键**：a 相同时，按 b 列升序排列
+- **第三排序键**：a 和 b 都相同时，按 c 列升序排列
+
+B+ 树的非叶子节点和叶子节点中存储的是 (a, b, c) 这个三元组，按 `(a, b, c)` 的字典序（lexicographical order）组织。
+
+**2.2 最左前缀原则（Leftmost Prefix Principle）**
+
+MySQL 使用联合索引时，只能从最左边开始连续匹配。索引 (a, b, c) 等价于创建了三个索引：`(a)`、`(a, b)`、`(a, b, c)`。
+
+条件 `WHERE a=1 AND c=2` 中，a 匹配了最左前缀，b 缺失，因此 c 无法利用索引的有序性进行定位。这被称为**中间断裂（gap in the middle）**。
+
+**2.3 查询优化器的自动重排**
+
+MySQL 优化器将 `WHERE c=2 AND a=1` 解析后，由于 AND 是**可交换的（commutative）**，优化器可以自由重排为 `WHERE a=1 AND c=2`。完整步骤包括：词法分析、CNF 转换、条件简化、条件排序（基于索引定义）、访问路径选择。
+
+**2.4 ICP（Index Condition Pushdown，索引条件下推）**
+
+MySQL 5.6 引入。在 `WHERE a=1 AND c=2` 中，存储引擎通过索引找到 a=1 的所有记录后，**在索引层面**直接判断 c=2 的条件，只有满足条件的记录才回表。Extra 显示 `Using index condition`。
+
+**2.5 key_len 计算规则**
+
+| 类型 | 字节 | 备注 |
+|---|---|---|
+| INT | 4 | |
+| VARCHAR(n) | `n * 字符集 + 1(可空) + 2(变长)` | |
+| 可空列 | +1 | |
+
+**3. 实践应用（怎么用）**
+
+**场景对比表：**
+
+| SQL | 走索引？ | key_len | Extra |
+|-----|---------|---------|-------|
+| `WHERE a=1 AND b=2 AND c=3` | 是 (a,b,c) | 12 | Using index |
+| `WHERE c=2 AND a=1` | 是 (a列) | 4 | Using index condition |
+| `WHERE b=1 AND a=2` | 是 (a,b列) | 8 | Using index condition |
+| `WHERE b=1 AND c=2` | **否** | NULL | Using where |
+| `WHERE a=1 AND c=2` | 是 (a列) | 4 | Using index condition |
+
+**4. 深入思考（注意事项）**
+
+常见误区：WHERE 条件必须按索引顺序写（错）、走了索引等于用了全部列（错）、ICP 可替代索引列（错）。
+
+范围查询阻断：`WHERE a=1 AND b&gt;10 AND c=5` 中 c 列无法走索引。
+
+---
+
+### 🗺️ 回答思路
+
+**答题逻辑框架**: 结论先行 → 原理展开 → 场景对比 → 延伸升华
+
+**重点得分点**:
+- 明确回答"会走索引"并精确说明"只用到 a 列"
+- 提到优化器自动重排和 ICP 索引下推
+- 分析 key_len 展示对索引存储的理解
+- 举反例 `WHERE b=1 AND c=2` 不走索引
+
+**常见误区**:
+- ❌ "WHERE 必须按 (a,b,c) 顺序写" — 不懂优化器重排
+- ❌ "走了索引所以 a、b、c 都用了" — 混淆走索引和用全部列
+- ❌ "b=1 and c=2 也可以走" — 缺最左列 a
+
+**时间分配**: 结论10秒 → 原理40秒 → EXPLAIN示范40秒 → 延伸30秒 → 总结30秒
+
+---
+
+&gt; 📋 **分类**: MySQL / 数据库
+&gt; 🏷️ **标签**: `索引优化` `B+树` `MySQL` `查询优化`
+&gt; 📊 **难度**: 中级
+&gt; 📅 **归档时间**: 2026-07-04</pre>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0014')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0014')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>
