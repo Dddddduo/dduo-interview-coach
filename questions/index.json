@@ -2,14 +2,14 @@
   "meta": {
     "project": "Interview Coach — 面经题库",
     "last_updated": "2026-07-04T15:10:00",
-    "total_questions": 6
+    "total_questions": 7
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 0
+      "count": 1
     },
     "python": {
       "name": "Python",
@@ -63,7 +63,7 @@
       "name": "行为面试",
       "icon": "🎯",
       "description": "项目经历、团队协作、职业规划",
-      "count": 1
+      "count": 2
     },
     "system-design": {
       "name": "系统设计",
@@ -199,6 +199,19 @@
       "created": "2026-07-04 14:30:00",
       "source": "面经助手-20260704",
       "hash": "ab1c2d3e"
+    },
+    {
+      "id": "q0007",
+      "question": "简单介绍 Java 的垃圾回收机制",
+      "category": "java",
+      "tags": [
+        "JVM"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/简单介绍-Java-的垃圾回收机制.md",
+      "created": "2026-07-04 14:19:46",
+      "source": "/面经助手-20260704",
+      "hash": "6d07d5c4"
     }
   ]
 }
