@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T16:30:00",
-    "total_questions": 10
+    "last_updated": "2026-07-04T16:40:00",
+    "total_questions": 12
   },
   "categories": {
     "java": {
@@ -39,7 +39,7 @@
       "name": "Spring 框架",
       "icon": "🍃",
       "description": "Spring Boot、Spring Cloud",
-      "count": 0
+      "count": 1
     },
     "distributed": {
       "name": "分布式系统",
@@ -264,6 +264,39 @@
       "created": "2026-07-04 14:21:17",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
+    },
+    {
+      "id": "q0011",
+      "question": "Spring、SpringBoot、SpringCloud 三者区别",
+      "category": "spring",
+      "tags": [
+        "Spring",
+        "分布式",
+        "微服务"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/spring/Spring-SpringBoot-SpringCloud-三者区别.md",
+      "created": "2026-07-04 14:30:00",
+      "source": "面经助手-20260704",
+      "hash": "6154cf00"
+    },
+    {
+      "id": "q0012",
+      "question": "Spring AI 结构化输出实现旅游报告生成，将 AI 回复转为结构化价格对象，展开讲解",
+      "category": "spring",
+      "tags": [
+        "Spring AI",
+        "Structured Output",
+        "BeanOutputConverter",
+        "JSON Schema",
+        "LLM",
+        "POJO映射"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/spring/Spring-AI-结构化输出实现旅游报告生成.md",
+      "created": "2026-07-04 14:40:00",
+      "source": "面经助手-20260704",
+      "hash": "a1b2springai"
     }
   ]
 }
