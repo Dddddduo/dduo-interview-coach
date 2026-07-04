@@ -1,5 +1,5 @@
 ---
-id: q0030
+id: q0031
 question: "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化"
 category: mysql
 tags: ["B+树", "索引", "MySQL", "InnoDB", "数据结构", "磁盘IO", "索引优化"]

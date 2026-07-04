@@ -1,0 +1,434 @@
+---
+id: q0035
+question: "MVCC 执行流程（含MVCC概念、DB_TRX_ID/DB_ROLL_PTR/DB_ROW_ID三个核心字段、ReadView四成员m_ids/min_trx_id/max_trx_id/creator_trx_id、RR与RC下ReadView生成时机区别、快照读vs当前读、完整SELECT执行流程）"
+category: mysql
+tags: ["事务"]
+difficulty: medium
+created: 2026-07-04 14:27:11
+source: C:/Program Files/Git/面经助手-20260704
+---
+
+# MVCC 执行流程（含MVCC概念、DB_TRX_ID/DB_ROLL_PTR/DB_ROW_ID三个核心字段、ReadView四成员m_ids/min_trx_id/max_trx_id/creator_trx_id、RR与RC下ReadView生成时机区别、快照读vs当前读、完整SELECT执行流程）
+
+# 面试深度解答：索引设计与MVCC
+
+> 整理日期：2026-07-04
+
+## 第1题答案
+
+### 🧠 联想记忆法
+
+**记忆口诀/联想**: **"WAGA-3星 + 三不建 + 最覆下 + 读写空"**
+
+逐段拆解：
+- **WAGA-3星**: WHERE → AND → GROUP/ORDER BY → All 查询列（覆盖索引）（三星索引的演进路径）
+- **三不建**: 频繁更新列、低基数列、大字段列（三种不适合建索引的列）
+- **最覆下**: 最左前缀、覆盖索引、索引下推（联合索引三大核心概念）
+- **读写空**: 读性能 vs 写性能 vs 空间开销（索引设计的三角权衡）
+
+**记忆原理**: 采用**首字母提词法**将四大知识点浓缩为"WAGA-3星 + 三不建 + 最覆下 + 读写空"15个字。每个段落首字母串联构词，符合工作记忆的组块化原理（chunking theory）——人脑短期记忆容量为7±2个组块，将零散知识点打包为4个语义组块，大幅降低记忆负担。
+
+**关联知识**:
+- B+Tree数据结构（索引底层实现）→ 联想磁盘I/O与树高 → 理解三星索引为什么按WAGA顺序设计
+- 基数（Cardinality）概念 → 链接到选择性的数学定义 `Cardinality/COUNT(*)` → 解释低基数列为何无效
+- Extra列（Using index; Using index condition）→ 覆盖索引和ICP的执行计划标识 → 实践验证理论
+- InnoDB聚簇索引（Clustered Index）→ 主键索引叶子节点存整行，辅助索引叶子节点存主键值 → 解释回表（random I/O）来源
+
+---
+
+### 📖 深度解答
+
+#### 第一层：核心概念
+
+**1. 索引设计的三星原则（Three-Star Index Principle）**
+
+由数据库专家Tapio Lahdenmaki提出，衡量索引质量的三级标准：
+
+| 星级 | 条件 | 效果 |
+|------|------|------|
+| ★☆☆ | 索引覆盖WHERE条件中的等值查询列 | 缩小扫描范围 |
+| ★★☆ | 索引与ORDER BY排序顺序一致，消除filesort | 避免排序开销 |
+| ★★★ | 索引包含查询所需的所有列（覆盖索引） | 消除回表I/O |
+
+**演化路径**：WHERE等值列 → ORDER BY列（排序键）→ SELECT列（覆盖列）
+
+*示例：表 `orders(id, user_id, status, create_time, amount)`，查询：*
+```sql
+SELECT amount FROM orders 
+WHERE user_id = 123 AND status = 'paid' 
+ORDER BY create_time DESC;
+```
+- ★1星索引：`KEY idx1 (user_id, status)` — WHERE等值列已覆盖
+- ★2星索引：`KEY idx2 (user_id, status, create_time)` — 加入排序键，消除filesort，但amount未覆盖
+- ★3星索引：`KEY idx3 (user_id, status, create_time, amount)` — 全部覆盖，Extra列为Using index
+
+**2. 哪些列适合建索引**
+
+| 场景 | 判断依据 | SQL示例 |
+|------|----------|--------|
+| WHERE条件列 | 经常作为过滤条件 | `WHERE status = 'active'` → 建索引 |
+| JOIN连接列 | 驱动表与被驱动表关联字段 | `ON a.dept_id = b.id` → b.id建索引 |
+| ORDER BY列 | 排序字段（配合LIMIT效果显著） | `ORDER BY create_time` → 建索引避免filesort |
+| GROUP BY列 | 分组字段（本质先排序后分组） | `GROUP BY dept_id` → 建索引避免temporary |
+| 高选择性列 | `Cardinality/COUNT(*) > 20%` | `user_id`选择性高，`gender`选择性低 |
+
+**选择性的计算方法**：
+```sql
+SELECT COUNT(DISTINCT column_name) / COUNT(*) AS selectivity FROM table_name;
+```
+选择性越接近1，索引效果越好。
+
+**3. 哪些列不适合建索引**
+
+| 不适类型 | 原因 | 反面示例 |
+|----------|------|----------|
+| 频繁更新的列 | 需同步维护索引B+Tree，写入代价翻倍 | `login_count`（每次登录+1） |
+| 低基数列（Low Cardinality） | 扫描大量重复回表，不如全表扫描 | `gender`（仅M/F，选择性50%，回表浪费） |
+| 大字段（TEXT/BLOB/LONGTEXT） | 字段值过长，索引页容纳记录数骤减，树高剧增 | `content TEXT`，除非用前缀索引 |
+
+**关于前缀索引**：对TEXT等大字段若必须索引，可用前缀索引：
+```sql
+KEY idx_content (content(20))  -- 只索引前20字节
+```
+需权衡长度与区分度：`SELECT COUNT(DISTINCT LEFT(content, N)) / COUNT(*)` 测试N值。
+
+**4. 联合索引核心机制**
+
+**最左前缀原则（Leftmost Prefix Principle）**：
+- 索引 `KEY idx (a, b, c)` 可匹配的查询组合：
+  - `WHERE a = 1` → 命中a（√）
+  - `WHERE a = 1 AND b = 2` → 命中a,b（√）
+  - `WHERE a = 1 AND b = 2 AND c = 3` → 命中a,b,c（√）
+  - `WHERE b = 2` → 无法使用索引（×，跳过了最左列a）
+  - `WHERE a = 1 AND c = 3` → 仅a能走索引，c因中间缺失b被阻断（×）
+- **关键理解**：联合索引是**有序元组**而不是独立索引的组合。MySQL按(a,b,c)字典序构建B+Tree。
+
+**覆盖索引（Covering Index）**：
+- 定义：索引包含查询所需的全部列，Extra为`Using index`
+- 收益：避免回表（减少随机I/O），在InnoDB中还可减少一次主键索引查找
+```sql
+-- idx(a, b) 覆盖以下查询
+SELECT a, b FROM t WHERE a = 1;   -- Using index
+-- 但以下需要回表
+SELECT a, b, c FROM t WHERE a = 1; -- c不在索引中
+```
+
+**索引下推（Index Condition Pushdown, ICP）**：
+- 引入版本：MySQL 5.6
+- 原理：将WHERE条件中**无法由最左前缀匹配**的部分，下推到存储引擎层过滤，减少回表次数
+- 执行计划标识：Extra列显示`Using index condition`
+```sql
+-- idx(name, age) 
+SELECT * FROM t WHERE name LIKE '张%' AND age = 25;
+-- 无ICP：存储引擎只过滤name LIKE '张%'，所有结果回表再过滤age
+-- 有ICP：存储引擎同时过滤age=25，回表次数大幅减少
+```
+- **生效前提**：ICP只针对辅助索引（secondary index），不适用于聚集索引
+
+**5. 索引代价权衡（读性能 vs 写性能 vs 空间）**
+
+| 维度 | 影响 | 量化说明 |
+|------|------|----------|
+| **读性能 ↑** | 索引加快查找、排序、分组 | 查询从O(n)全表扫描优化为O(log₂n)B+Tree查找 |
+| **写性能 ↓** | 每次INSERT/UPDATE/DELETE需同步维护索引B+Tree | 每增加一个索引，写入性能约下降10%-30% |
+| **空间开销 ↑** | 索引B+Tree占用额外磁盘空间 | 辅助索引叶子节点存主键值，主键越长空间越大 |
+
+**权衡决策矩阵**：
+
+```
+场景                 推荐策略
+─────────────────────────────────
+写密集（日志表）        一张表 ≤3个索引，规避覆盖索引
+读密集（配置表）        可适当增加索引，力求覆盖索引
+读写均衡（业务表）      核心查询建三星索引，写入列少建索引
+```
+
+**实例对比**：
+```sql
+-- 无索引写入：只需插入聚集索引
+INSERT INTO t VALUES (...);         -- 1次B+Tree写入
+
+-- 3个索引写入：需维护4棵B+Tree
+-- idx1 + idx2 + idx3 + 聚集索引主键，共4次写入
+INSERT INTO t VALUES (...);         -- 4次B+Tree写入
+```
+
+#### 第二层：底层原理
+
+**B+Tree索引结构在磁盘上的组织方式**：
+- InnoDB页大小默认16KB（`innodb_page_size`）
+- 非叶子节点存储键值+子节点指针，不存数据
+- 叶子节点构成双向链表，支持范围扫描
+- **树高公式**：若每页可存储约1200个键值对（INT类型+6字节指针），三层B+Tree约可存储1200×1200×16≈2300万行
+
+**为什么最左前缀成立？**
+联合索引底层按复合键字典序排序：
+```
+(a=1,b=1,c=1)
+(a=1,b=1,c=2)
+(a=1,b=1,c=3)
+(a=2,b=1,c=1)
+```
+B+Tree的搜索路径依赖有序性，跳过前导列意味着无法定位起始搜索位置。
+
+**为什么覆盖索引消除随机I/O？**
+InnoDB辅助索引叶子节点存储主键值。回表需要辅助索引定位主键值 → 再到聚集索引按主键查找 → 每次回表是随机I/O（可能在不同磁盘页）。覆盖索引直接从辅助索引页返回数据，零回表。
+
+#### 第三层：实践应用
+
+**案例：电商订单系统的索引设计**
+
+表定义：
+```sql
+CREATE TABLE `orders` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `order_no` VARCHAR(32) NOT NULL,
+  `status` TINYINT NOT NULL,      -- 0=待支付 1=已支付 2=已取消
+  `amount` DECIMAL(10,2) NOT NULL,
+  `pay_time` DATETIME DEFAULT NULL,
+  `create_time` DATETIME NOT NULL,
+  `update_time` DATETIME NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+```
+
+**核心查询分析**：
+
+1. 用户订单列表（读密集）：
+```sql
+SELECT order_no, amount, status, create_time 
+FROM orders 
+WHERE user_id = ? 
+ORDER BY create_time DESC 
+LIMIT 20;
+```
+→ **三星索引**：`KEY idx_user_order (user_id, create_time, order_no, amount, status)`
+（WHERE等值列 + ORDER排序列 + 覆盖SELECT列）
+
+2. 按订单号查询（唯一查找）：
+```sql
+SELECT * FROM orders WHERE order_no = ?;
+```
+→ **唯一索引**：`UNIQUE KEY uk_order_no (order_no)`
+
+3. 统计每日已支付金额（分组聚合）：
+```sql
+SELECT DATE(pay_time) AS day, SUM(amount) 
+FROM orders 
+WHERE status = 1 AND pay_time BETWEEN ? AND ?
+GROUP BY DATE(pay_time);
+```
+→ `KEY idx_pay_status (status, pay_time, amount)`
+
+**不建索引的列**：`update_time`（频繁更新）、`status`（低基数，不单独索引，只当联合索引前缀）
+
+#### 第四层：深入思考
+
+**思考1: 三星索引在分布式数据库中的局限性**
+MySQL的B+Tree索引在分布式数据库（TiDB、OceanBase）中底层实现不同，三星索引的"避免回表"概念被分布式架构重新定义——如TiDB的全局索引需要网络RTT。此知识点用于展现面试深度。
+
+**思考2: 索引与数据一致性的关系**
+唯一索引在RC隔离级别可能出现gap lock问题，影响并发写入。创建索引不应只考虑查询，还需考虑锁机制（Next-Key Lock in RR）。
+
+**思考3: MySQL 8.0的不可见索引（Invisible Indexes）**
+```sql
+ALTER TABLE t ALTER INDEX idx INVISIBLE;
+```
+用于在不删除索引的情况下测试移除影响，DBA可用此验证索引是否被使用。这是面试加分项。
+
+---
+
+### 🗺️ 回答思路
+
+**答题逻辑框架（5分钟标准回答结构）**：
+
+| 时间段 | 内容 | 得分点 |
+|--------|------|--------|
+| 0:00-0:30 | 一句话开篇："索引设计的核心是在查询效率与写入/存储代价间取得平衡，我分别从索引适用场景、联合索引机制和代价权衡三方面展开" | 全局视角，展现结构化思维 |
+| 0:30-2:00 | **主体一：索引设计原则 + 适用/不适用场景**。讲三星索引的WAGA顺序，然后正反列举 | 三星原则是高级知识点，拉开与普通候选人差距 |
+| 2:00-3:30 | **主体二：联合索引核心机制**。重点讲最左前缀、覆盖索引、ICP | 覆盖索引+ICP是两个高频考点，必须结合explain示例 |
+| 3:30-4:30 | **主体三：代价权衡**。读性能 ↑ / 写性能 ↓ / 空间 ↑ 三角关系 | 展现工程思维，非纸上谈兵 |
+| 4:30-5:00 | **总结升华**："一句话概括——索引设计本质是space-time tradeoff在存储层的体现，核心原则是银弹不存在，具体场景具体分析。"亦可补充MySQL 8.0不可见索引作为亮点 | 一句话总结+前沿知识 |
+
+**重点得分点**（按重要性排序）：
+1. **必须提及最左前缀 + 覆盖索引 + ICP**（联合索引三大金砖，答错即扣分）
+2. **三星索引原则**（高级知识点，90%候选人答不出，说出即拉开差距）
+3. **使用explain输出验证设计**（展现实践能力，Extra列 = Using index / Using index condition / Using filesort 的判断力）
+
+**常见误区**：
+- **误区一**：认为索引越多越好 → 正解：每个索引增加写入维护成本（约10-30%性能损失）
+- **误区二**：对低基数列(如status=0/1/2)建单列索引（optimizer大概率不用，不如全表扫）
+- **误区三**：联合索引任意顺序都能被利用 → 正解：必须遵守最左前缀
+- **误区四**：认为覆盖索引只减少逻辑I/O → 正解：InnoDB中减少的是随机I/O，收益更大
+
+**时间分配建议（面试5分钟）**：
+- 开篇破题：30秒（5个方面全部点到）
+- 核心展开：3分钟（占比60%，三星原则 + 最左前缀 + ICP）
+- 深入补充：1分钟（代价权衡 + 工程案例）
+- 总结收尾：30秒
+
+**过渡话术**：
+- 说完原则接场景：*"上面的原则决定了什么时候建索引，那我接着分析具体哪些列适合或不适合建索引。"*
+- 说完联合索引接拓展：*"除了联合索引本身的结构，还有三个重要机制需要掌握：最左前缀、覆盖索引和索引下推。"*
+- 最后总结：*"综上，索引设计没有银弹，核心是在读性能与写性能间做空间换时间的tradeoff。回到面试题本身，核心是五看——看查询、看选择性、看维护代价、看索引结构、看执行计划。"*
+
+---
+
+## 第2题答案
+
+### 🧠 联想记忆法
+
+**记忆口诀**: "MVCC = 3字段 + 4成员 + 5规则"
+
+拆解记忆：
+- **"3"** → 版本链的三大核心字段：`DB_TRX_ID`（事务ID）、`DB_ROLL_PTR`（回滚指针）、`DB_ROW_ID`（行ID）
+- **"4"** → ReadView（读视图）的四个成员：`m_ids`、`min_trx_id`、`max_trx_id`、`creator_trx_id`
+- **"5"** → 可见性判断的五条规则：三比较 + 两极端
+
+**记忆原理**: 用数字链路串联——3字段构建版本链，4成员构成ReadView（读视图），5规则驱动可见性判断。面试时从"3-4-5"展开，层层递进，不遗漏任何核心知识点。
+
+**关联知识**: 如果你已理解"undo log（回滚日志）用于事务回滚"，MVCC就是undo log（回滚日志）的"读场景复用"——把本用于回滚的历史版本，变成了并发读的数据来源。
+
+---
+
+### 📖 深度解答
+
+#### 第一层：核心概念
+
+**MVCC（多版本并发控制，Multi-Version Concurrency Control）** 是 InnoDB 存储引擎实现高并发读的核心机制。它允许一个事务读取数据时，看到的是该数据在某个时间点的"快照"，而不需要等待其他事务释放锁。MVCC 使得"读不阻塞写、写不阻塞读"成为可能，极大地提升了数据库的并发性能。
+
+MVCC 的实现依赖于每一行记录在 InnoDB 中维护的三个隐藏字段：
+
+| 隐藏字段 | 名称 | 作用 |
+|---------|------|------|
+| **DB_TRX_ID** | 事务ID（Transaction ID） | 记录最近一次插入或更新该行的事务ID |
+| **DB_ROLL_PTR** | 回滚指针（Roll Pointer） | 指向该行之前的版本在 undo log（回滚日志）中的记录，用于构建版本链 |
+| **DB_ROW_ID** | 行ID（Row ID） | 单调递增的行标识，若表无主键则 InnoDB 以此生成聚簇索引 |
+
+这三者共同构成了 InnoDB 的**版本链（Version Chain）**。每一次 UPDATE 操作不会覆盖原有数据，而是生成一行新的数据版本，并通过 DB_ROLL_PTR（回滚指针）将新版本指向旧版本，形成一个单向链表：
+
+```
+[最新版本 v3] ← DB_ROLL_PTR — [版本 v2] ← DB_ROLL_PTR — [版本 v1] ← DB_ROLL_PTR — [初始版本]
+```
+
+**DELETE 在版本链中的表现**：DELETE 操作并非真正从物理存储中移除数据行，而是在版本链的头部新增一个特殊的"标记删除"版本。该版本会将 DB_TRX_ID（事务ID）设置为删除操作的事务ID，同时将删除标记写入记录头信息中。这个标记删除的版本对尚未提交的其他事务可见性由可见性判断规则决定——等到没有其他事务需要访问该版本时，**purge线程（清理线程）** 才会将其真正回收。
+
+#### 第二层：底层原理
+
+**ReadView（读视图）的四个核心成员**
+
+ReadView（读视图）是 MVCC 可见性判断的核心数据结构。它本质上是一个"快照"，记录了 ReadView（读视图）生成时刻系统中所有活跃事务的信息。其四个核心成员如下：
+
+| 成员 | 类型 | 含义 |
+|------|------|------|
+| **`m_ids`** | 列表 `list<trx_id>` | 生成 ReadView（读视图）时，系统中所有**活跃（未提交）** 的事务ID列表 |
+| **`min_trx_id`** | 整数 | `m_ids` 中的最小值，即当前活跃事务的最小事务ID |
+| **`max_trx_id`** | 整数 | 系统尚未分配的下一个事务ID，即 `m_ids` 中最大值 + 1（低水位） |
+| **`creator_trx_id`** | 整数 | 生成该 ReadView（读视图）的事务自己的事务ID |
+
+设计哲学：ReadView（读视图）通过划定了两段"水位线"——`[min_trx_id, max_trx_id)` 区间内的不确定性事务，区间外的（< min_trx_id 已提交，>= max_trx_id 尚未开始）则是确定的。
+
+**可见性判断五规则**
+
+给定一个数据版本 V，其事务ID为 `trx_id_V`，ReadView（读视图）按以下顺序判断 V 对当前事务是否可见：
+
+1. **trx_id_V == creator_trx_id** → 可见（自己修改的，当然能看）
+2. **trx_id_V < min_trx_id** → 可见（事务已提交，在 ReadView 生成前已结束）
+3. **trx_id_V >= max_trx_id** → 不可见（该事务在 ReadView 生成后才启动）
+4. **trx_id_V 在 m_ids 列表中** → 不可见（该事务活跃未提交）
+5. **trx_id_V 不在 m_ids 列表中** → 可见（该事务在 ReadView 生成时已提交）
+
+实际执行时，InnoDB 从版本链头部开始，依次对每个版本应用上述五规则，直至找到第一个可见版本。
+
+#### 第三层：实践应用
+
+**RR 与 RC 下 ReadView 生成时机的区别**
+
+| 隔离级别 | ReadView 生成时机 | 同事务多次查询结果 |
+|---------|------------------|------------------|
+| **可重复读（RR，REPEATABLE READ）** | **事务中第一条 SELECT 语句执行时**生成，**复用至事务结束** | 始终相同（可重复读） |
+| **读已提交（RC，READ COMMITTED）** | **每条 SELECT 语句执行时**都生成新的 ReadView | 可能不同（不可重复读） |
+
+**快照读（Snapshot Read）vs 当前读（Current Read）**
+
+| 对比维度 | 快照读（Snapshot Read） | 当前读（Current Read） |
+|---------|----------------------|---------------------|
+| 读取方式 | 读undo log中的历史版本，不加锁 | 读聚簇索引中的最新数据，加锁 |
+| 对应SQL | 普通 `SELECT` | `SELECT ... FOR UPDATE`、`SELECT ... LOCK IN SHARE MODE`、`UPDATE`、`DELETE`、`INSERT` |
+| MVCC 作用 | MVCC 提供可见性判断 | MVCC 不作用，走当前读加锁逻辑 |
+| 性能 | 高（无锁） | 低（有锁等待） |
+
+**完整 SELECT 执行流程（RR 下）**
+
+1. 获取 ReadView（首条SELECT生成，后续复用）
+2. 通过 **B+树索引（B+ Tree Index）** 定位目标数据行
+3. 读取 DB_TRX_ID
+4. 应用五规则判断可见性
+5. 可见则返回，不可见则沿 DB_ROLL_PTR 回溯上一版本
+6. 回溯到版本链尽头仍不可见 → 行不存在
+
+```sql
+-- RR 下的可重复读
+START TRANSACTION;
+SELECT * FROM account WHERE id = 1; -- 生成 ReadView，读余额为 1000
+-- 事务 B UPDATE + COMMIT
+SELECT * FROM account WHERE id = 1; -- 复用 ReadView，结果仍为 1000
+COMMIT;
+
+-- RC 下的不可重复读
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+START TRANSACTION;
+SELECT * FROM account WHERE id = 1; -- 读余额为 1000
+-- 事务 D UPDATE + COMMIT
+SELECT * FROM account WHERE id = 1; -- 新 ReadView，读到余额为 2000
+COMMIT;
+
+-- DELETE 在版本链中的表现
+START TRANSACTION;
+DELETE FROM account WHERE id = 1; -- 新增标记删除版本
+COMMIT; -- purge线程异步清理
+```
+
+#### 第四层：深入思考
+
+**MVCC 与 undo log（回滚日志）的关系**：undo log 是 MVCC 版本链的物理载体。每次 UPDATE/DELETE 前将旧版本写入 undo log，DB_ROLL_PTR 指向该记录。
+
+**MVCC 与锁机制的对比**：MVCC 通过多版本实现"读写不互斥"；锁机制通过互斥访问保证一致性。RR 下 MVCC 解决快照读幻读，**next-key lock（临键锁）** 解决当前读幻读。
+
+**MVCC 失效场景**：当前读（FOR UPDATE）不走MVCC；Serializable 级别所有读隐式加锁；长事务导致 undo log 膨胀。
+
+**隔离级别与 MVCC 联动**：RU不用MVCC，RC每个语句生成新ReadView，RR首条SELECT生成并复用，SERIALIZABLE所有读隐式加锁。
+
+---
+
+### 🗺️ 回答思路
+
+**答题逻辑框架（总-分-总）**：
+```
+总（15秒）：MVCC 是 InnoDB 实现高并发读的核心机制
+分（3分钟）：按四层展开：核心概念 → 底层原理 → 实践应用 → 深入思考
+总（15秒）：MVCC的本质是通过版本链+ReadView实现读写不互斥
+```
+
+**重点得分点**：
+1. RR和RC下ReadView生成时机区别（最高频考点）
+2. 可见性判断五规则（能完整说出的不到30%）
+3. 快照读 vs 当前读（体现对MVCC边界的理解）
+4. 版本链回溯机制（体现底层原理深度）
+
+**常见误区**：
+- MVCC解决了所有并发问题 → 纠正：只解决快照读并发
+- DELETE立即删除数据 → 纠正：标记删除，purge异步清理
+- RR完全消除了幻读 → 纠正：只消除快照读幻读，当前读需next-key lock
+
+**时间分配建议（总4分钟）**：
+- 核心概念 40秒 → 底层原理 1分30秒 → 实践应用 1分10秒 → 深入思考 40秒
+
+
+---
+
+> 📋 **分类**: MySQL / 数据库
+> 🏷️ **标签**: `事务`
+> 📊 **难度**: 中级
+> 📅 **归档时间**: 2026-07-04 14:27:11

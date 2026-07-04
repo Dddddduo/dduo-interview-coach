@@ -576,6 +576,18 @@
     },
     {
       "id": "q0030",
+      "question": "[技术-Redis] Redis 集群、哨兵的作用",
+      "category": "redis",
+      "tags": ["redis", "哨兵", "集群", "高可用", "分片", "Sentinel", "Cluster"],
+      "difficulty": "medium",
+      "file": "questions/database/redis/Redis集群哨兵的作用.md",
+      "created": "2026-07-04 16:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "redis_cluster_sentinel"
+    }
+    },
+    {
+      "id": "q0030",
       "question": "线程、进程、协程相关知识点：请深入讲解三者的区别和联系，涵盖进程定义与IPC、线程定义与Java线程机制、协程定义与Java虚拟线程、三者对比表格、实际场景选型",
       "category": "os",
       "tags": [

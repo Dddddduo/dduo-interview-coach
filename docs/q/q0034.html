@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线程、进程、协程相关知识点 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0034</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">💻 操作系统</span>
+            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>线程、进程、协程相关知识点</h1>
+    <div class="tag-row"><span class="tag-item">协程</span>
+<span class="tag-item">并发</span>
+<span class="tag-item">线程</span>
+<span class="tag-item">进程</span>
+<span class="tag-item">虚拟线程</span>
+<span class="tag-item">并发编程</span></div>
+    <h1 id="_1">线程、进程、协程相关知识点</h1>
+<h2 id="_2">🧠 联想记忆法</h2>
+<p><strong>记忆口诀："进独享、线共享、协轻量"</strong></p>
+<p>将三者想象成不同层级的"工作单元"：</p>
+<ul>
+<li><strong>进程（Process）</strong> = 一栋独立的别墅</li>
+<li>每栋别墅有独立的围墙（地址空间）、水电表（资源）</li>
+<li>别墅之间"老死不相往来"，通信必须通过电话（IPC：管道、Socket）</li>
+<li>
+<p>搬家（上下文切换）代价巨大——要搬一整套家具、重新布线</p>
+</li>
+<li>
+<p><strong>线程（Thread）</strong> = 别墅里的各个房间</p>
+</li>
+<li>共享客厅、厨房、卫生间（进程的地址空间和资源）</li>
+<li>但每个房间有自己的床铺和书桌（栈空间和寄存器）</li>
+<li>
+<p>换房间（线程切换）只需带个人物品走，不用动整栋别墅</p>
+</li>
+<li>
+<p><strong>协程（Coroutine）</strong> = 房间里书桌上的笔记本</p>
+</li>
+<li>想换本书看（切换协程）——手一伸就行，不用离开椅子</li>
+<li>完全由你自己决定什么时候换书（用户态调度）</li>
+<li>成本几乎为零，笔记本里可以夹几百张书签（几 GB 内存轻松创建百万协程）</li>
+</ul>
+<p><strong>一句话串记</strong>：进程是出租房独门独户（独立资源），线程是合租房共用客厅（共享内存），协程是你书桌上的笔记本（轻量自调度）。</p>
+<hr />
+<h2 id="_3">📖 深度解答</h2>
+<h3 id="_4">第一层：核心概念</h3>
+<h4 id="1-process">1. 进程（Process）</h4>
+<p><strong>进程</strong>是操作系统进行<strong>资源分配</strong>的最小单位。每个进程拥有<strong>独立的虚拟地址空间</strong>，包括代码段、数据段、堆和栈，进程A无法直接访问进程B的内存。</p>
+<p><strong>进程间通信（Inter-Process Communication, IPC）</strong> 是操作系统的核心机制，主要方式包括：</p>
+<table>
+<thead>
+<tr>
+<th>IPC 方式</th>
+<th>原理</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管道（Pipe）</td>
+<td>内核缓冲区，一端写一端读</td>
+<td>单向、仅限父子进程，半双工</td>
+</tr>
+<tr>
+<td>消息队列（Message Queue）</td>
+<td>内核维护的消息链表</td>
+<td>双向、消息有类型，适合小数据</td>
+</tr>
+<tr>
+<td>共享内存（Shared Memory）</td>
+<td>映射同一块物理内存</td>
+<td>速度最快，需搭配信号量同步</td>
+</tr>
+<tr>
+<td>信号量（Semaphore）</td>
+<td>计数器 + PV 操作</td>
+<td>主要用于同步，而非数据传输</td>
+</tr>
+<tr>
+<td>Socket</td>
+<td>网络套接字</td>
+<td>跨机器通信，支持 TCP/UDP</td>
+</tr>
+</tbody>
+</table>
+<p>进程<strong>上下文切换（Context Switch）</strong> 开销大，因为需要：<br />
+1. 保存/恢复 CPU 寄存器状态<br />
+2. 切换<strong>页表（Page Table）</strong>——每个进程的虚拟地址到物理地址的映射表不同<br />
+3. <strong>刷新 TLB（Translation Lookaside Buffer）</strong>——页表缓存，切换后全部失效<br />
+4. 清空 CPU 流水线（Pipeline）</p>
+<p>这些操作通常需要数百到数千个 CPU 周期，属于<strong>重量级</strong>操作。</p>
+<h4 id="2-thread">2. 线程（Thread）</h4>
+<p><strong>线程</strong>是 CPU <strong>调度</strong>的最小单位，是进程内的一个执行流。同一进程的所有线程共享：<br />
+- 代码段（Code Segment）<br />
+- 数据段（Data Segment，含全局变量）<br />
+- 堆（Heap）<br />
+- 打开的文件描述符（File Descriptor）</p>
+<p>每个线程独有：<br />
+- <strong>线程栈（Thread Stack）</strong><br />
+- <strong>程序计数器（Program Counter, PC）</strong><br />
+- <strong>寄存器状态（Register Set）</strong></p>
+<p><strong>Java 中的线程实现：</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 方式1：继承 Thread 类</span>
+<span class="kd">class</span> <span class="nc">MyThread</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Thread</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Thread running: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">getName</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="k">new</span><span class="w"> </span><span class="n">MyThread</span><span class="p">().</span><span class="na">start</span><span class="p">();</span>
+
+<span class="c1">// 方式2：实现 Runnable 接口</span>
+<span class="n">Thread</span><span class="w"> </span><span class="n">thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Runnable running&quot;</span><span class="p">));</span>
+<span class="n">thread</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+
+<span class="c1">// 方式3：实现 Callable 接口（有返回值、可抛异常）</span>
+<span class="n">FutureTask</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">futureTask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">FutureTask</span><span class="o">&lt;&gt;</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Callable result&quot;</span><span class="p">;</span>
+<span class="p">});</span>
+<span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(</span><span class="n">futureTask</span><span class="p">).</span><span class="na">start</span><span class="p">();</span>
+<span class="n">String</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">futureTask</span><span class="p">.</span><span class="na">get</span><span class="p">();</span><span class="w"> </span><span class="c1">// 获取返回值</span>
+
+<span class="c1">// 方式4：线程池 ThreadPoolExecutor</span>
+<span class="n">ThreadPoolExecutor</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+<span class="w">    </span><span class="mi">2</span><span class="p">,</span><span class="w">                      </span><span class="c1">// corePoolSize</span>
+<span class="w">    </span><span class="mi">5</span><span class="p">,</span><span class="w">                      </span><span class="c1">// maximumPoolSize</span>
+<span class="w">    </span><span class="mi">60L</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span><span class="w">  </span><span class="c1">// keepAliveTime</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span><span class="w"> </span><span class="c1">// workQueue</span>
+<span class="w">    </span><span class="n">Executors</span><span class="p">.</span><span class="na">defaultThreadFactory</span><span class="p">(),</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">.</span><span class="na">AbortPolicy</span><span class="p">()</span><span class="w"> </span><span class="c1">// 拒绝策略</span>
+<span class="p">);</span>
+<span class="n">executor</span><span class="p">.</span><span class="na">execute</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;Thread pool task&quot;</span><span class="p">));</span>
+<span class="n">executor</span><span class="p">.</span><span class="na">shutdown</span><span class="p">();</span>
+</code></pre></div>
+
+<p><strong>线程同步机制：</strong></p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>原理</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>synchronized</code></td>
+<td>JVM 层面的 Monitor 锁，基于 Object Header 的 Mark Word</td>
+<td>简单的互斥同步，自动释放锁</td>
+</tr>
+<tr>
+<td><code>ReentrantLock</code></td>
+<td>AQS（AbstractQueuedSynchronizer）实现，支持公平/非公平锁</td>
+<td>需要超时、可中断、尝试获取等高级功能</td>
+</tr>
+<tr>
+<td><code>volatile</code></td>
+<td>内存屏障（Memory Barrier），保证可见性，禁止指令重排序</td>
+<td>单个变量的读写可见性保证</td>
+</tr>
+<tr>
+<td>CAS（Compare-And-Swap）</td>
+<td>硬件级原子指令（如 x86 的 <code>CMPXCHG</code>），非阻塞</td>
+<td>乐观锁场景，如 AtomicInteger</td>
+</tr>
+</tbody>
+</table>
+<p><strong>特点对比：</strong><br />
+- <code>synchronized</code> 锁会膨胀：无锁 → 偏向锁 → 轻量级锁 → 重量级锁（JDK 6+ 优化）<br />
+- <code>volatile</code> 不保证原子性，仅保证可见性和有序性<br />
+- CAS 存在 ABA 问题（可通过 <code>AtomicStampedReference</code> 解决）</p>
+<h4 id="3-coroutine-java-virtual-thread">3. 协程（Coroutine）与 Java 虚拟线程（Virtual Thread）</h4>
+<p><strong>协程（Coroutine）</strong> 是<strong>用户态（User Space）的轻量级线程</strong>，由程序自身调度，而非操作系统内核。协程的调度器运行在用户态，切换时<strong>不需要陷入内核态（Kernel Mode）</strong>，因此开销极低。</p>
+<p><strong>Java 虚拟线程（Virtual Thread）</strong> 是 JDK 21 正式发布的协程实现，属于 <strong>Project Loom</strong> 的成果。虚拟线程由 JVM 管理，挂载在若干平台线程（Platform Thread，即传统的 OS 线程）上执行，采用 <strong>M:N 调度模型</strong>（M 个虚拟线程映射到 N 个平台线程）。</p>
+<p><strong>代码示例：Java 虚拟线程 vs 传统线程</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.*</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.stream.IntStream</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ThreadVsVirtualThread</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="c1">// 传统平台线程 —— 创建 10,000 个线程</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">platformThreads</span><span class="p">()</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">10000</span><span class="p">);</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+
+<span class="w">        </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Thread</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w"> </span><span class="c1">// 模拟 I/O 等待</span>
+<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
+<span class="w">            </span><span class="p">});</span>
+<span class="w">            </span><span class="n">t</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+<span class="w">        </span><span class="p">});</span>
+
+<span class="w">        </span><span class="n">latch</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;平台线程 10000 个耗时: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;ms&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// 结果：运行缓慢，有可能 OOM，因为每个 OS 线程默认栈 1MB</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// 虚拟线程 —— 创建 100,000 个虚拟线程</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">virtualThreads</span><span class="p">()</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">100000</span><span class="p">);</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+
+<span class="w">        </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">100000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">startVirtualThread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w"> </span><span class="c1">// 虚拟线程在此处会 yield，不阻塞平台线程</span>
+<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
+<span class="w">            </span><span class="p">});</span>
+<span class="w">        </span><span class="p">});</span>
+
+<span class="w">        </span><span class="n">latch</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;虚拟线程 100000 个耗时: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;ms&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// 结果：轻松完成，因为每个虚拟线程仅需几 KB</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 注意：不要同时运行，平台线程 10k 可能让系统变慢</span>
+<span class="w">        </span><span class="n">virtualThreads</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>虚拟线程的关键优势：</strong><br />
+- 创建成本极低：几 KB（仅需栈帧对象）vs 传统线程的几 MB（需要内核栈分配）<br />
+- 切换成本趋近于零：纯用户态方法调用级别，无需系统调用<br />
+- 百万级并发：单台 JVM 可创建数百万虚拟线程<br />
+- I/O 阻塞时自动 yield：虚拟线程执行 I/O 操作时自动让出平台线程，不浪费 CPU</p>
+<hr />
+<h3 id="_5">第二层：底层原理</h3>
+<h4 id="cpu">CPU 的工作模式与上下文切换</h4>
+<p>CPU 运行在两种模式下：<br />
+- <strong>内核态（Kernel Mode）</strong>：可以执行特权指令，访问所有内存空间<br />
+- <strong>用户态（User Mode）</strong>：只能执行普通指令，访问受限内存</p>
+<p><strong>进程/线程切换 → 需要系统调用（System Call）→ 从用户态切换到内核态 → 执行调度器代码 → 切回用户态</strong></p>
+<p>涉及的关键步骤：</p>
+<div class="highlight"><pre><span></span><code>用户态 → int 0x80/syscall 指令 → 内核态 → 
+  保存用户态寄存器 + 栈指针 → 
+  调度器选择下一任务 → 
+  切换页表 / 修改 CR3 寄存器（进程切换时才需要）→ 
+  恢复下一任务寄存器 + 栈指针 → 
+  返回用户态
+</code></pre></div>
+
+<p><strong>协程切换</strong>只发生在用户态：</p>
+<div class="highlight"><pre><span></span><code>当前协程 → 主动 yield() → 协程调度器 → 选择下一协程 → 恢复其栈帧 → 继续执行
+</code></pre></div>
+
+<p>全程在用户态内完成，无需 <strong>syscall</strong>、无需修改 CR3（页表寄存器），因此开销极低（纳秒级）。</p>
+<h4 id="java">Java 虚拟线程的调度机制</h4>
+<p>虚拟线程采用 <strong>Work-Stealing（工作窃取）调度</strong>：<br />
+- JVM 维护一个 <strong>FIFO 任务队列</strong>，平台线程（称为 Carrier Thread）从中"窃取"虚拟线程执行<br />
+- 当虚拟线程执行到阻塞操作（I/O、<code>sleep()</code>、<code>lock()</code>）时，JVM 将其从平台线程上<strong>卸载（Unmount）</strong>，挂回队列<br />
+- 平台线程转而执行队列中下一个就绪的虚拟线程<br />
+- 阻塞操作完成后，虚拟线程重新加入就绪队列</p>
+<div class="highlight"><pre><span></span><code><span class="k">[虚拟线程池]                    [平台线程（Carrier Threads）]</span>
+<span class="w">  </span><span class="na">VT1 (running)     ───────→    PT1 (执行 VT1)</span>
+<span class="w">  </span><span class="na">VT2 (ready)       ───────→    PT2 (执行 VT2)</span>
+<span class="w">  </span><span class="na">VT3 (blocked/I/O)              PT3 (VT3 yield → 执行 VT4)</span>
+<span class="w">  </span><span class="na">VT4 (ready)       ───────→    ...</span>
+</code></pre></div>
+
+<hr />
+<h3 id="_6">第三层：实践应用</h3>
+<h4 id="_7">三者对比表格</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>进程（Process）</th>
+<th>线程（Thread）</th>
+<th>协程/虚拟线程（Coroutine/Virtual Thread）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>调度者</strong></td>
+<td>操作系统内核</td>
+<td>操作系统内核</td>
+<td>程序自身（用户态）</td>
+</tr>
+<tr>
+<td><strong>内存占用</strong></td>
+<td>大（独立 4GB 虚拟地址空间）</td>
+<td>中等（约 1MB 栈/线程）</td>
+<td>极小（几 KB / 协程）</td>
+</tr>
+<tr>
+<td><strong>创建开销</strong></td>
+<td>大（需复制页表、PCB等）</td>
+<td>中等（需系统调用分配内核栈）</td>
+<td>极小（纯用户态对象分配）</td>
+</tr>
+<tr>
+<td><strong>切换开销</strong></td>
+<td>大（切换页表 + 刷新 TLB）</td>
+<td>中等（寄存器 + 栈切换）</td>
+<td>极小（用户态栈帧切换）</td>
+</tr>
+<tr>
+<td><strong>通信方式</strong></td>
+<td>IPC（Pipe、Socket、共享内存等）</td>
+<td>共享内存 + 同步机制</td>
+<td>共享内存 + 通道（Channel）</td>
+</tr>
+<tr>
+<td><strong>隔离性</strong></td>
+<td>完全隔离，互不影响</td>
+<td>共享地址空间，一个崩溃影响全部</td>
+<td>共享地址空间，但协作式调度更可控</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>多进程架构、高隔离性需求</td>
+<td>CPU 密集型、并行计算</td>
+<td>I/O 密集型、高并发 Web 服务</td>
+</tr>
+<tr>
+<td><strong>Java 实现</strong></td>
+<td><code>ProcessBuilder</code> / <code>Runtime.exec()</code></td>
+<td><code>Thread</code>、<code>ThreadPoolExecutor</code></td>
+<td><code>Thread.startVirtualThread()</code> (JDK 21+)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_8">实际场景选择</h4>
+<p><strong>I/O 密集型（I/O-Bound）—— 首选协程/虚拟线程</strong></p>
+<p>场景：Web 服务器、API Gateway、数据库中间件</p>
+<p>每个请求涉及大量的 I/O 等待（网络 I/O、磁盘 I/O），CPU 大部分时间在等待。协程的"阻塞即切换"特性完美解决线程资源浪费。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 虚拟线程版 HTTP 服务器（JDK 21+）</span>
+<span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="kd">var</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">IntStream</span><span class="p">.</span><span class="na">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">executor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// 每个请求是一个虚拟线程，阻塞时自动让出平台线程</span>
+<span class="w">            </span><span class="n">HttpClient</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HttpClient</span><span class="p">.</span><span class="na">newHttpClient</span><span class="p">();</span>
+<span class="w">            </span><span class="n">HttpRequest</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HttpRequest</span><span class="p">.</span><span class="na">newBuilder</span><span class="p">()</span>
+<span class="w">                </span><span class="p">.</span><span class="na">uri</span><span class="p">(</span><span class="n">URI</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;https://api.example.com/data&quot;</span><span class="p">))</span>
+<span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<span class="w">            </span><span class="n">HttpResponse</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">request</span><span class="p">,</span><span class="w"> </span>
+<span class="w">                </span><span class="n">HttpResponse</span><span class="p">.</span><span class="na">BodyHandlers</span><span class="p">.</span><span class="na">ofString</span><span class="p">());</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="na">body</span><span class="p">();</span>
+<span class="w">        </span><span class="p">});</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>CPU 密集型（CPU-Bound）—— 首选线程池</strong></p>
+<p>场景：视频编解码、加密解密、科学计算</p>
+<p>线程数不宜超过 CPU 核心数，避免上下文切换带来的额外开销。线程池的 <strong>CachedThreadPool</strong> 或 <strong>FixedThreadPool</strong> 配合核心数配置最为高效。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// CPU 密集型任务 —— 线程池最佳实践</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">cores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Runtime</span><span class="p">.</span><span class="na">getRuntime</span><span class="p">().</span><span class="na">availableProcessors</span><span class="p">();</span>
+<span class="n">ThreadPoolExecutor</span><span class="w"> </span><span class="n">cpuExecutor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+<span class="w">    </span><span class="n">cores</span><span class="p">,</span><span class="w">       </span><span class="c1">// corePoolSize = CPU 核心数</span>
+<span class="w">    </span><span class="n">cores</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w">   </span><span class="c1">// maximumPoolSize = 可稍大，处理突发</span>
+<span class="w">    </span><span class="mi">60L</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="c1">// 执行 CPU 密集型计算任务</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cpuExecutor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 纯 CPU 计算，不需要 I/O 等待</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1_000_000</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">result</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">sin</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">cos</span><span class="p">(</span><span class="n">j</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="java_1">Java 虚拟线程学习要点</h4>
+<ol>
+<li><strong>不适用于 CPU 密集型</strong>：虚拟线程的 yield 发生在阻塞时，纯计算不会 yield 也无优势</li>
+<li><strong>不要池化虚拟线程</strong>：每个虚拟线程成本极低，无需池化，<code>Executors.newVirtualThreadPerTaskExecutor()</code> 直接创建即可</li>
+<li><strong>谨慎使用 ThreadLocal</strong>：虚拟线程数量庞大，ThreadLocal 会导致大量对象残留，增大 GC 压力</li>
+<li><strong>synchronized 优化</strong>：JDK 21 对虚拟线程中的 <code>synchronized</code> 做了优化，不会固定（pin）平台线程</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// 虚拟线程的最佳实践：不要池化，需要即创建</span>
+<span class="c1">// 推荐</span>
+<span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="kd">var</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">//...</span>
+<span class="p">}</span>
+
+<span class="c1">// 不推荐 —— 虚拟线程池化没有意义</span>
+<span class="n">ExecutorService</span><span class="w"> </span><span class="n">bad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newFixedThreadPool</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">Thread</span><span class="p">.</span><span class="na">ofVirtual</span><span class="p">().</span><span class="na">factory</span><span class="p">());</span><span class="w"> </span><span class="c1">// 虚拟线程池化，浪费</span>
+</code></pre></div>
+
+<hr />
+<h3 id="_9">第四层：深入思考</h3>
+<h4 id="1">1. 为什么进程切换比线程切换慢？</h4>
+<p>根本原因在于<strong>地址空间切换</strong>。线程只切换执行上下文（寄存器、栈指针），但进程切换需要：<br />
+- 切换页表目录基址寄存器（x86 的 CR3 → 刷新全部 TLB &gt; 需要从内存重新加载页表项 &gt; 多次缺页中断<br />
+- 进程的调度数据结构（PCB）比线程的 TCB 大得多<br />
+- 如果是写时拷贝（Copy-On-Write）的进程 fork，还可能触发缺页异常（Page Fault）</p>
+<h4 id="2-kotlin-coroutinego-goroutine">2. 虚拟线程与传统协程（如 Kotlin Coroutine、Go Goroutine）有何不同？</h4>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Java 虚拟线程</th>
+<th>Kotlin Coroutine</th>
+<th>Go Goroutine</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言支持</td>
+<td>JDK 21 内置</td>
+<td>库支持</td>
+<td>语言内置</td>
+</tr>
+<tr>
+<td>调度</td>
+<td>JVM 管理（ForkJoinPool）</td>
+<td>协程上下文调度器</td>
+<td>Go 运行时（G-M-P模型）</td>
+</tr>
+<tr>
+<td>堆栈</td>
+<td>可动态增长（类似 OS 线程的栈）</td>
+<td>编译期挂起、状态机</td>
+<td>可动态增长（初始 2KB）</td>
+</tr>
+<tr>
+<td>阻塞语义</td>
+<td>自动 yield（不阻塞平台线程）</td>
+<td>必须使用 <code>suspend</code> 函数</td>
+<td>自动 yield</td>
+</tr>
+</tbody>
+</table>
+<p>Java 虚拟线程的最大优势是<strong>对现有代码的侵入性极小</strong>——几乎不需要修改代码就能享受协程的并发能力，只需将 <code>new Thread()</code> 替换为 <code>Thread.startVirtualThread()</code>，将 <code>newFixedThreadPool</code> 替换为 <code>newVirtualThreadPerTaskExecutor</code>。</p>
+<h4 id="3">3. 百万协程背后的操作系统限制</h4>
+<p>虽然协程可以轻松创建百万级并发，但底层操作系统资源仍有瓶颈：<br />
+- <strong>文件描述符（File Descriptor, FD）</strong>：默认 1024 个/进程，需调大 <code>ulimit -n 65535</code><br />
+- <strong>端口号（Port Number）</strong>：一个客户端 IP 可用的临时端口约 28k 个<br />
+- <strong>内存</strong>：百万虚拟线程约 2-4 GB（每个约 2-4KB），对 16GB JVM 可接受</p>
+<h4 id="4">4. 未来的并发编程趋势</h4>
+<p>随着 Java 虚拟线程的成熟，传统的 <strong>Reactor 模型</strong>（Netty、WebFlux）和 <strong>异步回调</strong> 范式将逐渐被虚拟线程的<strong>同步阻塞</strong>写法替代——代码更直观、调试更方便，而性能和吞吐量不输异步模型。Java 的并发编程正在经历一场"返回同步"的革命。</p>
+<hr />
+<h2 id="_10">🗺️ 回答思路</h2>
+<p>面试中回答此题时，建议按以下思路组织语言：</p>
+<p><strong>1. 开篇定义（30秒）</strong>：用一句话概括三者本质<br />
+- "进程是操作系统资源分配的最小单位，线程是 CPU 调度的最小单位，协程是用户态的轻量级线程"<br />
+- 用"别墅-房间-书桌"的比喻让面试官一秒理解</p>
+<p><strong>2. 核心区别展开（2分钟）</strong>：<br />
+- 从<strong>资源隔离</strong>角度：进程独立地址空间 vs 线程共享进程资源 vs 协程共享线程资源<br />
+- 从<strong>切换开销</strong>角度：页表+TLB vs 寄存器+栈 vs 纯用户态栈帧<br />
+- 从<strong>通信方式</strong>角度：IPC 复杂机制 vs 共享内存+锁 vs 通道/共享变量<br />
+- 展示对比表格（前面已准备）</p>
+<p><strong>3. 代码示例（1分钟）</strong>：<br />
+- 展示 Java 虚拟线程 vs 传统线程的对比代码<br />
+- 强调 10k vs 100k 的差异，突出虚拟线程的轻量</p>
+<p><strong>4. 底层原理延伸（1分钟）</strong>：<br />
+- 解释为什么进程切换慢：CR3 寄存器切换 → TLB 刷新 → 缺页中断<br />
+- 解释协程为什么快：纯用户态、无需 syscall</p>
+<p><strong>5. 实践场景（1分钟）</strong>：<br />
+- I/O 密集型 → 虚拟线程/协程（展示 Executors.newVirtualThreadPerTaskExecutor）<br />
+- CPU 密集型 → 线程池（展示 ThreadPoolExecutor 配合 corePoolSize）<br />
+- 引出 Java 虚拟线程的注意事项（不要池化、谨慎 ThreadLocal）</p>
+<p><strong>6. 加分项（30秒）</strong>：<br />
+- 对比 Kotlin Coroutine、Go Goroutine 和 Java Virtual Thread 的异同<br />
+- 提出"同步阻塞回归"的趋势思考<br />
+- 呼应面试官的深入研究</p>
+<p><strong>时间控制</strong>：总计约 5-6 分钟<br />
+<strong>话术技巧</strong>："我们可以从三个维度来理解——资源维度、调度维度、通信维度……"<br />
+<strong>误区避免</strong>：<br />
+- 不要只说概念，必须有代码<br />
+- 不要混淆"进程切换"和"线程切换"的开销差异<br />
+- 不要说"协程比线程快"这种绝对化表述，要区分场景</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 操作系统<br />
+🏷️ <strong>标签</strong>: <code>协程</code> <code>并发</code> <code>线程</code> <code>进程</code> <code>虚拟线程</code> <code>并发编程</code><br />
+📊 <strong>难度</strong>: 进阶<br />
+📅 <strong>归档时间</strong>: 2026-07-04 14:27:07</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0034')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0034')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

@@ -11,18 +11,20 @@ answer_path = r'C:\Users\28757\dduo-interview-coach\outputs\面经解答-2026070
 with open(answer_path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Remove the top-level title but keep everything else
-# The output file starts with "# 线程、进程、协程相关知识点 深度解答\n\n---\n\n"
-# We want everything after the first title and separator
+# Find where the actual answer content starts (after the first --- separator and blank lines)
 lines = content.split('\n')
-if lines[0].startswith('# '):
-    # Find where the actual content starts (after --- separator and blank lines)
-    idx = 0
-    for i, line in enumerate(lines):
-        if line.strip() == '---':
-            idx = i + 1
-            break
-    answer = '\n'.join(lines[idx:]).strip()
+start_idx = 0
+found_sep = False
+for i, line in enumerate(lines):
+    if line.strip() == '---':
+        found_sep = True
+        start_idx = i + 1
+        break
+if found_sep:
+    # Skip any leading blank lines after ---
+    while start_idx < len(lines) and lines[start_idx].strip() == '':
+        start_idx += 1
+    answer = '\n'.join(lines[start_idx:])
 else:
     answer = content
 

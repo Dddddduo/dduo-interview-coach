@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP 和 HTTPS 的区别 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0033</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🌍 计算机网络</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>HTTP 和 HTTPS 的区别</h1>
+    <div class="tag-row"><span class="tag-item">网络协议</span></div>
+    <h1 id="http-https">HTTP 和 HTTPS 的区别</h1>
+<h1 id="http-https_1">HTTP 和 HTTPS 的区别</h1>
+<hr />
+<h2 id="memory-aid">🧠 联想记忆法 (Memory Aid)</h2>
+<p><strong>口诀："S 是安全锁，TLS 来包裹"</strong></p>
+<blockquote>
+<p>想象你寄快递：<strong>HTTP</strong> 是把明信片直接丢进邮筒——任何人都能在路上偷看内容；<strong>HTTPS</strong> 是把明信片装进一个带密码锁的保险箱再寄出——只有收件人知道密码，中途被截走也打不开。</p>
+</blockquote>
+<p><strong>认知钩子</strong>：把 <code>S</code>（Secure/SSL）想象成一把"锁"——HTTP 裸奔出门，HTTPS 锁好再走。你每天都在用（浏览器地址栏的小锁图标），这个视觉锚点极难忘记。</p>
+<p><strong>知识锚定</strong>：你已经知道 HTTP 是"超文本传输协议"（HyperText Transfer Protocol），在它后面加一层加密就是 HTTPS。好比 HTTP 是普通话（明文），HTTPS 是加了密码本的普通话——同样在说话，但加了密。</p>
+<hr />
+<h2 id="in-depth-answer">📖 深度解答 (In-Depth Answer)</h2>
+<h3 id="1">1. 核心概念（是什么）</h3>
+<p><strong>一句话定义</strong>：HTTPS（HyperText Transfer Protocol Secure）是 HTTP 的加密版本，通过在 HTTP 和 TCP 之间插入一层 SSL/TLS（Secure Sockets Layer / Transport Layer Security）加密协议，实现数据传输的机密性（Confidentiality）、完整性（Integrity）和身份验证（Authentication）。</p>
+<p><strong>解决的问题</strong>：HTTP 传输的数据是<strong>明文</strong>（Plain Text），任何中间节点（路由器、Wi-Fi 热点、ISP）都可以直接读取、篡改或伪造数据。HTTPS 通过加密解决了这三个安全威胁。</p>
+<p><strong>面试重要原因</strong>：这是网络协议面试的"必考题"，面试官通过这道题考察：<br />
+- 你对网络协议栈的理解深度（OSI 七层 vs TCP/IP 四层）<br />
+- 密码学基础知识（对称加密 vs 非对称加密）<br />
+- 工程实践能力（证书体系、性能优化）<br />
+- 安全意识（中间人攻击、HTTPS 如何防御）</p>
+<h3 id="2">2. 底层原理（为什么）</h3>
+<h4 id="https-http-tls">HTTPS 的本质：HTTP + TLS</h4>
+<p>HTTPS 并不是一个新的应用层协议，而是<strong>在 HTTP 和 TCP 之间嵌套了一层 TLS</strong>：</p>
+<div class="highlight"><pre><span></span><code>HTTP   ← 应用层（明文请求/响应）
+TLS    ← 安全层（加密/解密）
+TCP    ← 传输层
+IP     ← 网络层
+</code></pre></div>
+
+<h4 id="http-vs-https">HTTP vs HTTPS 对比维度</h4>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>HTTP</th>
+<th>HTTPS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>默认端口</td>
+<td>80</td>
+<td>443</td>
+</tr>
+<tr>
+<td>安全性</td>
+<td>明文传输</td>
+<td>TLS 加密</td>
+</tr>
+<tr>
+<td>身份验证</td>
+<td>无</td>
+<td>数字证书（Digital Certificate）验证</td>
+</tr>
+<tr>
+<td>数据完整性</td>
+<td>无校验</td>
+<td>MAC（Message Authentication Code）校验</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>无额外开销</td>
+<td>握手增加 RTT，加密增加 CPU 开销</td>
+</tr>
+<tr>
+<td>SEO</td>
+<td>搜索引擎降权</td>
+<td>SEO 加分（Google 明确将 HTTPS 作为排名信号）</td>
+</tr>
+<tr>
+<td>证书成本</td>
+<td>无</td>
+<td>需购买/申请 SSL 证书（也有免费的 Let's Encrypt）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tls-12">TLS 1.2 完整握手过程（核心重点）</h4>
+<p>以最常用的 <strong>TLS 1.2</strong> 为例，完整握手需要 <strong>2-RTT</strong>（Round-Trip Time）。以下是逐步拆解：</p>
+<div class="highlight"><pre><span></span><code><span class="n">Client</span><span class="w">                              </span><span class="n">Server</span>
+<span class="w">  </span><span class="o">|</span><span class="w">                                   </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|---</span><span class="w"> </span><span class="mf">1.</span><span class="w"> </span><span class="n">ClientHello</span><span class="w"> </span><span class="o">---------------&gt;|</span><span class="w">  </span><span class="err">①</span><span class="w"> </span><span class="err">客户端发起握手</span>
+<span class="w">  </span><span class="o">|</span><span class="w">     </span><span class="p">(</span><span class="n">TLS版本</span><span class="p">,</span><span class="w"> </span><span class="err">密码套件列表</span><span class="p">,</span><span class="w">  </span><span class="err">随机数</span><span class="p">)</span><span class="w">  </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|</span><span class="w">                                   </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|&lt;--</span><span class="w"> </span><span class="mf">2.</span><span class="w"> </span><span class="n">ServerHello</span><span class="w"> </span><span class="o">---------------|</span><span class="w">  </span><span class="err">②</span><span class="w"> </span><span class="err">服务端回应</span>
+<span class="w">  </span><span class="o">|</span><span class="w">     </span><span class="p">(</span><span class="err">选定</span><span class="n">TLS版本</span><span class="p">,</span><span class="w"> </span><span class="err">选定密码套件</span><span class="p">,</span><span class="w">       </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|</span><span class="w">      </span><span class="err">随机数</span><span class="p">)</span><span class="w">                       </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|&lt;--</span><span class="w"> </span><span class="mf">3.</span><span class="w"> </span><span class="n">Certificate</span><span class="w"> </span><span class="o">--------------|</span><span class="w">  </span><span class="err">③</span><span class="w"> </span><span class="err">发送数字证书（含公钥）</span>
+<span class="w">  </span><span class="o">|&lt;--</span><span class="w"> </span><span class="mf">4.</span><span class="w"> </span><span class="n">ServerHelloDone</span><span class="w"> </span><span class="o">----------|</span><span class="w">  </span>
+<span class="w">  </span><span class="o">|</span><span class="w">                                   </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|---</span><span class="w"> </span><span class="mf">5.</span><span class="w"> </span><span class="n">ClientKeyExchange</span><span class="w"> </span><span class="o">--------&gt;|</span><span class="w">  </span><span class="err">④</span><span class="w"> </span><span class="err">客户端生成</span><span class="w"> </span><span class="n">Pre</span><span class="o">-</span><span class="n">Master</span><span class="w"> </span><span class="n">Secret</span>
+<span class="w">  </span><span class="o">|</span><span class="w">     </span><span class="p">(</span><span class="err">用服务器公钥加密的</span><span class="n">Pre</span><span class="o">-</span><span class="n">Master</span><span class="w">     </span><span class="o">|</span><span class="w">     </span><span class="err">并用服务器公钥加密发送</span>
+<span class="w">  </span><span class="o">|</span><span class="w">      </span><span class="n">Secret</span><span class="p">)</span><span class="w">                      </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|---</span><span class="w"> </span><span class="mf">6.</span><span class="w"> </span><span class="n">ChangeCipherSpec</span><span class="w"> </span><span class="o">---------&gt;|</span><span class="w">  </span><span class="err">⑤</span><span class="w"> </span><span class="err">告知后续加密通信</span>
+<span class="w">  </span><span class="o">|---</span><span class="w"> </span><span class="mf">7.</span><span class="w"> </span><span class="n">Finished</span><span class="w"> </span><span class="o">-----------------&gt;|</span>
+<span class="w">  </span><span class="o">|</span><span class="w">                                   </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|&lt;--</span><span class="w"> </span><span class="mf">8.</span><span class="w"> </span><span class="n">ChangeCipherSpec</span><span class="w"> </span><span class="o">---------|</span><span class="w">  </span><span class="err">⑥</span><span class="w"> </span><span class="err">服务端确认</span>
+<span class="w">  </span><span class="o">|&lt;--</span><span class="w"> </span><span class="mf">9.</span><span class="w"> </span><span class="n">Finished</span><span class="w"> </span><span class="o">-----------------|</span><span class="w">  </span>
+<span class="w">  </span><span class="o">|</span><span class="w">                                   </span><span class="o">|</span>
+<span class="w">  </span><span class="o">|========</span><span class="w"> </span><span class="err">加密通信开始</span><span class="w"> </span><span class="o">=============|</span><span class="w">  </span><span class="err">⑦</span><span class="w"> </span><span class="err">使用对称密钥（</span><span class="n">AES</span><span class="err">）加密通信</span>
+</code></pre></div>
+
+<p><strong>各步骤详解</strong>：</p>
+<p><strong>① ClientHello</strong>：客户端告诉服务器它支持的 TLS 版本（如 TLS 1.2）、支持的密码套件列表（Cipher Suites，如 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384），以及一个客户端随机数（Client Random）。</p>
+<p><strong>② ServerHello</strong>：服务器从列表中选定一个密码套件和 TLS 版本，返回服务器随机数（Server Random）。</p>
+<p><strong>③ Certificate</strong>：服务器发送其数字证书（Digital Certificate），包含服务器域名、证书颁发机构（CA）签名、服务器公钥（Public Key）、有效期等信息。</p>
+<p><strong>④ ServerHelloDone</strong>：表明服务器的握手消息结束。</p>
+<p><strong>⑤ ClientKeyExchange</strong>：客户端生成一个 Pre-Master Secret（预主密钥），用服务器的<strong>公钥</strong>加密后发送给服务器。只有持有对应<strong>私钥</strong>的服务器才能解密。</p>
+<p><strong>⑥-⑦ ChangeCipherSpec + Finished</strong>：客户端和服务器各自用 Client Random + Server Random + Pre-Master Secret 计算出相同的<strong>会话密钥</strong>（Session Key / Master Secret），然后交换 Finished 消息确认握手成功。</p>
+<p><strong>⑧ 之后</strong>：双方使用对称加密（Symmetric Encryption，如 AES-256-GCM）进行实际数据传输。</p>
+<h4 id="_1">密码学原理：为什么需要两种加密？</h4>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>非对称加密（Asymmetric Encryption）</th>
+<th>对称加密（Symmetric Encryption）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>算法示例</td>
+<td>RSA, ECDHE</td>
+<td>AES, ChaCha20</td>
+</tr>
+<tr>
+<td>密钥</td>
+<td>公钥+私钥（一对）</td>
+<td>同一个密钥</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>慢（比对称慢 100-1000 倍）</td>
+<td>快</td>
+</tr>
+<tr>
+<td>用途</td>
+<td>密钥交换 / 数字签名</td>
+<td>数据加密</td>
+</tr>
+</tbody>
+</table>
+<p><strong>设计哲学</strong>：非对称加密慢但安全（无需预先共享密钥），对称加密快但不方便密钥分发。TLS 结合两者优点——<strong>用非对称加密安全地交换对称密钥，然后使用对称加密高效地传输数据</strong>。这称为"混合加密体系"（Hybrid Cryptosystem）。</p>
+<h4 id="certificate-chain">数字证书验证链（Certificate Chain）</h4>
+<p>证书不是凭空信任的，而是基于<strong>信任链</strong>（Chain of Trust）：</p>
+<div class="highlight"><pre><span></span><code>根证书 (Root CA) ──自签名，预装在操作系统/浏览器中
+    ↓ 签发
+中级证书 (Intermediate CA)
+    ↓ 签发
+服务器证书 (Server/Leaf Certificate)  ← 你访问的网站持有
+</code></pre></div>
+
+<p><strong>验证过程</strong>：<br />
+1. 浏览器收到服务器证书后，检查其签发者（Issuer）<br />
+2. 如果签发者是受信任的 CA，则继续验证签名是否有效<br />
+3. 如果签发者是中间 CA，递归查找其上级证书，直到找到根证书<br />
+4. 验证签名：用 CA 的公钥解密签名，比对证书的哈希值是否一致<br />
+5. 检查证书是否过期、是否被吊销（CRL/OCSP）、域名是否匹配</p>
+<h4 id="tls-13">TLS 1.3 的优化</h4>
+<p>TLS 1.3 将握手从 <strong>2-RTT 减少到 1-RTT</strong>（首次连接），再次连接甚至可以做到 <strong>0-RTT</strong>：</p>
+<div class="highlight"><pre><span></span><code>TLS 1.2: 2-RTT → 加密通信
+TLS 1.3: 1-RTT → 加密通信
+TLS 1.3 (0-RTT): 第一次发包即可携带应用数据
+</code></pre></div>
+
+<p><strong>关键变化</strong>：<br />
+- 移除了不安全的密码套件（如 RSA 密钥交换、CBC 模式加密）<br />
+- 只支持前向安全性（Perfect Forward Secrecy, PFS）的密钥交换算法（ECDHE）<br />
+- 合并了 ServerHello 后的多个消息，减少一次往返</p>
+<h3 id="3">3. 实践应用（怎么用）</h3>
+<h4 id="python-https">代码示例：用 Python 验证 HTTPS 连接</h4>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">ssl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">certifi</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">inspect_https_connection</span><span class="p">(</span><span class="n">hostname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">443</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;检查 HTTPS 连接的 TLS 信息&quot;&quot;&quot;</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">(</span><span class="n">cafile</span><span class="o">=</span><span class="n">certifi</span><span class="o">.</span><span class="n">where</span><span class="p">())</span>
+
+    <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">create_connection</span><span class="p">((</span><span class="n">hostname</span><span class="p">,</span> <span class="n">port</span><span class="p">),</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="k">as</span> <span class="n">sock</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">wrap_socket</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">server_hostname</span><span class="o">=</span><span class="n">hostname</span><span class="p">)</span> <span class="k">as</span> <span class="n">tls_sock</span><span class="p">:</span>
+            <span class="c1"># 获取 TLS 连接信息</span>
+            <span class="n">cipher</span> <span class="o">=</span> <span class="n">tls_sock</span><span class="o">.</span><span class="n">cipher</span><span class="p">()</span>  <span class="c1"># 返回 (密码套件, TLS版本, 密钥长度)</span>
+            <span class="n">cert</span> <span class="o">=</span> <span class="n">tls_sock</span><span class="o">.</span><span class="n">getpeercert</span><span class="p">()</span>  <span class="c1"># 获取服务器证书</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ 成功连接到 </span><span class="si">{</span><span class="n">hostname</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🔐 TLS 版本: </span><span class="si">{</span><span class="n">cipher</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🔑 密码套件: </span><span class="si">{</span><span class="n">cipher</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📏 密钥强度: </span><span class="si">{</span><span class="n">cipher</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2"> bits&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🏢 证书颁发者: </span><span class="si">{</span><span class="n">cert</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;issuer&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🌐 证书主体: </span><span class="si">{</span><span class="n">cert</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;subject&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📅 证书有效期: </span><span class="si">{</span><span class="n">cert</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;notBefore&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="n">cert</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;notAfter&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># 运行示例</span>
+<span class="n">inspect_https_connection</span><span class="p">(</span><span class="s2">&quot;www.google.com&quot;</span><span class="p">)</span>
+<span class="c1"># 输出示例:</span>
+<span class="c1"># ✅ 成功连接到 www.google.com:443</span>
+<span class="c1"># 🔐 TLS 版本: TLSv1.3</span>
+<span class="c1"># 🔑 密码套件: TLS_AES_256_GCM_SHA384</span>
+<span class="c1"># 📏 密钥强度: 256 bits</span>
+</code></pre></div>
+
+<h4 id="wireshark">Wireshark 抓包对比（伪代码/描述）</h4>
+<p><strong>HTTP 抓包</strong>（明文可见）：</p>
+<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/api/login</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="o">:</span> <span class="l">example.com</span>
+<span class="na">Authorization</span><span class="o">:</span> <span class="l">Bearer eyJhbGciOiJIUzI1NiIs...</span>
+<span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+
+<span class="p">{</span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;secret123&quot;</span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>HTTPS 抓包</strong>（加密不可见——只能看到 TLS 层）：</p>
+<div class="highlight"><pre><span></span><code><span class="n">Client</span><span class="w"> </span><span class="n">Hello</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">TLS</span><span class="w"> </span><span class="mf">1.3</span><span class="p">,</span><span class="w"> </span><span class="n">Cipher</span><span class="w"> </span><span class="n">Suites</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="n">TLS_AES_256_GCM_SHA384</span><span class="p">,</span><span class="w"> </span><span class="p">...]</span>
+<span class="n">Server</span><span class="w"> </span><span class="n">Hello</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">TLS</span><span class="w"> </span><span class="mf">1.3</span><span class="p">,</span><span class="w"> </span><span class="n">TLS_AES_256_GCM_SHA384</span>
+<span class="n">Encrypted</span><span class="w"> </span><span class="n">Extensions</span>
+<span class="n">Certificate</span>
+<span class="n">Certificate</span><span class="w"> </span><span class="n">Verify</span>
+<span class="n">Finished</span>
+<span class="o">&lt;--</span><span class="w"> </span><span class="err">后续全部是加密数据：</span><span class="n">Application</span><span class="w"> </span><span class="kt">Data</span><span class="w"> </span><span class="o">--&gt;</span>
+</code></pre></div>
+
+<h4 id="nginx-https">Nginx 配置 HTTPS 最佳实践</h4>
+<div class="highlight"><pre><span></span><code><span class="k">server</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">443</span><span class="w"> </span><span class="s">ssl</span><span class="w"> </span><span class="s">http2</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">server_name</span><span class="w"> </span><span class="s">example.com</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1"># 证书配置</span>
+<span class="w">    </span><span class="kn">ssl_certificate</span><span class="w">     </span><span class="s">/etc/ssl/certs/example.com.pem</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">ssl_certificate_key</span><span class="w"> </span><span class="s">/etc/ssl/private/example.com.key</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1"># 现代安全配置（Mozilla 推荐）</span>
+<span class="w">    </span><span class="kn">ssl_protocols</span><span class="w"> </span><span class="s">TLSv1.2</span><span class="w"> </span><span class="s">TLSv1.3</span><span class="p">;</span><span class="w">  </span><span class="c1"># 禁用 SSLv3, TLSv1.0, TLSv1.1</span>
+<span class="w">    </span><span class="kn">ssl_ciphers</span><span class="w"> </span><span class="s">ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">ssl_prefer_server_ciphers</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1"># 性能优化</span>
+<span class="w">    </span><span class="kn">ssl_session_cache</span><span class="w"> </span><span class="s">shared:SSL:10m</span><span class="p">;</span><span class="w">      </span><span class="c1"># 会话缓存，支持会话复用</span>
+<span class="w">    </span><span class="kn">ssl_session_timeout</span><span class="w"> </span><span class="mi">10m</span><span class="p">;</span><span class="w">               </span><span class="c1"># 会话超时时间</span>
+<span class="w">    </span><span class="kn">ssl_session_tickets</span><span class="w"> </span><span class="no">off</span><span class="p">;</span><span class="w">               </span><span class="c1"># 禁用 session ticket（安全考虑）</span>
+
+<span class="w">    </span><span class="c1"># OCSP Stapling</span>
+<span class="w">    </span><span class="kn">ssl_stapling</span><span class="w"> </span><span class="no">on</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">ssl_stapling_verify</span><span class="w"> </span><span class="no">on</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">resolver</span><span class="w"> </span><span class="mi">8</span><span class="s">.8.8.8</span><span class="w"> </span><span class="mi">1</span><span class="s">.1.1.1</span><span class="w"> </span><span class="s">valid=300s</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1"># HSTS（HTTP Strict Transport Security）</span>
+<span class="w">    </span><span class="kn">add_header</span><span class="w"> </span><span class="s">Strict-Transport-Security</span><span class="w"> </span><span class="s">&quot;max-age=63072000&quot;</span><span class="w"> </span><span class="s">always</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kn">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://backend</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="http-https_2">HTTP → HTTPS 重定向</h4>
+<div class="highlight"><pre><span></span><code><span class="k">server</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kn">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">server_name</span><span class="w"> </span><span class="s">example.com</span><span class="w"> </span><span class="s">www.example.com</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">return</span><span class="w"> </span><span class="mi">301</span><span class="w"> </span><span class="s">https://</span><span class="nv">$server_name$request_uri</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="_2">常见使用模式</h4>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>公网 Web 服务</td>
+<td>必须 HTTPS + HSTS</td>
+<td>防止中间人攻击</td>
+</tr>
+<tr>
+<td>内网服务</td>
+<td>推荐 HTTPS</td>
+<td>防止内网嗅探</td>
+</tr>
+<tr>
+<td>API 接口</td>
+<td>必须 HTTPS</td>
+<td>保护 Token/API Key</td>
+</tr>
+<tr>
+<td>静态资源 CDN</td>
+<td>HTTPS 商业 CDN 都支持</td>
+<td>防止内容篡改</td>
+</tr>
+<tr>
+<td>开发环境</td>
+<td>可用自签名证书（Self-Signed）</td>
+<td>浏览器会警告，但能加密</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4">4. 深入思考（注意事项）</h3>
+<h4 id="_3">常见陷阱和误区</h4>
+<p><strong>误区 1："HTTPS 就是完全安全的"</strong><br />
+事实：HTTPS 只保护传输过程中的数据安全。如果服务器本身被攻破、数据库泄露、或用户在 HTTPS 页面上提交数据到 HTTP 接口，HTTPS 也无能为力。</p>
+<p><strong>误区 2："用了 HTTPS 就不用 HTTPS"</strong><br />
+事实：HSTS（HTTP Strict Transport Security）可以防止 SSL Stripping 攻击，但需要服务器发送 <code>Strict-Transport-Security</code> 头部。没有 HSTS，用户首次访问时可能被降级到 HTTP。</p>
+<p><strong>误区 3："证书验证不重要"</strong><br />
+事实：如果跳过证书验证（如 <code>verify=False</code>），HTTPS 等于 HTTP——攻击者可以轻易进行中间人攻击。</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># ❌ 危险！跳过证书验证</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># 和 HTTP 一样不安全</span>
+
+<span class="c1"># ✅ 正确方式</span>
+<span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">,</span> <span class="n">verify</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 或使用 certifi</span>
+</code></pre></div>
+
+<h4 id="mitm-https">中间人攻击（MITM）与 HTTPS 的防御</h4>
+<p><strong>攻击方式</strong>：中间人（Man-in-the-Middle, MITM）在客户端和服务器之间伪装成双方，解密所有通信。</p>
+<p><strong>HTTPS 的防御</strong>：<br />
+1. <strong>证书验证</strong>：服务器出示的证书必须由受信任的 CA 签发，且域名匹配。攻击者无法伪造有效证书（除非 CA 被攻破或用户安装了恶意根证书）<br />
+2. <strong>握手加密</strong>：Pre-Master Secret 用服务器公钥加密，中间人没有私钥无法解密<br />
+3. <strong>完整性校验</strong>：MAC（Message Authentication Code）防止数据被篡改</p>
+<p><strong>仍然可能被攻击的场景</strong>：<br />
+- <strong>SSL Stripping</strong>：攻击者在客户端和服务器之间将 HTTPS 降级为 HTTP → 防御：HSTS<br />
+- <strong>CA 被攻破</strong>（历史上发生过 DigiNotar 事件）→ 防御：证书透明度（Certificate Transparency, CT）<br />
+- <strong>恶意根证书</strong>（企业内网监控）→ 用户自行安装的根证书可以解密 TLS</p>
+<h4 id="_4">性能开销与优化</h4>
+<p>HTTPS 的主要性能消耗在：<br />
+1. <strong>TLS 握手</strong>：2-RTT（TLS 1.2）或 1-RTT（TLS 1.3）<br />
+2. <strong>加密/解密</strong>：CPU 计算开销，现代硬件（AES-NI 指令集）可大幅降低<br />
+3. <strong>证书吊销检查</strong>：OCSP（Online Certificate Status Protocol）请求增加延迟</p>
+<p><strong>优化策略</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>优化技术</th>
+<th>原理</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TLS Session Resumption</td>
+<td>复用之前的会话参数，跳过完整握手</td>
+<td>减少到 1-RTT 或 0-RTT</td>
+</tr>
+<tr>
+<td>OCSP Stapling</td>
+<td>服务器主动携带 OCSP 响应，客户端无需额外请求</td>
+<td>减少 DNS 查询和 HTTP 请求</td>
+</tr>
+<tr>
+<td>False Start</td>
+<td>客户端在 Finished 前就开始发送数据</td>
+<td>减少 1-RTT</td>
+</tr>
+<tr>
+<td>TLS 1.3</td>
+<td>合并握手消息</td>
+<td>从 2-RTT 降到 1-RTT</td>
+</tr>
+<tr>
+<td>HTTP/2 + HTTPS</td>
+<td>多路复用（Multiplexing）</td>
+<td>减少连接数，充分利用单连接</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_5">面试官可能追问的问题</h4>
+<ol>
+<li>
+<p><strong>"HTTP/2 和 HTTPS 的关系？"</strong><br />
+   → HTTP/2 虽然不强制使用 HTTPS，但主流浏览器只支持基于 TLS 的 HTTP/2（h2），纯文本的 h2c 几乎不被支持。</p>
+</li>
+<li>
+<p><strong>"什么是前向安全性（Perfect Forward Secrecy, PFS）？"</strong><br />
+   → 即使服务器的长期私钥泄露，过往的通信记录依然安全。通过 ECDHE（Elliptic Curve Diffie-Hellman Ephemeral）实现——每次握手生成临时密钥对，用完即弃。</p>
+</li>
+<li>
+<p><strong>"TLS 1.3 和 1.2 的核心区别？"</strong><br />
+   → 握手从 2-RTT 减到 1-RTT；移除了 RSA 密钥交换（不支持 PFS）；移除了不安全的对称加密算法（CBC、RC4）；支持 0-RTT 快速恢复。</p>
+</li>
+<li>
+<p><strong>"如何排查 HTTPS 连接问题？"</strong><br />
+   → 使用 <code>openssl s_client -connect host:443</code> 检查证书链；检查 TLS 版本兼容性；检查 CA 根证书是否安装。</p>
+</li>
+<li>
+<p><strong>"自签名证书和 CA 签发证书的区别？"</strong><br />
+   → 自签名证书（Self-Signed Certificate）由自己签发，不会被浏览器信任；CA 签发证书经过第三方信任机构验证身份。开发环境可用自签名，生产环境必须用受信任 CA。</p>
+</li>
+</ol>
+<h4 id="_6">替代方案与权衡</h4>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>安全等级</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP（明文）</td>
+<td>❌ 无</td>
+<td>本地开发、完全内网信任环境</td>
+</tr>
+<tr>
+<td>HTTPS（TLS 1.2）</td>
+<td>✅ 安全</td>
+<td>当前主流标准</td>
+</tr>
+<tr>
+<td>HTTPS（TLS 1.3）</td>
+<td>✅✅ 更安全/更快</td>
+<td>推荐使用的现代标准</td>
+</tr>
+<tr>
+<td>HTTPS + mTLS</td>
+<td>✅✅✅ 最强</td>
+<td>微服务间通信、金融级 API</td>
+</tr>
+<tr>
+<td>HTTP + VPN</td>
+<td>⚠️ 场景限制</td>
+<td>内网穿透，不适用于公网 Web 服务</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="answer-framework">🗺️ 回答思路 (Answer Framework)</h2>
+<h3 id="_7">答题逻辑框架</h3>
+<p>推荐 <strong>"总-分-总"结构</strong>：</p>
+<div class="highlight"><pre><span></span><code>┌─────────────────────────────────────┐
+│  开场：一句话给定义 + 概括核心区别    │ ← 15秒定调
+│  &quot;HTTPS = HTTP + TLS加密层&quot;          │
+├─────────────────────────────────────┤
+│  对比维度（3-4个维度快速展开）        │ ← 1分钟
+│  安全、端口、证书、性能、SEO          │
+├─────────────────────────────────────┤
+│  重点：TLS握手（详细展开）            │ ← 2-3分钟（核心得分区）
+│  Client Hello → Server Hello →       │
+│  证书 → 密钥交换 → 加密通信           │
+│  + 非对称 vs 对称加密原理解释         │
+├─────────────────────────────────────┤
+│  深度：优化 + 安全                   │ ← 1分钟（加分项）
+│  TLS 1.3, 会话复用, OCSP Stapling    │
+│  MITM防御, PFS前向安全性              │
+├─────────────────────────────────────┤
+│  收尾：总结提升 + 延伸话题            │ ← 30秒
+│  &quot;HTTPS是Web安全的基础...&quot;            │
+└─────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="_8">重点得分点</h3>
+<p>面试官最在意的 5 个关键点：</p>
+<ol>
+<li><strong>🔑 回答公式是否正确</strong>：HTTPS = HTTP + SSL/TLS（不是"加密的 HTTP"，而是"加了一层加密"）</li>
+<li><strong>🔄 是否能说清两种加密的关系</strong>：非对称（交换密钥）→ 对称（传输数据）→ 混合加密体系</li>
+<li><strong>🛡️ 是否理解证书验证链</strong>：Root CA → Intermediate CA → Server Certificate 三层信任链</li>
+<li><strong>⚡ 是否了解 TLS 1.3 的优化</strong>：2-RTT → 1-RTT，0-RTT 恢复，强制 PFS</li>
+<li><strong>🔐 是否有安全意识</strong>：能主动提到 MITM、SSL Stripping、HSTS 等</li>
+</ol>
+<h3 id="_9">常见误区</h3>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>错误表述</th>
+<th>正确表述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>❌ "HTTPS 是 HTTP 加了个证书"</td>
+<td>证书只是验证身份，加密靠 TLS</td>
+<td>"HTTPS = HTTP + TLS 加密层"</td>
+</tr>
+<tr>
+<td>❌ "HTTPS 速度很慢"</td>
+<td>不谈优化直接说慢</td>
+<td>"TLS 1.3 将握手从 2-RTT 降到 1-RTT"</td>
+</tr>
+<tr>
+<td>❌ "RSA 是最安全的"</td>
+<td>RSA 不支持前向安全性</td>
+<td>ECDHE 提供 Perfect Forward Secrecy</td>
+</tr>
+<tr>
+<td>❌ "用了 HTTPS 就安全了"</td>
+<td>忽略其他攻击面</td>
+<td>HTTPS 只保护传输，不保护服务器端</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5-7">时间分配建议（总计 5-7 分钟）</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🎯 开头定调</td>
+<td>15-30秒</td>
+<td>一句话定义 + 核心公式 HTTPS = HTTP + TLS</td>
+</tr>
+<tr>
+<td>📊 对比展开</td>
+<td>45-60秒</td>
+<td>端口、安全性、证书、SEO 等对比</td>
+</tr>
+<tr>
+<td>🔬 TLS 握手详解</td>
+<td>2-3分钟</td>
+<td><strong>核心得分区</strong>，详细讲 ClientHello → Finished</td>
+</tr>
+<tr>
+<td>🔐 安全与优化</td>
+<td>1-2分钟</td>
+<td>PFS、TLS 1.3、会话复用、HSTS</td>
+</tr>
+<tr>
+<td>💡 总结收尾</td>
+<td>15-30秒</td>
+<td>一句话总结 + "您想深入了解某个方面吗？"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">过渡话术</h3>
+<p><strong>开场过渡</strong>：</p>
+<blockquote>
+<p>"HTTP 和 HTTPS 的核心区别可以用一句话概括：HTTPS 不是一个新的协议，而是 HTTP 加了一层 TLS 加密层——HTTPS = HTTP + SSL/TLS。下面我从安全性、底层原理和实践应用三个层面展开。"</p>
+</blockquote>
+<p><strong>从概念到原理</strong>：</p>
+<blockquote>
+<p>"理解了概念区别后，关键要理解 HTTPS 是如何实现加密的——这就要说到 TLS 握手协议。"</p>
+</blockquote>
+<p><strong>从原理到优化</strong>：</p>
+<blockquote>
+<p>"虽然 HTTPS 比 HTTP 多了握手开销，但现代优化技术如 TLS 1.3 和会话复用已经将性能损失降到极低。"</p>
+</blockquote>
+<p><strong>结尾收束</strong>：</p>
+<blockquote>
+<p>"以上就是 HTTP 和 HTTPS 的核心区别。如果您感兴趣，我可以进一步深入 TLS 1.3 的 0-RTT 机制或 mTLS 双向认证的应用场景。"</p>
+</blockquote>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 计算机网络<br />
+🏷️ <strong>标签</strong>: <code>网络协议</code><br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-04 14:27:06</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0033')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0033')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

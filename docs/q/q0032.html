@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>索引设计需要满足哪些条件（含三星索引原则、适合建索引的列、不适合的列、联合索引最左前缀/覆盖索引/索引下推、代价权衡） — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0032</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>索引设计需要满足哪些条件（含三星索引原则、适合建索引的列、不适合的列、联合索引最左前缀/覆盖索引/索引下推、代价权衡）</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">索引设计需要满足哪些条件（含三星索引原则、适合建索引的列、不适合的列、联合索引最左前缀/覆盖索引/索引下推、代价权衡）</h1>
+<h1 id="mvcc">面试深度解答：索引设计与MVCC</h1>
+<blockquote>
+<p>整理日期：2026-07-04</p>
+</blockquote>
+<h2 id="1">第1题答案</h2>
+<h3 id="_2">🧠 联想记忆法</h3>
+<p><strong>记忆口诀/联想</strong>: <strong>"WAGA-3星 + 三不建 + 最覆下 + 读写空"</strong></p>
+<p>逐段拆解：<br />
+- <strong>WAGA-3星</strong>: WHERE → AND → GROUP/ORDER BY → All 查询列（覆盖索引）（三星索引的演进路径）<br />
+- <strong>三不建</strong>: 频繁更新列、低基数列、大字段列（三种不适合建索引的列）<br />
+- <strong>最覆下</strong>: 最左前缀、覆盖索引、索引下推（联合索引三大核心概念）<br />
+- <strong>读写空</strong>: 读性能 vs 写性能 vs 空间开销（索引设计的三角权衡）</p>
+<p><strong>记忆原理</strong>: 采用<strong>首字母提词法</strong>将四大知识点浓缩为"WAGA-3星 + 三不建 + 最覆下 + 读写空"15个字。每个段落首字母串联构词，符合工作记忆的组块化原理（chunking theory）——人脑短期记忆容量为7±2个组块，将零散知识点打包为4个语义组块，大幅降低记忆负担。</p>
+<p><strong>关联知识</strong>:<br />
+- B+Tree数据结构（索引底层实现）→ 联想磁盘I/O与树高 → 理解三星索引为什么按WAGA顺序设计<br />
+- 基数（Cardinality）概念 → 链接到选择性的数学定义 <code>Cardinality/COUNT(*)</code> → 解释低基数列为何无效<br />
+- Extra列（Using index; Using index condition）→ 覆盖索引和ICP的执行计划标识 → 实践验证理论<br />
+- InnoDB聚簇索引（Clustered Index）→ 主键索引叶子节点存整行，辅助索引叶子节点存主键值 → 解释回表（random I/O）来源</p>
+<hr />
+<h3 id="_3">📖 深度解答</h3>
+<h4 id="_4">第一层：核心概念</h4>
+<p><strong>1. 索引设计的三星原则（Three-Star Index Principle）</strong></p>
+<p>由数据库专家Tapio Lahdenmaki提出，衡量索引质量的三级标准：</p>
+<table>
+<thead>
+<tr>
+<th>星级</th>
+<th>条件</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>★☆☆</td>
+<td>索引覆盖WHERE条件中的等值查询列</td>
+<td>缩小扫描范围</td>
+</tr>
+<tr>
+<td>★★☆</td>
+<td>索引与ORDER BY排序顺序一致，消除filesort</td>
+<td>避免排序开销</td>
+</tr>
+<tr>
+<td>★★★</td>
+<td>索引包含查询所需的所有列（覆盖索引）</td>
+<td>消除回表I/O</td>
+</tr>
+</tbody>
+</table>
+<p><strong>演化路径</strong>：WHERE等值列 → ORDER BY列（排序键）→ SELECT列（覆盖列）</p>
+<p><em>示例：表 <code>orders(id, user_id, status, create_time, amount)</code>，查询：</em></p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">123</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;paid&#39;</span><span class="w"> </span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">create_time</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</code></pre></div>
+
+<ul>
+<li>★1星索引：<code>KEY idx1 (user_id, status)</code> — WHERE等值列已覆盖</li>
+<li>★2星索引：<code>KEY idx2 (user_id, status, create_time)</code> — 加入排序键，消除filesort，但amount未覆盖</li>
+<li>★3星索引：<code>KEY idx3 (user_id, status, create_time, amount)</code> — 全部覆盖，Extra列为Using index</li>
+</ul>
+<p><strong>2. 哪些列适合建索引</strong></p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>判断依据</th>
+<th>SQL示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WHERE条件列</td>
+<td>经常作为过滤条件</td>
+<td><code>WHERE status = 'active'</code> → 建索引</td>
+</tr>
+<tr>
+<td>JOIN连接列</td>
+<td>驱动表与被驱动表关联字段</td>
+<td><code>ON a.dept_id = b.id</code> → b.id建索引</td>
+</tr>
+<tr>
+<td>ORDER BY列</td>
+<td>排序字段（配合LIMIT效果显著）</td>
+<td><code>ORDER BY create_time</code> → 建索引避免filesort</td>
+</tr>
+<tr>
+<td>GROUP BY列</td>
+<td>分组字段（本质先排序后分组）</td>
+<td><code>GROUP BY dept_id</code> → 建索引避免temporary</td>
+</tr>
+<tr>
+<td>高选择性列</td>
+<td><code>Cardinality/COUNT(*) &gt; 20%</code></td>
+<td><code>user_id</code>选择性高，<code>gender</code>选择性低</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选择性的计算方法</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="k">column_name</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">selectivity</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">table_name</span><span class="p">;</span>
+</code></pre></div>
+
+<p>选择性越接近1，索引效果越好。</p>
+<p><strong>3. 哪些列不适合建索引</strong></p>
+<table>
+<thead>
+<tr>
+<th>不适类型</th>
+<th>原因</th>
+<th>反面示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>频繁更新的列</td>
+<td>需同步维护索引B+Tree，写入代价翻倍</td>
+<td><code>login_count</code>（每次登录+1）</td>
+</tr>
+<tr>
+<td>低基数列（Low Cardinality）</td>
+<td>扫描大量重复回表，不如全表扫描</td>
+<td><code>gender</code>（仅M/F，选择性50%，回表浪费）</td>
+</tr>
+<tr>
+<td>大字段（TEXT/BLOB/LONGTEXT）</td>
+<td>字段值过长，索引页容纳记录数骤减，树高剧增</td>
+<td><code>content TEXT</code>，除非用前缀索引</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关于前缀索引</strong>：对TEXT等大字段若必须索引，可用前缀索引：</p>
+<div class="highlight"><pre><span></span><code><span class="k">KEY</span><span class="w"> </span><span class="n">idx_content</span><span class="w"> </span><span class="p">(</span><span class="n">content</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span><span class="w">  </span><span class="c1">-- 只索引前20字节</span>
+</code></pre></div>
+
+<p>需权衡长度与区分度：<code>SELECT COUNT(DISTINCT LEFT(content, N)) / COUNT(*)</code> 测试N值。</p>
+<p><strong>4. 联合索引核心机制</strong></p>
+<p><strong>最左前缀原则（Leftmost Prefix Principle）</strong>：<br />
+- 索引 <code>KEY idx (a, b, c)</code> 可匹配的查询组合：<br />
+  - <code>WHERE a = 1</code> → 命中a（√）<br />
+  - <code>WHERE a = 1 AND b = 2</code> → 命中a,b（√）<br />
+  - <code>WHERE a = 1 AND b = 2 AND c = 3</code> → 命中a,b,c（√）<br />
+  - <code>WHERE b = 2</code> → 无法使用索引（×，跳过了最左列a）<br />
+  - <code>WHERE a = 1 AND c = 3</code> → 仅a能走索引，c因中间缺失b被阻断（×）<br />
+- <strong>关键理解</strong>：联合索引是<strong>有序元组</strong>而不是独立索引的组合。MySQL按(a,b,c)字典序构建B+Tree。</p>
+<p><strong>覆盖索引（Covering Index）</strong>：<br />
+- 定义：索引包含查询所需的全部列，Extra为<code>Using index</code><br />
+- 收益：避免回表（减少随机I/O），在InnoDB中还可减少一次主键索引查找</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- idx(a, b) 覆盖以下查询</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">   </span><span class="c1">-- Using index</span>
+<span class="c1">-- 但以下需要回表</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- c不在索引中</span>
+</code></pre></div>
+
+<p><strong>索引下推（Index Condition Pushdown, ICP）</strong>：<br />
+- 引入版本：MySQL 5.6<br />
+- 原理：将WHERE条件中<strong>无法由最左前缀匹配</strong>的部分，下推到存储引擎层过滤，减少回表次数<br />
+- 执行计划标识：Extra列显示<code>Using index condition</code></p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- idx(name, age) </span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;张%&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25</span><span class="p">;</span>
+<span class="c1">-- 无ICP：存储引擎只过滤name LIKE &#39;张%&#39;，所有结果回表再过滤age</span>
+<span class="c1">-- 有ICP：存储引擎同时过滤age=25，回表次数大幅减少</span>
+</code></pre></div>
+
+<ul>
+<li><strong>生效前提</strong>：ICP只针对辅助索引（secondary index），不适用于聚集索引</li>
+</ul>
+<p><strong>5. 索引代价权衡（读性能 vs 写性能 vs 空间）</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>影响</th>
+<th>量化说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>读性能 ↑</strong></td>
+<td>索引加快查找、排序、分组</td>
+<td>查询从O(n)全表扫描优化为O(log₂n)B+Tree查找</td>
+</tr>
+<tr>
+<td><strong>写性能 ↓</strong></td>
+<td>每次INSERT/UPDATE/DELETE需同步维护索引B+Tree</td>
+<td>每增加一个索引，写入性能约下降10%-30%</td>
+</tr>
+<tr>
+<td><strong>空间开销 ↑</strong></td>
+<td>索引B+Tree占用额外磁盘空间</td>
+<td>辅助索引叶子节点存主键值，主键越长空间越大</td>
+</tr>
+</tbody>
+</table>
+<p><strong>权衡决策矩阵</strong>：</p>
+<div class="highlight"><pre><span></span><code>场景                 推荐策略
+─────────────────────────────────
+写密集（日志表）        一张表 ≤3个索引，规避覆盖索引
+读密集（配置表）        可适当增加索引，力求覆盖索引
+读写均衡（业务表）      核心查询建三星索引，写入列少建索引
+</code></pre></div>
+
+<p><strong>实例对比</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 无索引写入：只需插入聚集索引</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(...);</span><span class="w">         </span><span class="c1">-- 1次B+Tree写入</span>
+
+<span class="c1">-- 3个索引写入：需维护4棵B+Tree</span>
+<span class="c1">-- idx1 + idx2 + idx3 + 聚集索引主键，共4次写入</span>
+<span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">VALUES</span><span class="w"> </span><span class="p">(...);</span><span class="w">         </span><span class="c1">-- 4次B+Tree写入</span>
+</code></pre></div>
+
+<h4 id="_5">第二层：底层原理</h4>
+<p><strong>B+Tree索引结构在磁盘上的组织方式</strong>：<br />
+- InnoDB页大小默认16KB（<code>innodb_page_size</code>）<br />
+- 非叶子节点存储键值+子节点指针，不存数据<br />
+- 叶子节点构成双向链表，支持范围扫描<br />
+- <strong>树高公式</strong>：若每页可存储约1200个键值对（INT类型+6字节指针），三层B+Tree约可存储1200×1200×16≈2300万行</p>
+<p><strong>为什么最左前缀成立？</strong><br />
+联合索引底层按复合键字典序排序：</p>
+<div class="highlight"><pre><span></span><code>(a=1,b=1,c=1)
+(a=1,b=1,c=2)
+(a=1,b=1,c=3)
+(a=2,b=1,c=1)
+</code></pre></div>
+
+<p>B+Tree的搜索路径依赖有序性，跳过前导列意味着无法定位起始搜索位置。</p>
+<p><strong>为什么覆盖索引消除随机I/O？</strong><br />
+InnoDB辅助索引叶子节点存储主键值。回表需要辅助索引定位主键值 → 再到聚集索引按主键查找 → 每次回表是随机I/O（可能在不同磁盘页）。覆盖索引直接从辅助索引页返回数据，零回表。</p>
+<h4 id="_6">第三层：实践应用</h4>
+<p><strong>案例：电商订单系统的索引设计</strong></p>
+<p>表定义：</p>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="o">`</span><span class="n">orders</span><span class="o">`</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="w"> </span><span class="nb">BIGINT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">user_id</span><span class="o">`</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">order_no</span><span class="o">`</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">status</span><span class="o">`</span><span class="w"> </span><span class="n">TINYINT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">      </span><span class="c1">-- 0=待支付 1=已支付 2=已取消</span>
+<span class="w">  </span><span class="o">`</span><span class="n">amount</span><span class="o">`</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">pay_time</span><span class="o">`</span><span class="w"> </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">create_time</span><span class="o">`</span><span class="w"> </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="o">`</span><span class="n">update_time</span><span class="o">`</span><span class="w"> </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">  </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="o">`</span><span class="n">id</span><span class="o">`</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>核心查询分析</strong>：</p>
+<ol>
+<li>用户订单列表（读密集）：</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">order_no</span><span class="p">,</span><span class="w"> </span><span class="n">amount</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">create_time</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">user_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">create_time</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span>
+<span class="k">LIMIT</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span>
+</code></pre></div>
+
+<p>→ <strong>三星索引</strong>：<code>KEY idx_user_order (user_id, create_time, order_no, amount, status)</code><br />
+（WHERE等值列 + ORDER排序列 + 覆盖SELECT列）</p>
+<ol>
+<li>按订单号查询（唯一查找）：</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">order_no</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">;</span>
+</code></pre></div>
+
+<p>→ <strong>唯一索引</strong>：<code>UNIQUE KEY uk_order_no (order_no)</code></p>
+<ol>
+<li>统计每日已支付金额（分组聚合）：</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="nb">DATE</span><span class="p">(</span><span class="n">pay_time</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span><span class="w"> </span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">pay_time</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="o">?</span>
+<span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="nb">DATE</span><span class="p">(</span><span class="n">pay_time</span><span class="p">);</span>
+</code></pre></div>
+
+<p>→ <code>KEY idx_pay_status (status, pay_time, amount)</code></p>
+<p><strong>不建索引的列</strong>：<code>update_time</code>（频繁更新）、<code>status</code>（低基数，不单独索引，只当联合索引前缀）</p>
+<h4 id="_7">第四层：深入思考</h4>
+<p><strong>思考1: 三星索引在分布式数据库中的局限性</strong><br />
+MySQL的B+Tree索引在分布式数据库（TiDB、OceanBase）中底层实现不同，三星索引的"避免回表"概念被分布式架构重新定义——如TiDB的全局索引需要网络RTT。此知识点用于展现面试深度。</p>
+<p><strong>思考2: 索引与数据一致性的关系</strong><br />
+唯一索引在RC隔离级别可能出现gap lock问题，影响并发写入。创建索引不应只考虑查询，还需考虑锁机制（Next-Key Lock in RR）。</p>
+<p><strong>思考3: MySQL 8.0的不可见索引（Invisible Indexes）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ALTER</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="n">INVISIBLE</span><span class="p">;</span>
+</code></pre></div>
+
+<p>用于在不删除索引的情况下测试移除影响，DBA可用此验证索引是否被使用。这是面试加分项。</p>
+<hr />
+<h3 id="_8">🗺️ 回答思路</h3>
+<p><strong>答题逻辑框架（5分钟标准回答结构）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>时间段</th>
+<th>内容</th>
+<th>得分点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0:00-0:30</td>
+<td>一句话开篇："索引设计的核心是在查询效率与写入/存储代价间取得平衡，我分别从索引适用场景、联合索引机制和代价权衡三方面展开"</td>
+<td>全局视角，展现结构化思维</td>
+</tr>
+<tr>
+<td>0:30-2:00</td>
+<td><strong>主体一：索引设计原则 + 适用/不适用场景</strong>。讲三星索引的WAGA顺序，然后正反列举</td>
+<td>三星原则是高级知识点，拉开与普通候选人差距</td>
+</tr>
+<tr>
+<td>2:00-3:30</td>
+<td><strong>主体二：联合索引核心机制</strong>。重点讲最左前缀、覆盖索引、ICP</td>
+<td>覆盖索引+ICP是两个高频考点，必须结合explain示例</td>
+</tr>
+<tr>
+<td>3:30-4:30</td>
+<td><strong>主体三：代价权衡</strong>。读性能 ↑ / 写性能 ↓ / 空间 ↑ 三角关系</td>
+<td>展现工程思维，非纸上谈兵</td>
+</tr>
+<tr>
+<td>4:30-5:00</td>
+<td><strong>总结升华</strong>："一句话概括——索引设计本质是space-time tradeoff在存储层的体现，核心原则是银弹不存在，具体场景具体分析。"亦可补充MySQL 8.0不可见索引作为亮点</td>
+<td>一句话总结+前沿知识</td>
+</tr>
+</tbody>
+</table>
+<p><strong>重点得分点</strong>（按重要性排序）：<br />
+1. <strong>必须提及最左前缀 + 覆盖索引 + ICP</strong>（联合索引三大金砖，答错即扣分）<br />
+2. <strong>三星索引原则</strong>（高级知识点，90%候选人答不出，说出即拉开差距）<br />
+3. <strong>使用explain输出验证设计</strong>（展现实践能力，Extra列 = Using index / Using index condition / Using filesort 的判断力）</p>
+<p><strong>常见误区</strong>：<br />
+- <strong>误区一</strong>：认为索引越多越好 → 正解：每个索引增加写入维护成本（约10-30%性能损失）<br />
+- <strong>误区二</strong>：对低基数列(如status=0/1/2)建单列索引（optimizer大概率不用，不如全表扫）<br />
+- <strong>误区三</strong>：联合索引任意顺序都能被利用 → 正解：必须遵守最左前缀<br />
+- <strong>误区四</strong>：认为覆盖索引只减少逻辑I/O → 正解：InnoDB中减少的是随机I/O，收益更大</p>
+<p><strong>时间分配建议（面试5分钟）</strong>：<br />
+- 开篇破题：30秒（5个方面全部点到）<br />
+- 核心展开：3分钟（占比60%，三星原则 + 最左前缀 + ICP）<br />
+- 深入补充：1分钟（代价权衡 + 工程案例）<br />
+- 总结收尾：30秒</p>
+<p><strong>过渡话术</strong>：<br />
+- 说完原则接场景：<em>"上面的原则决定了什么时候建索引，那我接着分析具体哪些列适合或不适合建索引。"</em><br />
+- 说完联合索引接拓展：<em>"除了联合索引本身的结构，还有三个重要机制需要掌握：最左前缀、覆盖索引和索引下推。"</em><br />
+- 最后总结：<em>"综上，索引设计没有银弹，核心是在读性能与写性能间做空间换时间的tradeoff。回到面试题本身，核心是五看——看查询、看选择性、看维护代价、看索引结构、看执行计划。"</em></p>
+<hr />
+<h2 id="2">第2题答案</h2>
+<h3 id="_9">🧠 联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "MVCC = 3字段 + 4成员 + 5规则"</p>
+<p>拆解记忆：<br />
+- <strong>"3"</strong> → 版本链的三大核心字段：<code>DB_TRX_ID</code>（事务ID）、<code>DB_ROLL_PTR</code>（回滚指针）、<code>DB_ROW_ID</code>（行ID）<br />
+- <strong>"4"</strong> → ReadView（读视图）的四个成员：<code>m_ids</code>、<code>min_trx_id</code>、<code>max_trx_id</code>、<code>creator_trx_id</code><br />
+- <strong>"5"</strong> → 可见性判断的五条规则：三比较 + 两极端</p>
+<p><strong>记忆原理</strong>: 用数字链路串联——3字段构建版本链，4成员构成ReadView（读视图），5规则驱动可见性判断。面试时从"3-4-5"展开，层层递进，不遗漏任何核心知识点。</p>
+<p><strong>关联知识</strong>: 如果你已理解"undo log（回滚日志）用于事务回滚"，MVCC就是undo log（回滚日志）的"读场景复用"——把本用于回滚的历史版本，变成了并发读的数据来源。</p>
+<hr />
+<h3 id="_10">📖 深度解答</h3>
+<h4 id="_11">第一层：核心概念</h4>
+<p><strong>MVCC（多版本并发控制，Multi-Version Concurrency Control）</strong> 是 InnoDB 存储引擎实现高并发读的核心机制。它允许一个事务读取数据时，看到的是该数据在某个时间点的"快照"，而不需要等待其他事务释放锁。MVCC 使得"读不阻塞写、写不阻塞读"成为可能，极大地提升了数据库的并发性能。</p>
+<p>MVCC 的实现依赖于每一行记录在 InnoDB 中维护的三个隐藏字段：</p>
+<table>
+<thead>
+<tr>
+<th>隐藏字段</th>
+<th>名称</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DB_TRX_ID</strong></td>
+<td>事务ID（Transaction ID）</td>
+<td>记录最近一次插入或更新该行的事务ID</td>
+</tr>
+<tr>
+<td><strong>DB_ROLL_PTR</strong></td>
+<td>回滚指针（Roll Pointer）</td>
+<td>指向该行之前的版本在 undo log（回滚日志）中的记录，用于构建版本链</td>
+</tr>
+<tr>
+<td><strong>DB_ROW_ID</strong></td>
+<td>行ID（Row ID）</td>
+<td>单调递增的行标识，若表无主键则 InnoDB 以此生成聚簇索引</td>
+</tr>
+</tbody>
+</table>
+<p>这三者共同构成了 InnoDB 的<strong>版本链（Version Chain）</strong>。每一次 UPDATE 操作不会覆盖原有数据，而是生成一行新的数据版本，并通过 DB_ROLL_PTR（回滚指针）将新版本指向旧版本，形成一个单向链表：</p>
+<div class="highlight"><pre><span></span><code>[最新版本 v3] ← DB_ROLL_PTR — [版本 v2] ← DB_ROLL_PTR — [版本 v1] ← DB_ROLL_PTR — [初始版本]
+</code></pre></div>
+
+<p><strong>DELETE 在版本链中的表现</strong>：DELETE 操作并非真正从物理存储中移除数据行，而是在版本链的头部新增一个特殊的"标记删除"版本。该版本会将 DB_TRX_ID（事务ID）设置为删除操作的事务ID，同时将删除标记写入记录头信息中。这个标记删除的版本对尚未提交的其他事务可见性由可见性判断规则决定——等到没有其他事务需要访问该版本时，<strong>purge线程（清理线程）</strong> 才会将其真正回收。</p>
+<h4 id="_12">第二层：底层原理</h4>
+<p><strong>ReadView（读视图）的四个核心成员</strong></p>
+<p>ReadView（读视图）是 MVCC 可见性判断的核心数据结构。它本质上是一个"快照"，记录了 ReadView（读视图）生成时刻系统中所有活跃事务的信息。其四个核心成员如下：</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>m_ids</code></strong></td>
+<td>列表 <code>list&lt;trx_id&gt;</code></td>
+<td>生成 ReadView（读视图）时，系统中所有<strong>活跃（未提交）</strong> 的事务ID列表</td>
+</tr>
+<tr>
+<td><strong><code>min_trx_id</code></strong></td>
+<td>整数</td>
+<td><code>m_ids</code> 中的最小值，即当前活跃事务的最小事务ID</td>
+</tr>
+<tr>
+<td><strong><code>max_trx_id</code></strong></td>
+<td>整数</td>
+<td>系统尚未分配的下一个事务ID，即 <code>m_ids</code> 中最大值 + 1（低水位）</td>
+</tr>
+<tr>
+<td><strong><code>creator_trx_id</code></strong></td>
+<td>整数</td>
+<td>生成该 ReadView（读视图）的事务自己的事务ID</td>
+</tr>
+</tbody>
+</table>
+<p>设计哲学：ReadView（读视图）通过划定了两段"水位线"——<code>[min_trx_id, max_trx_id)</code> 区间内的不确定性事务，区间外的（&lt; min_trx_id 已提交，&gt;= max_trx_id 尚未开始）则是确定的。</p>
+<p><strong>可见性判断五规则</strong></p>
+<p>给定一个数据版本 V，其事务ID为 <code>trx_id_V</code>，ReadView（读视图）按以下顺序判断 V 对当前事务是否可见：</p>
+<ol>
+<li><strong>trx_id_V == creator_trx_id</strong> → 可见（自己修改的，当然能看）</li>
+<li><strong>trx_id_V &lt; min_trx_id</strong> → 可见（事务已提交，在 ReadView 生成前已结束）</li>
+<li><strong>trx_id_V &gt;= max_trx_id</strong> → 不可见（该事务在 ReadView 生成后才启动）</li>
+<li><strong>trx_id_V 在 m_ids 列表中</strong> → 不可见（该事务活跃未提交）</li>
+<li><strong>trx_id_V 不在 m_ids 列表中</strong> → 可见（该事务在 ReadView 生成时已提交）</li>
+</ol>
+<p>实际执行时，InnoDB 从版本链头部开始，依次对每个版本应用上述五规则，直至找到第一个可见版本。</p>
+<h4 id="_13">第三层：实践应用</h4>
+<p><strong>RR 与 RC 下 ReadView 生成时机的区别</strong></p>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>ReadView 生成时机</th>
+<th>同事务多次查询结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>可重复读（RR，REPEATABLE READ）</strong></td>
+<td><strong>事务中第一条 SELECT 语句执行时</strong>生成，<strong>复用至事务结束</strong></td>
+<td>始终相同（可重复读）</td>
+</tr>
+<tr>
+<td><strong>读已提交（RC，READ COMMITTED）</strong></td>
+<td><strong>每条 SELECT 语句执行时</strong>都生成新的 ReadView</td>
+<td>可能不同（不可重复读）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>快照读（Snapshot Read）vs 当前读（Current Read）</strong></p>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>快照读（Snapshot Read）</th>
+<th>当前读（Current Read）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读取方式</td>
+<td>读undo log中的历史版本，不加锁</td>
+<td>读聚簇索引中的最新数据，加锁</td>
+</tr>
+<tr>
+<td>对应SQL</td>
+<td>普通 <code>SELECT</code></td>
+<td><code>SELECT ... FOR UPDATE</code>、<code>SELECT ... LOCK IN SHARE MODE</code>、<code>UPDATE</code>、<code>DELETE</code>、<code>INSERT</code></td>
+</tr>
+<tr>
+<td>MVCC 作用</td>
+<td>MVCC 提供可见性判断</td>
+<td>MVCC 不作用，走当前读加锁逻辑</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>高（无锁）</td>
+<td>低（有锁等待）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>完整 SELECT 执行流程（RR 下）</strong></p>
+<ol>
+<li>获取 ReadView（首条SELECT生成，后续复用）</li>
+<li>通过 <strong>B+树索引（B+ Tree Index）</strong> 定位目标数据行</li>
+<li>读取 DB_TRX_ID</li>
+<li>应用五规则判断可见性</li>
+<li>可见则返回，不可见则沿 DB_ROLL_PTR 回溯上一版本</li>
+<li>回溯到版本链尽头仍不可见 → 行不存在</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">-- RR 下的可重复读</span>
+<span class="k">START</span><span class="w"> </span><span class="k">TRANSACTION</span><span class="p">;</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 生成 ReadView，读余额为 1000</span>
+<span class="c1">-- 事务 B UPDATE + COMMIT</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 复用 ReadView，结果仍为 1000</span>
+<span class="k">COMMIT</span><span class="p">;</span>
+
+<span class="c1">-- RC 下的不可重复读</span>
+<span class="k">SET</span><span class="w"> </span><span class="k">SESSION</span><span class="w"> </span><span class="k">TRANSACTION</span><span class="w"> </span><span class="k">ISOLATION</span><span class="w"> </span><span class="k">LEVEL</span><span class="w"> </span><span class="k">READ</span><span class="w"> </span><span class="k">COMMITTED</span><span class="p">;</span>
+<span class="k">START</span><span class="w"> </span><span class="k">TRANSACTION</span><span class="p">;</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 读余额为 1000</span>
+<span class="c1">-- 事务 D UPDATE + COMMIT</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 新 ReadView，读到余额为 2000</span>
+<span class="k">COMMIT</span><span class="p">;</span>
+
+<span class="c1">-- DELETE 在版本链中的表现</span>
+<span class="k">START</span><span class="w"> </span><span class="k">TRANSACTION</span><span class="p">;</span>
+<span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">account</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">-- 新增标记删除版本</span>
+<span class="k">COMMIT</span><span class="p">;</span><span class="w"> </span><span class="c1">-- purge线程异步清理</span>
+</code></pre></div>
+
+<h4 id="_14">第四层：深入思考</h4>
+<p><strong>MVCC 与 undo log（回滚日志）的关系</strong>：undo log 是 MVCC 版本链的物理载体。每次 UPDATE/DELETE 前将旧版本写入 undo log，DB_ROLL_PTR 指向该记录。</p>
+<p><strong>MVCC 与锁机制的对比</strong>：MVCC 通过多版本实现"读写不互斥"；锁机制通过互斥访问保证一致性。RR 下 MVCC 解决快照读幻读，<strong>next-key lock（临键锁）</strong> 解决当前读幻读。</p>
+<p><strong>MVCC 失效场景</strong>：当前读（FOR UPDATE）不走MVCC；Serializable 级别所有读隐式加锁；长事务导致 undo log 膨胀。</p>
+<p><strong>隔离级别与 MVCC 联动</strong>：RU不用MVCC，RC每个语句生成新ReadView，RR首条SELECT生成并复用，SERIALIZABLE所有读隐式加锁。</p>
+<hr />
+<h3 id="_15">🗺️ 回答思路</h3>
+<p><strong>答题逻辑框架（总-分-总）</strong>：</p>
+<div class="highlight"><pre><span></span><code>总（15秒）：MVCC 是 InnoDB 实现高并发读的核心机制
+分（3分钟）：按四层展开：核心概念 → 底层原理 → 实践应用 → 深入思考
+总（15秒）：MVCC的本质是通过版本链+ReadView实现读写不互斥
+</code></pre></div>
+
+<p><strong>重点得分点</strong>：<br />
+1. RR和RC下ReadView生成时机区别（最高频考点）<br />
+2. 可见性判断五规则（能完整说出的不到30%）<br />
+3. 快照读 vs 当前读（体现对MVCC边界的理解）<br />
+4. 版本链回溯机制（体现底层原理深度）</p>
+<p><strong>常见误区</strong>：<br />
+- MVCC解决了所有并发问题 → 纠正：只解决快照读并发<br />
+- DELETE立即删除数据 → 纠正：标记删除，purge异步清理<br />
+- RR完全消除了幻读 → 纠正：只消除快照读幻读，当前读需next-key lock</p>
+<p><strong>时间分配建议（总4分钟）</strong>：<br />
+- 核心概念 40秒 → 底层原理 1分30秒 → 实践应用 1分10秒 → 深入思考 40秒</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: MySQL / 数据库<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-04 14:27:06</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0032')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0032')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>
