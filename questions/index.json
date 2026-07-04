@@ -1,7 +1,7 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T18:00:00",
+    "last_updated": "2026-07-04T14:26:57",
     "total_questions": 30
   },
   "categories": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 8
+      "count": 7
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -45,13 +45,13 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 4
+      "count": 5
     },
     "os": {
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-        "count": 2
+      "count": 2
     },
     "network": {
       "name": "计算机网络",
@@ -81,7 +81,7 @@
       "name": "DevOps / 运维",
       "icon": "🔧",
       "description": "CI/CD、Docker、K8s",
-        "count": 2
+      "count": 1
     }
   },
   "difficulty_levels": {
@@ -550,12 +550,32 @@
       "id": "q0029",
       "question": "使用 Kafka 时如何保证数据不丢失（从Producer-Broker-Consumer全链路分析）",
       "category": "distributed",
-      "tags": ["Kafka", "消息队列", "分布式", "数据可靠性", "ISR", "ACK"],
+      "tags": [
+        "Kafka",
+        "消息队列",
+        "分布式",
+        "数据可靠性",
+        "ISR",
+        "ACK"
+      ],
       "difficulty": "hard",
       "file": "questions/database/distributed/使用Kafka时如何保证数据不丢失.md",
       "created": "2026-07-04 18:00:00",
       "source": "/面经助手-20260704",
       "hash": "kafka_data_loss_prevention"
+    },
+    {
+      "id": "q0030",
+      "question": "线程、进程、协程相关知识点：请深入讲解三者的区别和联系，涵盖进程定义与IPC、线程定义与Java线程机制、协程定义与Java虚拟线程、三者对比表格、实际场景选型",
+      "category": "os",
+      "tags": [
+        "并发编程"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\os\\线程进程协程相关知识点请深入讲解三者的区别和联系涵盖进程定义与IPC线程定义与Java线程机制协程定义与Java虚拟线程.md",
+      "created": "2026-07-04 14:26:57",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "7f969d71"
     }
   ]
 }
