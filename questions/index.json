@@ -492,7 +492,7 @@
         "主从复制",
         "CAP",
         "RedLock",
-        "ZooKeeper",
+        "Fencing Token",
         "幂等"
       ],
       "difficulty": "hard",
