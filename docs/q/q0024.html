@@ -158,271 +158,600 @@ body {
 
 <div class="q-container">
     <h1>消费者收到重复的支付消息如何处理（幂等设计）</h1>
-    <div class="tag-row"></div>
-    <pre># 消费者收到重复的支付消息如何处理（幂等设计）
-
-# 支付消息幂等设计深度解析
-
-&gt; **消费者收到重复的支付消息如何处理**
-
----
-
-## 文档信息
-
-| 条目 | 内容 |
-|------|------|
-| **题目标题** | 消费者收到重复的支付消息如何处理（幂等设计） |
-| **生成日期** | 2026-07-04 |
-| **文档版本** | v1.0 |
-| **技术标签** | `幂等设计` `分布式系统` `支付系统` `高可用` `最终一致性` |
-| **关键词** | Idempotency, 唯一键, 乐观锁, 状态机, Outbox Pattern, 防重放 |
-
----
-
-## 目录（Table of Contents）
-
-- [1. 联想记忆法](#1-联想记忆法)
-- [2. 深度解答](#2-深度解答)
-- [3. 回答思路](#3-回答思路)
-
----
-
-## 1. 联想记忆法
-
-### 1.1 核心口诀
-
-&gt; **"一锁二查三更新，流水单号防重门"**
-
-### 1.2 场景联想（电梯按钮）
-
-电梯按钮按下一次会亮，反复按同一个按钮，电梯依然只响应一次。这就是**幂等**——同一个操作多次执行，结果不变。支付系统的幂等设计，本质就是给每个支付请求安装一个"电梯按钮"。
-
-### 1.3 核心方案关键词链（PAST）
-
-| 字母 | 关键词 | 说明 |
-|------|--------|------|
-| **P** | Payment ID | 支付单号作为唯一键 |
-| **O** | Outbox Pattern | 前置流水表 |
-| **A** | API Idempotency | 支付网关侧幂等 |
-| **T** | Token Mechanism | Token 防重放 |
-
-### 1.4 三层校验记忆法
-
-| 层级 | 位置 | 机制 | 作用 |
-|------|------|------|------|
-| **第一层** | 数据库 | 唯一索引兜底 | Insert 失败即重复 |
-| **第二层** | 应用 | 查流水表判定状态 | 状态机转移防乱序 |
-| **第三层** | 网关 | out_trade_no 天然幂等 | 重复请求直接返回 |
-
-### 1.5 中英对照挂钩
-
-| 中文 | English |
-|------|---------|
-| 幂等 | Idempotent |
-| 唯一键 | Unique Key |
-| 流水表 | Transaction Log |
-| 乐观锁 | Optimistic Lock |
-| 状态机 | State Machine |
-
----
-
-## 2. 深度解答
-
-### 2.1 核心概念：幂等的本质与支付场景的特殊性
-
-**幂等（Idempotency）** 源自数学，指一个操作执行一次与执行多次产生相同的结果。在分布式系统中，幂等是保证 **"至少一次交付"（At-Least-Once Delivery）** 语义下数据最终一致的核心手段。
-
-支付场景是幂等设计最严苛的战场，原因有三：
-
-1. **资金敏感性**：重复扣款直接导致资损，不可接受。
-2. **消息传递的"至少一次"特性**：MQ 重试、网络重传、用户重复点击都会导致同一支付请求被多次投递。
-3. **分布式环境的不可靠性**：支付网关超时后重试，无法区分是"网关处理中"还是"网关已处理但响应丢失"。
-
-因此，支付幂等的目标不是"阻止重复请求到达"，而是**让重复请求的处理结果与首次完全相同，且不产生副作用**。
-
-### 2.2 底层原理：四大幂等方案的技术拆解
-
-#### 方案 1：支付单号（Payment ID）作为唯一键
-
-**原理**：数据库唯一索引（Unique Index）是最底层的防重屏障。当两次 Insert 使用相同的主键或唯一键时，第二次 Insert 因违反唯一约束而失败，数据库直接返回 Duplicate Entry 错误。
-
-```sql
-CREATE TABLE payment_transaction (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    payment_id    VARCHAR(64) NOT NULL COMMENT '全局唯一支付单号',
-    order_id      VARCHAR(64) NOT NULL COMMENT '订单号',
-    amount        DECIMAL(12,2) NOT NULL,
-    status        TINYINT NOT NULL DEFAULT 0 COMMENT '0=处理中, 1=成功, 2=失败',
-    version       INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
-    created_at    DATETIME NOT NULL,
-    updated_at    DATETIME NOT NULL,
-    UNIQUE INDEX  uk_payment_id (payment_id),
-    INDEX         idx_order_id (order_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-**支付单号的生成**：必须全局唯一且携带业务语义。推荐方案：雪花算法（Snowflake）64位长整型，或业务前缀 + UUID 短值。
-
-#### 方案 2：前置流水表 + Outbox Pattern
-
-**原理**：先写本地流水表（状态=处理中），再调支付网关。流水表作为"可靠事件日志"（Event Log），保证支付请求不丢失、不重复。
-
-**核心优势**：流水表是支付请求的"单次写入锚点"。无论下游调用多少次，流水表的第一条记录就是"圣典"（Source of Truth），后续请求通过唯一索引被拒后，只需查询流水表状态即可返回。
-
-#### 方案 3：支付网关侧的幂等
-
-微信支付和支付宝的接口通过 `out_trade_no`（商户订单号）天然支持幂等。支付网关的幂等是上游幂等设计的"最后一道防线"，但不能完全依赖它。
-
-#### 方案 4：Token 机制（防重放）
-
-**原理**：在下单阶段生成一次性的支付 Token，支付时通过 Redis 的 `SET NX`（Set if Not Exists）命令原子性校验 Token 是否已使用。
-
-```java
-// Token 生成（下单阶段）
-String paymentToken = UUID.randomUUID().toString();
-redisTemplate.opsForValue().set(
-    "payment:token:" + paymentToken, orderId, 30, TimeUnit.MINUTES
-);
-
-// Token 校验（支付阶段）
-Boolean acquired = redisTemplate.opsForValue()
-    .setIfAbsent("payment:used:" + paymentToken, "1");
-if (Boolean.FALSE.equals(acquired)) {
-    throw new RuntimeException("支付 Token 已使用，请勿重复支付");
-}
-```
-
-### 2.3 实践应用：完整代码实现
-
-#### 支付入口 Service
-
-```java
-@Service
-public class PaymentService {
-
-    @Autowired
-    private PaymentTransactionMapper transactionMapper;
-    @Autowired
-    private PaymentGatewayClient paymentGatewayClient;
-    @Autowired
-    private RedisTemplate&lt;String, String&gt; redisTemplate;
-
-    @Transactional(rollbackFor = Exception.class)
-    public PaymentResult pay(PaymentRequest request) {
-        String paymentId = request.getPaymentId();
-        // Step 1: 查流水表——已存在直接返回
-        PaymentTransaction tx = transactionMapper.selectByPaymentId(paymentId);
-        if (tx != null) {
-            if (tx.getStatus() == 1) return PaymentResult.success(tx.getTransactionId());
-            if (tx.getStatus() == 0) return PaymentResult.pending(tx.getTransactionId());
-            if (tx.getStatus() == 2) return PaymentResult.failed(tx.getTransactionId(), tx.getErrorMsg());
-        }
-        // Step 2: 创建流水（唯一键防重）
-        PaymentTransaction newTx = new PaymentTransaction();
-        newTx.setPaymentId(paymentId);
-        newTx.setOrderId(request.getOrderId());
-        newTx.setAmount(request.getAmount());
-        newTx.setStatus(0);
-        try {
-            transactionMapper.insert(newTx);
-        } catch (DuplicateKeyException e) {
-            tx = transactionMapper.selectByPaymentId(paymentId);
-            return PaymentResult.ofStatus(tx);
-        }
-        // Step 3: 调用支付网关（带分布式锁防并发）
-        String lockKey = "payment:lock:" + paymentId;
-        Boolean locked = redisTemplate.opsForValue()
-            .setIfAbsent(lockKey, "1", 5, TimeUnit.SECONDS);
-        if (Boolean.FALSE.equals(locked)) return PaymentResult.pending(paymentId);
-        try {
-            GatewayResponse response = paymentGatewayClient.submit(paymentId,
-                request.getAmount(), request.getDescription());
-            newTx.setGatewayTradeNo(response.getTradeNo());
-            newTx.setStatus(1);
-            transactionMapper.updateById(newTx);
-            return PaymentResult.success(response.getTradeNo());
-        } catch (Exception e) {
-            log.error("网关调用失败, paymentId={}", paymentId, e);
-            return PaymentResult.pending(paymentId);
-        } finally {
-            redisTemplate.delete(lockKey);
-        }
-    }
-}
-```
-
-#### 支付回调处理
-
-```java
-@Service
-public class PaymentCallbackService {
-    @Autowired
-    private PaymentTransactionMapper transactionMapper;
-    @Autowired
-    private OrderService orderService;
-
-    @Transactional(rollbackFor = Exception.class)
-    public void handleCallback(PaymentCallback callback) {
-        String paymentId = callback.getOutTradeNo();
-        PaymentTransaction tx = transactionMapper.selectByPaymentId(paymentId);
-        if (tx == null) { log.warn("未知 paymentId: {}", paymentId); return; }
-        if (tx.getStatus() != 0) { log.info("重复回调忽略"); return; }
-        int affected = transactionMapper.updateStatusByIdempotent(
-            paymentId, 0, 1, callback.getGatewayTradeNo(), tx.getVersion());
-        if (affected == 0) { log.warn("乐观锁更新失败"); return; }
-        if ("SUCCESS".equals(callback.getTradeStatus())) {
-            orderService.markOrderPaid(tx.getOrderId(), tx.getAmount());
-        } else {
-            orderService.markOrderFailed(tx.getOrderId(), callback.getFailReason());
-        }
-    }
-}
-```
-
-### 2.4 深入思考：数据库 + 缓存双写一致性
-
-支付系统经常引入 Redis 缓存来加速查询，但缓存与数据库的双写一致性是难点。最佳实践：先写 DB -&gt; 后删缓存（延迟双删），缓存 TTL 建议 1-5 分钟。
-
----
-
-## 3. 回答思路
-
-### 3.1 破题：从"为什么会有重复"切入
-
-分析重复消息来源：用户重复点击、MQ 重试、网关超时重传。点明"至少一次交付"（At-Least-Once Delivery）的必然性。
-
-### 3.2 回答节奏：由底向上
-
-第一层（数据库兜底）：唯一索引 + Insert 防重；第二层（业务逻辑）：查询流水表 + 状态机控制；第三层（分布式锁）：Redis SET NX 控制并发；第四层（网关配合）：利用 out_trade_no 的网关幂等。
-
-### 3.3 加分项
-
-提及"定时补偿任务"——扫描"处理中"状态的流水，主动查询网关最终状态并修复。
-
-### 3.4 中英术语矩阵
-
-| 中文 | English |
-|------|---------|
-| 幂等 | Idempotency / Idempotent |
-| 唯一键 | Unique Key |
-| 乐观锁 | Optimistic Locking |
-| 状态机 | State Machine |
-| 最终一致性 | Eventual Consistency |
-| 至少一次交付 | At-Least-Once Delivery |
-| 流水表 | Transaction Log |
-| 外发模式 | Outbox Pattern |
-
----
-
-&gt; **总结**：支付幂等设计的本质是用"空间换正确性"——通过一个事前写入的流水表（唯一键），将分布式系统的不确定性降级为数据库的确定性约束。
-
-
----
-
-&gt; 📋 **分类**: Java
-&gt; 🏷️ **标签**: 
-&gt; 📊 **难度**: 中级
-&gt; 📅 **归档时间**: 2026-07-04 14:25:46</pre>
+    <div class="tag-row"><span class="tag-item">幂等设计</span>
+<span class="tag-item">支付系统</span>
+<span class="tag-item">分布式系统</span></div>
+    <h1 id="_1">支付消息幂等设计深度解析</h1>
+<blockquote>
+<p><strong>消费者收到重复的支付消息如何处理</strong></p>
+</blockquote>
+<hr />
+<h2 id="_2">文档信息</h2>
+<table>
+<thead>
+<tr>
+<th>条目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>题目标题</strong></td>
+<td>消费者收到重复的支付消息如何处理（幂等设计）</td>
+</tr>
+<tr>
+<td><strong>生成日期</strong></td>
+<td>2026-07-04</td>
+</tr>
+<tr>
+<td><strong>文档版本</strong></td>
+<td>v1.0</td>
+</tr>
+<tr>
+<td><strong>技术标签</strong></td>
+<td><code>幂等设计</code> <code>分布式系统</code> <code>支付系统</code> <code>高可用</code> <code>最终一致性</code></td>
+</tr>
+<tr>
+<td><strong>关键词</strong></td>
+<td>Idempotency, 唯一键, 乐观锁, 状态机, Outbox Pattern, 防重放</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="table-of-contents">目录（Table of Contents）</h2>
+<ul>
+<li><a href="#1-联想记忆法">1. 联想记忆法</a></li>
+<li><a href="#11-核心口诀">1.1 核心口诀</a></li>
+<li><a href="#12-场景联想电梯按钮">1.2 场景联想：电梯按钮</a></li>
+<li><a href="#13-核心方案关键词链past">1.3 核心方案关键词链（PAST）</a></li>
+<li><a href="#14-三层校验记忆法">1.4 三层校验记忆法</a></li>
+<li><a href="#15-中英对照挂钩">1.5 中英对照挂钩</a></li>
+<li><a href="#2-深度解答">2. 深度解答</a></li>
+<li><a href="#21-核心概念幂等的本质与支付场景的特殊性">2.1 核心概念：幂等的本质与支付场景的特殊性</a></li>
+<li><a href="#22-底层原理四大幂等方案的技术拆解">2.2 底层原理：四大幂等方案的技术拆解</a><ul>
+<li><a href="#方案-1支付单号payment-id作为唯一键">方案 1：支付单号（Payment ID）作为唯一键</a></li>
+<li><a href="#方案-2前置流水表--outbox-pattern">方案 2：前置流水表 + Outbox Pattern</a></li>
+<li><a href="#方案-3支付网关侧的幂等">方案 3：支付网关侧的幂等</a></li>
+<li><a href="#方案-4token-机制防重放">方案 4：Token 机制（防重放）</a></li>
+</ul>
+</li>
+<li><a href="#23-实践应用完整代码实现">2.3 实践应用：完整代码实现</a><ul>
+<li><a href="#31-支付入口-service">3.1 支付入口 Service</a></li>
+<li><a href="#32-支付回调处理">3.2 支付回调处理</a></li>
+</ul>
+</li>
+<li><a href="#24-深入思考数据库--缓存双写一致性">2.4 深入思考：数据库 + 缓存双写一致性</a></li>
+<li><a href="#3-回答思路">3. 回答思路</a></li>
+<li><a href="#31-破题从为什么会有重复切入">3.1 破题：从"为什么会有重复"切入</a></li>
+<li><a href="#32-回答节奏由底向上">3.2 回答节奏：由底向上</a></li>
+<li><a href="#33-代码落地关键考点">3.3 代码落地关键考点</a></li>
+<li><a href="#34-加分项">3.4 加分项</a></li>
+<li><a href="#35-中英术语矩阵">3.5 中英术语矩阵</a></li>
+<li><a href="#4-文档信息">4. 文档信息</a></li>
+</ul>
+<hr />
+<hr />
+<h2 id="1">1. 联想记忆法</h2>
+<h3 id="11">1.1 核心口诀</h3>
+<blockquote>
+<p><strong>"一锁二查三更新，流水单号防重门"</strong></p>
+</blockquote>
+<h3 id="12">1.2 场景联想（电梯按钮）</h3>
+<p>电梯按钮按下一次会亮，反复按同一个按钮，电梯依然只响应一次。这就是<strong>幂等</strong>——同一个操作多次执行，结果不变。支付系统的幂等设计，本质就是给每个支付请求安装一个"电梯按钮"。</p>
+<h3 id="13-past">1.3 核心方案关键词链（PAST）</h3>
+<table>
+<thead>
+<tr>
+<th>字母</th>
+<th>关键词</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P</strong></td>
+<td>Payment ID</td>
+<td>支付单号作为唯一键</td>
+</tr>
+<tr>
+<td><strong>O</strong></td>
+<td>Outbox Pattern</td>
+<td>前置流水表</td>
+</tr>
+<tr>
+<td><strong>A</strong></td>
+<td>API Idempotency</td>
+<td>支付网关侧幂等</td>
+</tr>
+<tr>
+<td><strong>T</strong></td>
+<td>Token Mechanism</td>
+<td>Token 防重放</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注：PAST 四个字母串联起幂等设计的四大核心方案，便于面试时逐层展开。</p>
+</blockquote>
+<h3 id="14">1.4 三层校验记忆法</h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>位置</th>
+<th>机制</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>第一层</strong></td>
+<td>数据库</td>
+<td>唯一索引兜底</td>
+<td>Insert 失败即重复</td>
+</tr>
+<tr>
+<td><strong>第二层</strong></td>
+<td>应用</td>
+<td>查流水表判定状态</td>
+<td>状态机转移防乱序</td>
+</tr>
+<tr>
+<td><strong>第三层</strong></td>
+<td>网关</td>
+<td><code>out_trade_no</code> 天然幂等</td>
+<td>重复请求直接返回</td>
+</tr>
+</tbody>
+</table>
+<h3 id="15">1.5 中英对照挂钩</h3>
+<table>
+<thead>
+<tr>
+<th>中文</th>
+<th>English</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>幂等</td>
+<td>Idempotent</td>
+</tr>
+<tr>
+<td>唯一键</td>
+<td>Unique Key</td>
+</tr>
+<tr>
+<td>流水表</td>
+<td>Transaction Log</td>
+</tr>
+<tr>
+<td>乐观锁</td>
+<td>Optimistic Lock</td>
+</tr>
+<tr>
+<td>状态机</td>
+<td>State Machine</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<h2 id="2">2. 深度解答</h2>
+<h3 id="21">2.1 核心概念：幂等的本质与支付场景的特殊性</h3>
+<p><strong>幂等（Idempotency）</strong> 源自数学，指一个操作执行一次与执行多次产生相同的结果。在分布式系统中，幂等是保证 <strong>"至少一次交付"（At-Least-Once Delivery）</strong> 语义下数据最终一致的核心手段。</p>
+<p>支付场景是幂等设计最严苛的战场，原因有三：</p>
+<ol>
+<li><strong>资金敏感性</strong>：重复扣款直接导致资损，不可接受。</li>
+<li><strong>消息传递的"至少一次"特性</strong>：MQ 重试、网络重传、用户重复点击都会导致同一支付请求被多次投递。</li>
+<li><strong>分布式环境的不可靠性</strong>：支付网关超时后重试，无法区分是"网关处理中"还是"网关已处理但响应丢失"。</li>
+</ol>
+<p>因此，支付幂等的目标不是"阻止重复请求到达"，而是<strong>让重复请求的处理结果与首次完全相同，且不产生副作用</strong>。</p>
+<h3 id="22">2.2 底层原理：四大幂等方案的技术拆解</h3>
+<hr />
+<h4 id="1payment-id">方案 1：支付单号（Payment ID）作为唯一键</h4>
+<p><strong>原理</strong>：数据库唯一索引（Unique Index）是最底层的防重屏障。当两次 Insert 使用相同的主键或唯一键时，第二次 Insert 因违反唯一约束而失败，数据库直接返回 Duplicate Entry 错误。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 支付流水表核心设计</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">payment_transaction</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w">            </span><span class="nb">BIGINT</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">payment_id</span><span class="w">    </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">COMMENT</span><span class="w"> </span><span class="s1">&#39;全局唯一支付单号&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">order_id</span><span class="w">      </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">COMMENT</span><span class="w"> </span><span class="s1">&#39;订单号&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">amount</span><span class="w">        </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">status</span><span class="w">        </span><span class="n">TINYINT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">COMMENT</span><span class="w"> </span><span class="s1">&#39;0=处理中, 1=成功, 2=失败&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="k">version</span><span class="w">       </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">COMMENT</span><span class="w"> </span><span class="s1">&#39;乐观锁版本号&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w">    </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">updated_at</span><span class="w">    </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="k">UNIQUE</span><span class="w"> </span><span class="k">INDEX</span><span class="w">  </span><span class="n">uk_payment_id</span><span class="w"> </span><span class="p">(</span><span class="n">payment_id</span><span class="p">),</span>
+<span class="w">    </span><span class="k">INDEX</span><span class="w">         </span><span class="n">idx_order_id</span><span class="w"> </span><span class="p">(</span><span class="n">order_id</span><span class="p">)</span>
+<span class="p">)</span><span class="w"> </span><span class="n">ENGINE</span><span class="o">=</span><span class="n">InnoDB</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">CHARSET</span><span class="o">=</span><span class="n">utf8mb4</span><span class="p">;</span>
+</code></pre></div>
+
+<p><strong>支付单号的生成</strong>：必须全局唯一且携带业务语义。推荐方案：</p>
+<ul>
+<li><strong>雪花算法（Snowflake）</strong>：64 位长整型，结合时间戳 + 机器 ID + 序列号，高性能且有序。</li>
+<li><strong>业务前缀 + UUID 短值</strong>：如 <code>PAY20260704001_${UUID短串}</code>，兼具可读性和唯一性。</li>
+</ul>
+<p><strong>数据流</strong>：</p>
+<div class="highlight"><pre><span></span><code>请求到达 → INSERT INTO payment_transaction (payment_id, ...)
+    ├── 成功 → 继续业务处理
+    └── 唯一键冲突 → 查询已有记录 → 直接返回已有结果
+</code></pre></div>
+
+<hr />
+<h4 id="2-outbox-pattern">方案 2：前置流水表 + Outbox Pattern</h4>
+<p><strong>原理</strong>：先写本地流水表（状态 = 处理中），再调支付网关。流水表作为 <strong>"可靠事件日志"（Event Log）</strong>，保证支付请求不丢失、不重复。</p>
+<div class="highlight"><pre><span></span><code>┌──────────────┐     ┌──────────────────┐     ┌──────────────┐
+│   业务请求     │────&gt;│  支付流水表(状态=0) │────&gt;│  支付网关    │
+│ (含PaymentID) │     │ (Outbox/前置写)  │     │ (微信/支付宝) │
+└──────────────┘     └──────────────────┘     └──────────────┘
+                              │                        │
+                              │                        │
+                              ▼                        ▼
+                     ┌──────────────────────────────────────────┐
+                     │   支付网关回调 → 更新流水状态为成功/失败     │
+                     │   → 更新订单状态                            │
+                     └──────────────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>核心优势</strong>：流水表是支付请求的 <strong>"单次写入锚点"</strong>。无论下游调用多少次，流水表的第一条记录就是 <strong>"圣典"（Source of Truth）</strong>，后续请求通过唯一索引被拒后，只需查询流水表状态即可返回。</p>
+<hr />
+<h4 id="3">方案 3：支付网关侧的幂等</h4>
+<p>微信支付和支付宝的接口通过 <code>out_trade_no</code>（商户订单号）天然支持幂等。重复请求时，网关返回：</p>
+<ul>
+<li><strong>首次请求</strong>：返回 <code>{"code": "SUCCESS", "trade_state": "NOTPAY"}</code>，创建支付订单。</li>
+<li><strong>重复请求</strong>：返回 <code>{"code": "SUCCESS", "trade_state": "SUCCESS"}</code>，返回已支付结果而非新建订单。</li>
+</ul>
+<blockquote>
+<p><strong>因此</strong>，支付网关的幂等是上游幂等设计的 <strong>"最后一道防线"</strong>，但不能完全依赖它——因为网关超时场景下，商户无法区分"网关真的失败了"还是"网关成功了但响应丢了"。</p>
+</blockquote>
+<hr />
+<h4 id="4token">方案 4：Token 机制（防重放）</h4>
+<p><strong>原理</strong>：在下单阶段生成一次性的支付 Token，支付时通过 Redis 的 <code>SET NX</code>（Set if Not Exists）命令原子性校验 Token 是否已使用。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Token 生成（下单阶段）</span>
+<span class="n">String</span><span class="w"> </span><span class="n">paymentToken</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">().</span><span class="na">toString</span><span class="p">();</span>
+<span class="n">redisTemplate</span><span class="p">.</span><span class="na">opsForValue</span><span class="p">().</span><span class="na">set</span><span class="p">(</span>
+<span class="w">    </span><span class="s">&quot;payment:token:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paymentToken</span><span class="p">,</span>
+<span class="w">    </span><span class="n">orderId</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">MINUTES</span>
+<span class="p">);</span>
+
+<span class="c1">// Token 校验（支付阶段）</span>
+<span class="n">Boolean</span><span class="w"> </span><span class="n">acquired</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisTemplate</span><span class="p">.</span><span class="na">opsForValue</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="na">setIfAbsent</span><span class="p">(</span><span class="s">&quot;payment:used:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paymentToken</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Boolean</span><span class="p">.</span><span class="na">FALSE</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">acquired</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RuntimeException</span><span class="p">(</span><span class="s">&quot;支付 Token 已使用，请勿重复支付&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>注意</strong>：Token 机制只能防<strong>客户端的重复提交</strong>（如用户快速连点），不能防<strong>服务端重试</strong>带来的重复——因为服务端重试用的是同一个 Token 但流程已跨过了 Token 校验阶段。</p>
+</blockquote>
+<hr />
+<h3 id="23">2.3 实践应用：完整代码实现</h3>
+<h4 id="31-service">3.1 支付入口 Service</h4>
+<div class="highlight"><pre><span></span><code><span class="nd">@Service</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PaymentService</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="nd">@Autowired</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">PaymentTransactionMapper</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">;</span>
+<span class="w">    </span><span class="nd">@Autowired</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">PaymentGatewayClient</span><span class="w"> </span><span class="n">paymentGatewayClient</span><span class="p">;</span>
+<span class="w">    </span><span class="nd">@Autowired</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">RedisTemplate</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">redisTemplate</span><span class="p">;</span>
+
+<span class="w">    </span><span class="nd">@Transactional</span><span class="p">(</span><span class="n">rollbackFor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Exception</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">PaymentResult</span><span class="w"> </span><span class="nf">pay</span><span class="p">(</span><span class="n">PaymentRequest</span><span class="w"> </span><span class="n">request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">paymentId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">getPaymentId</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// Step 1: 查流水表——已存在直接返回</span>
+<span class="w">        </span><span class="n">PaymentTransaction</span><span class="w"> </span><span class="n">tx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">selectByPaymentId</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// 已存在且成功 → 直接返回成功（幂等返回）</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">success</span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getTransactionId</span><span class="p">());</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// 已存在且处理中 → 返回&quot;处理中&quot;状态</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">pending</span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getTransactionId</span><span class="p">());</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// 已存在且失败 → 允许重试（需走失败重试逻辑）</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">failed</span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getTransactionId</span><span class="p">(),</span><span class="w"> </span><span class="n">tx</span><span class="p">.</span><span class="na">getErrorMsg</span><span class="p">());</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Step 2: 创建流水（唯一键防重）</span>
+<span class="w">        </span><span class="n">PaymentTransaction</span><span class="w"> </span><span class="n">newTx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PaymentTransaction</span><span class="p">();</span>
+<span class="w">        </span><span class="n">newTx</span><span class="p">.</span><span class="na">setPaymentId</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">        </span><span class="n">newTx</span><span class="p">.</span><span class="na">setOrderId</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">getOrderId</span><span class="p">());</span>
+<span class="w">        </span><span class="n">newTx</span><span class="p">.</span><span class="na">setAmount</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">getAmount</span><span class="p">());</span>
+<span class="w">        </span><span class="n">newTx</span><span class="p">.</span><span class="na">setStatus</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// 处理中</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="n">newTx</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">DuplicateKeyException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// 并发下唯一键冲突，查询已有记录返回</span>
+<span class="w">            </span><span class="n">tx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">selectByPaymentId</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">ofStatus</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Step 3: 调用支付网关（带分布式锁防并发）</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">lockKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;payment:lock:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paymentId</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Boolean</span><span class="w"> </span><span class="n">locked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisTemplate</span><span class="p">.</span><span class="na">opsForValue</span><span class="p">()</span>
+<span class="w">            </span><span class="p">.</span><span class="na">setIfAbsent</span><span class="p">(</span><span class="n">lockKey</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Boolean</span><span class="p">.</span><span class="na">FALSE</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">locked</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">pending</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">GatewayResponse</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">paymentGatewayClient</span><span class="p">.</span><span class="na">submit</span><span class="p">(</span><span class="n">paymentId</span><span class="p">,</span>
+<span class="w">                </span><span class="n">request</span><span class="p">.</span><span class="na">getAmount</span><span class="p">(),</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">getDescription</span><span class="p">());</span>
+<span class="w">            </span><span class="c1">// 更新流水为&quot;已提交网关&quot;</span>
+<span class="w">            </span><span class="n">newTx</span><span class="p">.</span><span class="na">setGatewayTradeNo</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="na">getTradeNo</span><span class="p">());</span>
+<span class="w">            </span><span class="n">newTx</span><span class="p">.</span><span class="na">setStatus</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">            </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">updateById</span><span class="p">(</span><span class="n">newTx</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">success</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="na">getTradeNo</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span><span class="p">.</span><span class="na">error</span><span class="p">(</span><span class="s">&quot;网关调用失败, paymentId={}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">paymentId</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">PaymentResult</span><span class="p">.</span><span class="na">pending</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">redisTemplate</span><span class="p">.</span><span class="na">delete</span><span class="p">(</span><span class="n">lockKey</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="32">3.2 支付回调处理</h4>
+<div class="highlight"><pre><span></span><code><span class="nd">@Service</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PaymentCallbackService</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="nd">@Autowired</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">PaymentTransactionMapper</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">;</span>
+<span class="w">    </span><span class="nd">@Autowired</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">OrderService</span><span class="w"> </span><span class="n">orderService</span><span class="p">;</span>
+
+<span class="w">    </span><span class="nd">@Transactional</span><span class="p">(</span><span class="n">rollbackFor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Exception</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">handleCallback</span><span class="p">(</span><span class="n">PaymentCallback</span><span class="w"> </span><span class="n">callback</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">paymentId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">.</span><span class="na">getOutTradeNo</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// Step 1: 幂等校验——查流水表</span>
+<span class="w">        </span><span class="n">PaymentTransaction</span><span class="w"> </span><span class="n">tx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">selectByPaymentId</span><span class="p">(</span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span><span class="p">.</span><span class="na">warn</span><span class="p">(</span><span class="s">&quot;收到未知 paymentId 的回调: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Step 2: 状态机校验——只有&quot;处理中&quot;可以转为&quot;已支付&quot;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">&quot;重复回调忽略: paymentId={}, currentStatus={}&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="n">paymentId</span><span class="p">,</span><span class="w"> </span><span class="n">tx</span><span class="p">.</span><span class="na">getStatus</span><span class="p">());</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Step 3: 使用乐观锁更新流水状态</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">affected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">updateStatusByIdempotent</span><span class="p">(</span>
+<span class="w">            </span><span class="n">paymentId</span><span class="p">,</span>
+<span class="w">            </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="c1">// 期望的当前状态</span>
+<span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w">        </span><span class="c1">// 目标状态</span>
+<span class="w">            </span><span class="n">callback</span><span class="p">.</span><span class="na">getGatewayTradeNo</span><span class="p">(),</span>
+<span class="w">            </span><span class="n">tx</span><span class="p">.</span><span class="na">getVersion</span><span class="p">()</span>
+<span class="w">        </span><span class="p">);</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">affected</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">log</span><span class="p">.</span><span class="na">warn</span><span class="p">(</span><span class="s">&quot;乐观锁更新失败, paymentId={}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Step 4: 更新订单状态</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;SUCCESS&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">callback</span><span class="p">.</span><span class="na">getTradeStatus</span><span class="p">()))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">orderService</span><span class="p">.</span><span class="na">markOrderPaid</span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getOrderId</span><span class="p">(),</span><span class="w"> </span><span class="n">tx</span><span class="p">.</span><span class="na">getAmount</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">orderService</span><span class="p">.</span><span class="na">markOrderFailed</span><span class="p">(</span><span class="n">tx</span><span class="p">.</span><span class="na">getOrderId</span><span class="p">(),</span><span class="w"> </span><span class="n">callback</span><span class="p">.</span><span class="na">getFailReason</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="24">2.4 深入思考：数据库 + 缓存双写一致性</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>问题</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>先写 DB 再写缓存</td>
+<td>写 DB 成功，写缓存失败 → 数据不一致</td>
+<td>使用 <strong>Cache-Aside Pattern</strong>：写 DB 后直接删除缓存</td>
+</tr>
+<tr>
+<td>并发读写</td>
+<td>线程 A 写 DB（status=1），线程 B 读旧缓存（status=0）</td>
+<td>缓存设置极短 TTL（如 5s）</td>
+</tr>
+<tr>
+<td>回调乱序</td>
+<td>第二次回调先到，第一次回调后到</td>
+<td>版本号 / 时间戳机制</td>
+</tr>
+</tbody>
+</table>
+<p><strong>最佳实践</strong>：</p>
+<ol>
+<li><strong>更新时</strong>：先写 DB → 后删缓存（延迟双删）</li>
+<li><strong>查询时</strong>：Cache Miss 时从 DB 回填缓存</li>
+<li><strong>兜底</strong>：缓存 TTL 不可过长（建议 1-5 分钟）</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// 延迟双删策略</span>
+<span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">updatePaymentStatus</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">paymentId</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">newStatus</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">redisTemplate</span><span class="p">.</span><span class="na">delete</span><span class="p">(</span><span class="s">&quot;payment:cache:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">    </span><span class="n">transactionMapper</span><span class="p">.</span><span class="na">updateStatus</span><span class="p">(</span><span class="n">paymentId</span><span class="p">,</span><span class="w"> </span><span class="n">newStatus</span><span class="p">);</span>
+<span class="w">    </span><span class="n">executor</span><span class="p">.</span><span class="na">schedule</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">redisTemplate</span><span class="p">.</span><span class="na">delete</span><span class="p">(</span><span class="s">&quot;payment:cache:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paymentId</span><span class="p">);</span>
+<span class="w">    </span><span class="p">},</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">MILLISECONDS</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<hr />
+<h2 id="3_1">3. 回答思路</h2>
+<h3 id="31">3.1 破题：从"为什么会有重复"切入</h3>
+<p>分析重复消息的来源：</p>
+<ul>
+<li><strong>用户重复点击</strong>：前端未做防抖，用户快速连点"确认支付"。</li>
+<li><strong>MQ 重试</strong>：消费端处理超时或异常，消息队列重新投递。</li>
+<li><strong>网关超时重传</strong>：调用支付网关时网络超时，发起重试，但网关实际已处理成功。</li>
+</ul>
+<p>点明 <strong>"至少一次交付"（At-Least-Once Delivery）</strong> 在分布式消息系统中的必然性——重复是常态，幂等是解决方案。</p>
+<h3 id="32_1">3.2 回答节奏：由底向上</h3>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>方案</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>第一层（数据库兜底）</strong></td>
+<td>唯一索引 + Insert 防重</td>
+<td>最后一道物理屏障</td>
+</tr>
+<tr>
+<td><strong>第二层（业务逻辑）</strong></td>
+<td>查询流水表 + 状态机控制</td>
+<td>业务语义防重</td>
+</tr>
+<tr>
+<td><strong>第三层（分布式锁）</strong></td>
+<td>Redis SET NX 控制并发</td>
+<td>并发请求串行化</td>
+</tr>
+<tr>
+<td><strong>第四层（网关配合）</strong></td>
+<td>利用 <code>out_trade_no</code> 的网关幂等</td>
+<td>外部系统兜底</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33">3.3 代码落地关键考点</h3>
+<ul>
+<li><strong>状态机转移</strong>：只允许 <code>0 → 1</code> 或 <code>0 → 2</code>，防止回调乱序导致状态回滚。</li>
+<li><strong>Cache-Aside 模式</strong>：写 DB 后删缓存而非更新缓存，避免并发写导致缓存与 DB 不一致。</li>
+<li><strong>乐观锁 vs 悲观锁</strong>：支付回调用乐观锁避免长事务锁，提升并发吞吐。</li>
+</ul>
+<h3 id="34">3.4 加分项</h3>
+<p>提及 <strong>"定时补偿任务"</strong>——扫描"处理中"状态的流水，主动查询网关最终状态并修复。这是生产环境中保证最终一致性的关键兜底策略：</p>
+<div class="highlight"><pre><span></span><code>定时任务（每 5 分钟）→ 查询 status=0 且超过 2 分钟的流水
+    → 调用网关查询接口获取最终状态
+    → 更新流水和订单状态 → 完成补偿闭环
+</code></pre></div>
+
+<h3 id="35">3.5 中英术语矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>中文</th>
+<th>English</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>幂等</td>
+<td>Idempotency / Idempotent</td>
+</tr>
+<tr>
+<td>唯一键</td>
+<td>Unique Key / Unique Constraint</td>
+</tr>
+<tr>
+<td>乐观锁</td>
+<td>Optimistic Locking</td>
+</tr>
+<tr>
+<td>状态机</td>
+<td>State Machine</td>
+</tr>
+<tr>
+<td>最终一致性</td>
+<td>Eventual Consistency</td>
+</tr>
+<tr>
+<td>至少一次交付</td>
+<td>At-Least-Once Delivery</td>
+</tr>
+<tr>
+<td>流水表</td>
+<td>Transaction Log / Journal Table</td>
+</tr>
+<tr>
+<td>外发模式</td>
+<td>Outbox Pattern</td>
+</tr>
+<tr>
+<td>补偿事务</td>
+<td>Compensating Transaction</td>
+</tr>
+<tr>
+<td>防重放</td>
+<td>Anti-Replay</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<h2 id="4">4. 文档信息</h2>
+<table>
+<thead>
+<tr>
+<th>条目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>题目标题</strong></td>
+<td>消费者收到重复的支付消息如何处理（幂等设计）</td>
+</tr>
+<tr>
+<td><strong>生成日期</strong></td>
+<td>2026-07-04</td>
+</tr>
+<tr>
+<td><strong>文档版本</strong></td>
+<td>v1.0</td>
+</tr>
+<tr>
+<td><strong>技术标签</strong></td>
+<td><code>幂等设计</code> <code>分布式系统</code> <code>支付系统</code> <code>高可用</code> <code>最终一致性</code></td>
+</tr>
+<tr>
+<td><strong>关键词</strong></td>
+<td>Idempotency, 唯一键, 乐观锁, 状态机, Outbox Pattern, 防重放</td>
+</tr>
+<tr>
+<td><strong>文档类型</strong></td>
+<td>面试题深度解答</td>
+</tr>
+<tr>
+<td><strong>领域</strong></td>
+<td>后端开发 / 分布式架构 / 支付系统</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>总结</strong>：支付幂等设计的本质是用 <strong>"空间换正确性"</strong>——通过一个事前写入的流水表（唯一键），将分布式系统的不确定性降级为数据库的确定性约束。</p>
+</blockquote>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <code>幂等设计</code> <code>支付系统</code> <code>分布式系统</code><br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-04 14:26:13</p>
+</blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0024')">
             ✅ Mark as Reviewed Today
