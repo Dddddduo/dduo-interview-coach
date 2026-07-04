@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:27:07",
-    "total_questions": 34
+    "last_updated": "2026-07-04T14:27:11",
+    "total_questions": 35
   },
   "categories": {
     "java": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 9
+      "count": 10
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -647,6 +647,19 @@
       "created": "2026-07-04 14:27:07",
       "source": "/面经助手-20260704",
       "hash": "66a9d268"
+    },
+    {
+      "id": "q0035",
+      "question": "MVCC 执行流程（含MVCC概念、DB_TRX_ID/DB_ROLL_PTR/DB_ROW_ID三个核心字段、ReadView四成员m_ids/min_trx_id/max_trx_id/creator_trx_id、RR与RC下ReadView生成时机区别、快照读vs当前读、完整SELECT执行流程）",
+      "category": "mysql",
+      "tags": [
+        "事务"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\mysql\\MVCC-执行流程含MVCC概念DB_TRX_IDDB_ROLL_PTRDB_ROW_ID三个核心字段ReadView四.md",
+      "created": "2026-07-04 14:27:11",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "7e3a19ec"
     }
   ]
 }

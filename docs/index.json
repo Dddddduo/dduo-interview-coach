@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:26:57",
-    "total_questions": 30
+    "last_updated": "2026-07-04T14:27:11",
+    "total_questions": 35
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 5
+      "count": 4
     },
     "python": {
       "name": "Python",
@@ -27,13 +27,13 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 7
+      "count": 10
     },
     "redis": {
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 4
+      "count": 5
     },
     "spring": {
       "name": "Spring 框架",
@@ -51,13 +51,13 @@
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 2
+      "count": 3
     },
     "network": {
       "name": "计算机网络",
       "icon": "🌍",
       "description": "TCP/IP、HTTP、网络安全",
-      "count": 0
+      "count": 1
     },
     "behavioral": {
       "name": "行为面试",
@@ -591,12 +591,75 @@
       "id": "q0031",
       "question": "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化",
       "category": "mysql",
-      "tags": ["B+树", "索引", "MySQL", "InnoDB", "数据结构", "磁盘IO", "索引优化"],
+      "tags": [
+        "B+树",
+        "索引",
+        "MySQL",
+        "InnoDB",
+        "数据结构",
+        "磁盘IO",
+        "索引优化"
+      ],
       "difficulty": "hard",
       "file": "questions/database/mysql/MySQL-索引实现-B树与其他树的区别.md",
       "created": "2026-07-04 14:21:00",
       "source": "/面经助手-20260704",
       "hash": "c37d26bc"
+    },
+    {
+      "id": "q0032",
+      "question": "索引设计需要满足哪些条件（含三星索引原则、适合建索引的列、不适合的列、联合索引最左前缀/覆盖索引/索引下推、代价权衡）",
+      "category": "mysql",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions\\database\\mysql\\索引设计需要满足哪些条件含三星索引原则适合建索引的列不适合的列联合索引最左前缀覆盖索引索引下推代价权衡.md",
+      "created": "2026-07-04 14:27:06",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "57d10fc3"
+    },
+    {
+      "id": "q0033",
+      "question": "HTTP 和 HTTPS 的区别",
+      "category": "network",
+      "tags": [
+        "网络协议"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\network\\HTTP-和-HTTPS-的区别.md",
+      "created": "2026-07-04 14:27:06",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "50b3b24b"
+    },
+    {
+      "id": "q0034",
+      "question": "线程、进程、协程相关知识点",
+      "category": "os",
+      "tags": [
+        "协程",
+        "并发",
+        "线程",
+        "进程",
+        "虚拟线程",
+        "并发编程"
+      ],
+      "difficulty": "hard",
+      "file": "questions\\database\\os\\线程进程协程相关知识点.md",
+      "created": "2026-07-04 14:27:07",
+      "source": "/面经助手-20260704",
+      "hash": "66a9d268"
+    },
+    {
+      "id": "q0035",
+      "question": "MVCC 执行流程（含MVCC概念、DB_TRX_ID/DB_ROLL_PTR/DB_ROW_ID三个核心字段、ReadView四成员m_ids/min_trx_id/max_trx_id/creator_trx_id、RR与RC下ReadView生成时机区别、快照读vs当前读、完整SELECT执行流程）",
+      "category": "mysql",
+      "tags": [
+        "事务"
+      ],
+      "difficulty": "medium",
+      "file": "questions\\database\\mysql\\MVCC-执行流程含MVCC概念DB_TRX_IDDB_ROLL_PTRDB_ROW_ID三个核心字段ReadView四.md",
+      "created": "2026-07-04 14:27:11",
+      "source": "C:/Program Files/Git/面经助手-20260704",
+      "hash": "7e3a19ec"
     }
   ]
 }
