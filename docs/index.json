@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T15:00:00",
-    "total_questions": 4
+    "last_updated": "2026-07-04T16:30:00",
+    "total_questions": 10
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 0
+      "count": 3
     },
     "python": {
       "name": "Python",
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 1
+      "count": 2
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -63,7 +63,7 @@
       "name": "行为面试",
       "icon": "🎯",
       "description": "项目经历、团队协作、职业规划",
-      "count": 1
+      "count": 3
     },
     "system-design": {
       "name": "系统设计",
@@ -81,7 +81,7 @@
       "name": "DevOps / 运维",
       "icon": "🔧",
       "description": "CI/CD、Docker、K8s",
-      "count": 0
+      "count": 1
     }
   },
   "difficulty_levels": {
@@ -165,6 +165,105 @@
       "created": "2026-07-04 15:00:00",
       "source": "/面经助手-20260704",
       "hash": "47e2c5a1"
+    },
+    {
+      "id": "q0005",
+      "question": "介绍一下你的实习经历",
+      "category": "behavioral",
+      "tags": [
+        "实习经历",
+        "STAR-PLUS",
+        "行为面试",
+        "面试框架"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/behavioral/介绍一下你的实习经历-STAR-PLUS框架.md",
+      "created": "2026-07-04 14:17:00",
+      "source": "/面经助手-20260704",
+      "hash": "b8a3f2c1"
+    },
+    {
+      "id": "q0006",
+      "question": "你是怎么做慢 SQL 分析以及优化的？",
+      "category": "mysql",
+      "tags": [
+        "索引优化",
+        "慢查询",
+        "EXPLAIN",
+        "SQL优化",
+        "执行计划",
+        "MySQL",
+        "性能调优"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/你是怎么做慢-SQL-分析以及优化.md",
+      "created": "2026-07-04 15:00:00",
+      "source": "/面经助手-20260704",
+      "hash": "a1b2c3d4"
+    },
+    {
+      "id": "q0007",
+      "question": "简单介绍 Java 的垃圾回收机制",
+      "category": "java",
+      "tags": [
+        "JVM"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/简单介绍-Java-的垃圾回收机制.md",
+      "created": "2026-07-04 14:19:46",
+      "source": "/面经助手-20260704",
+      "hash": "6d07d5c4"
+    },
+    {
+      "id": "q0008",
+      "question": "介绍一下你的 AI 相关项目",
+      "category": "behavioral",
+      "tags": [
+        "AI项目",
+        "RAG",
+        "LLM应用",
+        "Spring AI",
+        "Prompt Engineering"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/behavioral/介绍一下你的-AI-相关项目.md",
+      "created": "2026-07-04 16:30:00",
+      "source": "面经助手-20260704",
+      "hash": "5aace527"
+    },
+    {
+      "id": "q0009",
+      "question": "项目中 Excel 批量导入相关问题（包含三个子问题：1. Excel 批量导入的上限是否有控制？2. 一批插入失败如何处理？3. 业务限定单次上传 500/1000 条，用户需要上传 1 万多条如何处理？）",
+      "category": "java",
+      "tags": [
+        "Excel导入",
+        "EasyExcel",
+        "批量处理",
+        "事务",
+        "异步导入"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/Excel批量导入相关问题.md",
+      "created": "2026-07-04 15:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "5e2c74a3"
+    },
+    {
+      "id": "q0010",
+      "question": "使用 AI 工具的情况（Codex、Claude Code、Trae），如何使用，对 Trae 的评价",
+      "category": "devops",
+      "tags": [
+        "AI工具",
+        "Copilot",
+        "Claude Code",
+        "Trae",
+        "编码工具"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/devops/-AI-CodexClaude-CodeTrae-Trae.md",
+      "created": "2026-07-04 14:21:17",
+      "source": "/面经助手-20260704",
+      "hash": "11ab3af8"
     }
   ]
 }
