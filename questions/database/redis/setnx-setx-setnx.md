@@ -1,0 +1,333 @@
+---
+id: q0017
+question: "setnx 和 setx 区别；setnx 如何释放锁"
+category: redis
+tags: ["Redis","分布式锁","缓存","原子性"]
+difficulty: medium
+created: 2026-07-04 06:24:01
+source: 面经助手-20260704
+---
+
+# setnx 和 setx 区别；setnx 如何释放锁
+
+# 面经深度解答
+
+## 第1题：setnx 和 setex 区别；setnx 如何释放锁
+
+---
+
+### 🧠 联想记忆法
+
+**1. SETNX vs SETEX 命令名记忆**
+
+将 `NX` 联想为 "**N**ot e**X**ists"（不存在），`EX` 联想为 "**EX**pire"（过期）。SETNX 只在 key 不存在时设置（"没有才设"），SETEX 设置时同时指定过期秒数（"设了就过期"）。两个核心字母之差，语义完全不同。
+
+**2. SETNX + EXPIRE 非原子导致死锁记忆**
+
+把 SETNX 比作"刷卡进房间"，EXPIRE 比作"设置自动退房时间"。如果刷卡进门后（SETNX 成功），设置自动退房时系统崩溃（EXPIRE 失败），这个人就永远占着房间不出来——这就是死锁（deadlock）。
+
+**3. 正确释放锁的 Lua 脚本记忆**
+
+把 Lua 脚本想象成一个"智能门卫"：他先看清来的人是谁（GET 比较 value），确认是房主本人（UUID 匹配），才开门放行（DEL）。不是房主来敲门，他绝不开门——这就是"锁的归属校验"。
+
+---
+
+### 📖 深度解答
+
+#### 一、核心概念（Core Concepts）
+
+**SETNX**（SET if Not eXists）是 Redis 提供的一个原子命令，其语义为：**仅在 key 不存在时设置键值对**。如果 key 已存在，则不执行任何操作，返回 0；设置成功返回 1。在 Redis 2.6.12 版本之前，SETNX 是唯一能实现分布式锁（distributed lock）基础语义的命令，但它的**致命缺陷**是不支持设置过期时间（time-to-live, TTL）。
+
+**SETEX**（SET with EXpire）是另一个原子命令，其语义为：**无论 key 是否存在，直接设置值并同时指定过期时间（秒级）**。SETEX 是原子性的，等价于 `SET + EXPIRE` 的组合操作，但避免了两个命令的非原子性问题。
+
+**面试官口中可能提到的 "SETX"**，通常是指以下三种情况之一：
+- **SETEX** — 标准 Redis 命令，设置值 + 秒级过期
+- **PSETEX** — SETEX 的毫秒级版本，`PSETEX key milliseconds value`
+- **SET 命令的扩展语法**（Redis 2.6.12+）：`SET key value NX EX seconds`，这是现代 Redis 中**推荐**的原子加锁方案
+
+**核心对比表**：
+
+| 命令 | 原子性 | 过期时间 | 条件设置 | 推荐场景 |
+|------|--------|---------|---------|---------|
+| `SETNX key value` | 是 | 无（需额外 EXPIRE） | 仅 NX | 遗留系统兼容 |
+| `SETEX key sec value` | 是 | 秒级，强制 | 无条件 | 缓存 + TTL |
+| `PSETEX key ms value` | 是 | 毫秒级，强制 | 无条件 | 高精度缓存 |
+| `SET key val NX EX sec` | 是 | 秒级，可选 | NX/XX/GT/LT | 分布式锁（推荐） |
+| `SET key val NX PX ms` | 是 | 毫秒级，可选 | NX/XX/GT/LT | 分布式锁（高精度） |
+
+#### 二、底层原理（Underlying Principles）
+
+**1. Redis 命令的原子性来源**
+
+Redis 是**单线程**（single-threaded）事件循环模型，所有命令在 Redis 主线程中**串行执行**。因此无论 SETNX、SETEX 还是 SET 的复合选项，单个命令天然是原子的。原子性（atomicity）来自于 Redis 内部的事件循环（event loop）机制：一个命令执行完毕前，不会被其他客户端的命令中断。
+
+**2. SETNX + EXPIRE 的非原子性陷阱**
+
+```bash
+# 错误的"两步走"加锁
+127.0.0.1:6379> SETNX lock_key "client_1"   # 步骤1：加锁成功
+(integer) 1
+# 此时 Redis 服务器崩溃 / 网络断开 / EXPIRE 命令未执行
+# 步骤2 从未被执行 —— 这个锁永远不释放
+127.0.0.1:6379> EXPIRE lock_key 30          # 步骤2：设置过期
+(integer) 1
+```
+
+**问题本质**：SETNX 和 EXPIRE 是两个独立的命令，它们之间没有事务（transaction）或原子性保障。如果 SETNX 执行成功后、EXPIRE 执行前，Redis 进程崩溃、网络断裂或程序中途异常退出，这个 key 将永远存在于 Redis 中，所有后续试图获取该锁的客户端都将失败——这就是**死锁**（deadlock）。
+
+**3. SET key value NX EX seconds 如何解决**
+
+Redis 2.6.12 对 `SET` 命令进行了扩展，支持 `NX`、`XX`、`EX`、`PX` 等选项。其中：
+
+```
+SET key value NX EX 30
+```
+
+这一条命令等价于原子性的 `SETNX key value` + `EXPIRE key 30`，因为 Redis 解析命令选项后**在同一个命令处理函数内**完成所有操作，不存在命令间的时间窗口（time window）。这是真正安全的原子加锁方案。
+
+**4. PSETEX 与 SETEX 的内部差异**
+
+PSETEX 的唯一区别在于过期时间的精度：SETEX 的 `seconds` 参数精度为秒，内部调用 `expireGenericCommand` 时到期基准时间戳为 `curr_unixtime + seconds`；PSETEX 的 `milliseconds` 参数精度为毫秒，到期基准时间戳为 `curr_mstime + milliseconds`。两者在命令分发层（`processCommand`）分别路由到不同的处理函数，但整体原子性保证一致。
+
+#### 三、实践应用（Practical Application）
+
+**场景**：使用 Redis 实现分布式锁（distributed lock）。
+
+##### 3.1 错误加锁实现（Two-step anti-pattern）
+
+```java
+import redis.clients.jedis.Jedis;
+
+public class WrongDistributedLock {
+    private final Jedis jedis;
+    private final String lockKey;
+
+    public WrongDistributedLock(Jedis jedis, String lockKey) {
+        this.jedis = jedis;
+        this.lockKey = lockKey;
+    }
+
+    // 错误加锁：SETNX + EXPIRE 两步，非原子，存在死锁风险
+    public boolean lock(String lockValue, int expireSeconds) {
+        // 步骤1：SETNX
+        Long result = jedis.setnx(lockKey, lockValue);
+        if (result == 1) {
+            // 步骤2：EXPIRE —— 如果在执行此步前程序崩溃或Redis宕机，锁永不释放
+            jedis.expire(lockKey, expireSeconds);
+            return true;
+        }
+        return false;
+    }
+
+    // 错误释放锁：直接 DEL，可能误删其他持有者的锁
+    public void unlock() {
+        jedis.del(lockKey);  // 没有校验value归属，任何人调用都能删锁
+    }
+}
+```
+
+**问题总结**：
+1. `lock()` 中 SETNX 和 EXPIRE 非原子，可能死锁
+2. `unlock()` 直接 DEL，如果客户端 A 锁的超时时间较短，业务还没执行完锁就自动释放了，客户端 B 获取到同一把锁；此时客户端 A 业务执行完调用 `unlock()`，直接 DEL 掉了客户端 B 的锁——造成了**锁误删**
+
+##### 3.2 正确加锁实现（Atomic lock + Lua unlock）
+
+```java
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
+import java.util.UUID;
+
+public class CorrectDistributedLock {
+    private final Jedis jedis;
+    private final String lockKey;
+
+    public CorrectDistributedLock(Jedis jedis, String lockKey) {
+        this.jedis = jedis;
+        this.lockKey = lockKey;
+    }
+
+    /**
+     * 正确加锁：使用 SET key value NX EX seconds 原子操作
+     * @param lockValue 锁的持有者标识（UUID）
+     * @param expireSeconds 锁自动过期时间（秒）
+     * @return true 表示加锁成功
+     */
+    public boolean lock(String lockValue, int expireSeconds) {
+        // 单命令原子加锁，等价于 SETNX + EXPIRE
+        String result = jedis.set(
+            lockKey,
+            lockValue,
+            SetParams.setParams().nx().ex(expireSeconds)
+        );
+        return "OK".equals(result);
+    }
+
+    /**
+     * 正确释放锁：使用 Lua 脚本，先校验 value 匹配再 DEL
+     * Lua 脚本保证原子性 —— 整个脚本在 Redis 中串行执行
+     */
+    public boolean unlock(String lockValue) {
+        // Lua 脚本：GET 比较 value，匹配才 DEL
+        String luaScript =
+            "if redis.call('GET', KEYS[1]) == ARGV[1] then " +
+            "    return redis.call('DEL', KEYS[1]) " +
+            "else " +
+            "    return 0 " +
+            "end";
+
+        Object result = jedis.eval(luaScript, 1, lockKey, lockValue);
+        return Long.valueOf(1).equals(result);
+    }
+
+    // ===== 使用示例 =====
+    public static void main(String[] args) {
+        Jedis jedis = new Jedis("localhost", 6379);
+        CorrectDistributedLock lock = new CorrectDistributedLock(jedis, "order_lock");
+
+        String lockValue = UUID.randomUUID().toString();  // 唯一标识
+        boolean locked = lock.lock(lockValue, 30);       // 原子加锁
+
+        if (locked) {
+            try {
+                // 执行临界区业务逻辑
+                System.out.println("业务处理中...");
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                // 确保锁被正确释放
+                boolean released = lock.unlock(lockValue);
+                System.out.println("锁释放" + (released ? "成功" : "失败"));
+            }
+        } else {
+            System.out.println("获取锁失败，其他客户端正在处理");
+        }
+
+        jedis.close();
+    }
+}
+```
+
+##### 3.3 完整 Lua 脚本文件（单独展示）
+
+保存为 `release_lock.lua`：
+
+```lua
+-- 释放 Redis 分布式锁的 Lua 脚本
+-- KEYS[1]: 锁的键名（lock key）
+-- ARGV[1]: 期望的锁持有者标识（expected owner identifier）
+--
+-- 返回值: 1 = 释放成功, 0 = 锁不属于自己或锁不存在
+
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+else
+    return 0
+end
+```
+
+Redis CLI 调用方式：
+
+```bash
+redis-cli --eval release_lock.lua order_lock , "my-uuid-12345"
+```
+
+##### 3.4 Redisson 框架方式（生产推荐）
+
+```java
+import org.redisson.Redisson;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+
+public class RedissonLockExample {
+    public static void main(String[] args) {
+        Config config = new Config();
+        config.useSingleServer().setAddress("redis://127.0.0.1:6379");
+        RedissonClient redisson = Redisson.create(config);
+
+        RLock lock = redisson.getLock("order_lock");
+        try {
+            // 加锁，默认 30 秒过期，watchdog 自动续期
+            lock.lock();
+            System.out.println("业务处理中...");
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            lock.unlock();  // Redisson 内部使用 Lua 脚本安全释放
+        }
+
+        redisson.shutdown();
+    }
+}
+```
+
+#### 四、深入思考（Deep Reflections）
+
+**1. SET NX EX 是否绝对安全？**
+
+并不是。考虑以下场景：
+- 客户端 A 加锁成功，业务执行时间超过锁的过期时间
+- 锁自动过期释放
+- 客户端 B 加锁成功，开始执行业务
+- 客户端 A 执行完毕，执行 unlock()（此时判断的 value 是 A 的 UUID，而锁的 value 已经是 B 的 UUID 了，所以 A 的 unlock 不会误删 B 的锁——这正是 Lua 脚本校验的好处）
+
+但仍有问题：**业务未完成锁已过期**。解决方案：
+- **Redisson Watchdog 机制**：后台线程每隔锁过期时间的 1/3 自动续期
+- **合理设置过期时间**：根据业务预估最大执行时间，设置充足的 TTL
+
+**2. 锁的可重入性（Reentrancy）**
+
+上述实现是不可重入的（non-reentrant）：同一个线程在持有锁的情况下再次 lock() 会失败。生产环境中如果需要可重入，需要哈希结构（hash）记录持有次数，或者直接使用 Redisson 的 getLock()。
+
+**3. Redis 主从切换下的锁安全性**
+
+Redis 主节点（master）加锁成功后，异步复制到从节点（slave）之前，master 宕机，slave 升级为新 master，此时锁丢失。解决方案：
+- **Redlock 算法**（Redis 官方分布式锁算法）：向 N/2+1 个独立的 Redis 实例请求加锁
+- 注意：Redlock 存在争议（Martin Kleppmann 曾发文质疑其安全性），但在大多数非极端场景下足够使用
+
+**4. SETNX 的历史意义**
+
+SETNX 在 Redis 早期版本（< 2.6.12）是唯一可用的分布式锁原语，业界大量博客和代码基于它编写。理解 SETNX 的缺陷和演化，有助于理解分布式锁（distributed lock）领域从"两步法"到"原子指令"到"Lua 脚本"到"Redlock 算法"的发展脉络。
+
+---
+
+### 🗺️ 回答思路
+
+**面试官视角**：
+面试官问 SETNX 和 SETX 的区别，核心考查点是：**对 Redis 分布式锁实现原理的理解深度**，尤其是对"原子性"（atomicity）的把握。
+
+**回答策略（三层递进）**：
+
+**第一层（基础——区分命令）**：
+- 清晰定义 SETNX 和 SETEX/PSETEX 的语义区别
+- 指出面试官说的 "SETX" 可能指 SETEX 或 SET 的 NX EX 语法
+- 展示核心对比表，快速建立知识框架
+
+**第二层（进阶——指出问题）**：
+- 重点阐述 SETNX + EXPIRE 的两步法为什么是反模式（anti-pattern）
+- 引出时间窗口（time window）概念和死锁（deadlock）风险
+- 展示 Redis 2.6.12+ 的 SET NX EX 原子解决方案
+
+**第三层（高级——完整方案）**：
+- 给出释放锁的正确方案：Lua 脚本 + value 比较
+- 对比错误实现和正确实现的 Java 代码
+- 最后提到 Redisson 生产级方案和 Redlock 算法，展示广度
+- 分析锁超时、可重入、主从切换等边界问题
+
+**关键词提示**（面试中加重语气）：
+- 原子性（atomicity）
+- 时间窗口（time window）
+- 死锁（deadlock）
+- Lua 脚本原子执行
+- 锁的归属校验（ownership verification）
+- 锁续期（watchdog / lock renewal）
+
+
+---
+
+> 📋 **分类**: Redis / 缓存
+> 🏷️ **标签**: `Redis` `分布式锁` `缓存` `原子性`
+> 📊 **难度**: 中级
+> 📅 **归档时间**: 2026-07-04 06:24:01

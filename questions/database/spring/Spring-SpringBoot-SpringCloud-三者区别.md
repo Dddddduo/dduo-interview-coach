@@ -1,10 +1,11 @@
 ---
-id: q0009
+id: q0011
 question: "Spring、SpringBoot、SpringCloud 三者区别"
 category: spring
-tags: ["Spring", "分布式", "微服务"]
+tags: ["Spring", "分布式", "微服务", "自动配置", "IoC", "AOP"]
 difficulty: medium
 created: 2026-07-04 14:30:00
+updated: 2026-07-04 16:55:00
 source: 面经助手-20260704
 ---
 

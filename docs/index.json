@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T16:50:00",
-    "total_questions": 16
+    "last_updated": "2026-07-04T20:15:00",
+    "total_questions": 20
   },
   "categories": {
     "java": {
@@ -27,13 +27,13 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 3
+      "count": 5
     },
     "redis": {
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 1
+      "count": 2
     },
     "spring": {
       "name": "Spring 框架",
@@ -69,7 +69,7 @@
       "name": "系统设计",
       "icon": "🏗️",
       "description": "架构设计、高并发、高可用",
-      "count": 1
+      "count": 0
     },
     "frontend": {
       "name": "前端开发",
@@ -257,11 +257,13 @@
         "Copilot",
         "Claude Code",
         "Trae",
-        "编码工具"
+        "AI编码"
+        "IDE",
+        "Agent"
       ],
       "difficulty": "medium",
       "file": "questions/database/devops/AI-bianma-gongju-Codex-Claude-Code-Trae.md",
-      "created": "2026-07-04 14:21:17",
+      "created": "2026-07-04 15:44:00",
       "source": "/面经助手-20260704",
       "hash": "11ab3af8"
     },
@@ -302,49 +304,106 @@
       "id": "q0013",
       "question": "MySQL 事务过程中有哪些日志，各自作用",
       "category": "mysql",
-      "tags": [],
-      "difficulty": "medium",
-      "file": "questions/database/mysql/MySQL-事务过程中有哪些日志各自作用.md",
-      "created": "2026-07-04 14:22:16",
-      "source": "/面经助手-20260704",
-      "hash": "3945a3fb"
+      "tags": [
+        "事务",
+        "日志",
+        "UndoLog",
+        "RedoLog",
+        "Binlog",
+        "两阶段提交",
+        "崩溃恢复",
+        "MVCC",
+        "WAL"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/MySQL事务过程中有哪些日志各自作用.md",
+      "created": "2026-07-04 15:10:00",
+      "source": "面经助手-20260704",
+      "hash": "fcc8d5b0"
     },
     {
       "id": "q0014",
-      "question": "是否了解 Harness Engineering（驾驭工程）",
-      "category": "system-design",
+      "question": "联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引",
+      "category": "mysql",
       "tags": [
-        "Harness Engineering",
-        "驾驭工程",
-        "AI工程",
-        "LLM",
-        "Agent",
-        "Prompt Engineering"
+        "索引优化",
+        "B+树",
+        "MySQL",
+        "查询优化"
       ],
       "difficulty": "medium",
-      "file": "questions/database/system-design/是否了解-Harness-Engineering-驾驭工程.md",
-      "created": "2026-07-04 15:00:00",
+      "file": "questions/database/mysql/联合索引-abc查询条件-where-c2-and-a1是否走索引.md",
+      "created": "2026-07-04",
       "source": "/面经助手-20260704",
-      "hash": "914ad275"
+      "hash": "2a3b4c5d"
+    },
+    {
+      "id": "q0015",
+      "question": "分库、分表分别的作用（The Roles and Purposes of Database Sharding and Table Partitioning）",
+      "category": "mysql",
+      "tags": [
+        "分库分表",
+        "Sharding",
+        "数据库架构",
+        "分布式",
+        "B+树",
+        "索引优化"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/分库分表分别的作用.md",
+      "created": "2026-07-04 16:55:00",
+      "source": "/面经助手-20260704",
+      "hash": "f1e2d3c4"
     },
     {
       "id": "q0016",
-      "question": "缓存击穿、穿透、雪崩了解吗？请深入讲解三个概念的区别和解决方案",
+      "question": "Redis 分布式锁如何实现",
       "category": "redis",
       "tags": [
         "缓存",
-        "Redis",
-        "缓存穿透",
-        "缓存击穿",
-        "缓存雪崩",
-        "布隆过滤器",
+        "分布式锁",
         "高可用"
       ],
       "difficulty": "medium",
-      "file": "questions/database/redis/缓存击穿穿透雪崩了解吗.md",
-      "created": "2026-07-04 16:50:00",
-      "source": "/面经助手 2026-07-04",
-      "hash": "f4c8e2a1"
+      "file": "questions\\database\\redis\\Redis-分布式锁如何实现.md",
+      "created": "2026-07-04 14:23:58",
+      "source": "/面经助手-20260704(更新)",
+      "hash": "42408072"
+    },
+    {
+      "id": "q0017",
+      "question": "setnx 和 setx 区别；setnx 如何释放锁",
+      "category": "redis",
+      "tags": [
+        "Redis",
+        "分布式锁",
+        "缓存",
+        "原子性"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/redis/setnx-setx-setnx.md",
+      "created": "2026-07-04 06:24:01",
+      "source": "面经助手-20260704",
+      "hash": "6336ff0c"
+    },
+    {
+      "id": "q0018",
+      "question": "MySQL 索引实现；B+树与其他树的区别。请深入讲解：1. MySQL InnoDB 的索引实现：聚簇索引(Clustered Index)与二级索引(Secondary Index)，为什么二级索引不直接存储数据？2. B+树的特性 3. B+树 vs B树/BST/AVL红黑树/跳表/Hash 的逐对对比 4. 为什么 MySQL 选择 B+ 树——磁盘 I/O 最小化",
+      "category": "mysql",
+      "tags": [
+        "B+树",
+        "索引",
+        "MySQL",
+        "InnoDB",
+        "数据结构",
+        "磁盘IO",
+        "索引优化"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/MySQL-索引实现-B树与其他树的区别.md",
+      "created": "2026-07-04 14:21:00",
+      "source": "/面经助手-20260704",
+      "hash": "5013ef6b"
     }
   ]
 }
