@@ -1,8 +1,8 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T18:30:00",
-    "total_questions": 26
+    "last_updated": "2026-07-04T21:30:00",
+    "total_questions": 27
   },
   "categories": {
     "java": {
@@ -45,7 +45,7 @@
       "name": "分布式系统",
       "icon": "🌐",
       "description": "分布式理论、微服务、消息队列",
-      "count": 3
+      "count": 4
     },
     "os": {
       "name": "操作系统",
@@ -508,6 +508,24 @@
       "created": "2026-07-04 18:30:00",
       "source": "/面经助手-20260704",
       "hash": "9a8b7c6d"
+    },
+    {
+      "id": "q0027",
+      "question": "场景题——订单更新场景，同一笔订单变更分布在多个分区，如何解决并发冲突",
+      "category": "distributed",
+      "tags": [
+        "Kafka",
+        "消息队列",
+        "分布式",
+        "并发控制",
+        "乐观锁",
+        "分区顺序"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/distributed/场景题——订单更新场景同一笔订单变更分布在多个分区如何解决并发冲突.md",
+      "created": "2026-07-04 21:30:00",
+      "source": "/面经助手-20260704",
+      "hash": "kafka_order_concurrency"
     }
   ]
 }
