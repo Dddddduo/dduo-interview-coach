@@ -2,7 +2,7 @@
   "meta": {
     "project": "Interview Coach — 面经题库",
     "last_updated": "2026-07-04T18:00:00",
-    "total_questions": 29
+    "total_questions": 30
   },
   "categories": {
     "java": {
@@ -27,7 +27,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 7
+      "count": 8
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -51,7 +51,7 @@
       "name": "操作系统",
       "icon": "💻",
       "description": "进程线程、内存管理、文件系统",
-      "count": 1
+        "count": 2
     },
     "network": {
       "name": "计算机网络",
@@ -81,7 +81,7 @@
       "name": "DevOps / 运维",
       "icon": "🔧",
       "description": "CI/CD、Docker、K8s",
-      "count": 1
+        "count": 2
     }
   },
   "difficulty_levels": {
