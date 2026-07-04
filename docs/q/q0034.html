@@ -159,8 +159,7 @@ body {
 <div class="q-container">
     <h1>HashMap 底层实现，插入元素时会发生什么</h1>
     <div class="tag-row"></div>
-    <h1 id="hashmap">HashMap 底层实现，插入元素时会发生什么</h1>
-<h1 id="hashmap_1">HashMap 底层实现：插入元素时会发生什么</h1>
+    <h1 id="hashmap">HashMap 底层实现：插入元素时会发生什么</h1>
 <blockquote>
 <p>本文档汇编了一道 Java 高频面试题的深度解答，涵盖联想记忆法、底层原理拆解与面试回答思路。</p>
 </blockquote>
@@ -194,7 +193,7 @@ body {
 <li><a href="#过渡话术">过渡话术</a></li>
 </ul>
 <hr />
-<h1 id="hashmap_2">HashMap 底层实现：插入元素时会发生什么</h1>
+<h1 id="hashmap_1">HashMap 底层实现：插入元素时会发生什么</h1>
 <hr />
 <h2 id="_1">🧠 联想记忆法</h2>
 <h3 id="_2">记忆口诀/联想</h3>
@@ -513,7 +512,7 @@ body {
 <li><strong>工程实践</strong>：JVM 内存管理和 CPU 缓存行（Cache Line）效率也是考量因素之一。过小的负载因子会导致数组频繁扩容和数据迁移；过大的负载因子则导致频繁的哈希碰撞和链表遍历。0.75 是经过大量性能测试后选择的折中值，既保证了足够的空间利用率，又维持了可接受的查询性能。</li>
 </ul>
 <h3 id="_8">实践应用</h3>
-<h4 id="hashmap_3">正确使用 HashMap：预估初始容量</h4>
+<h4 id="hashmap_2">正确使用 HashMap：预估初始容量</h4>
 <div class="highlight"><pre><span></span><code><span class="c1">// 错误用法：不指定初始容量，频繁扩容</span>
 <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">User</span><span class="o">&gt;</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w"> </span><span class="c1">// 默认容量 16</span>
 <span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -868,13 +867,6 @@ body {
 </tr>
 </tbody>
 </table>
-<hr />
-<blockquote>
-<p>📋 <strong>分类</strong>: Java<br />
-🏷️ <strong>标签</strong>: <br />
-📊 <strong>难度</strong>: 中级<br />
-📅 <strong>归档时间</strong>: 2026-07-04 14:28:11</p>
-</blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0034')">
             ✅ Mark as Reviewed Today

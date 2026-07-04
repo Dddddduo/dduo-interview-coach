@@ -164,14 +164,489 @@ body {
 <span class="tag-item">数据可靠性</span>
 <span class="tag-item">ISR</span>
 <span class="tag-item">ACK</span></div>
-    <h1 id="kafka-producer-broker-consumer">使用 Kafka 时如何保证数据不丢失（从Producer-Broker-Consumer全链路分析）</h1>
-<p>本文档请参见 outputs/面经解答-Kafka数据不丢失-20260704.md</p>
+    <h1 id="kafka">使用 Kafka 时如何保证数据不丢失</h1>
+<h2 id="memory-aid">🧠 联想记忆法 (Memory Aid)</h2>
+<p><strong>记忆口诀</strong>: "生不逢时，副本不准脏选"</p>
+<p>用这个口诀记住 Kafka 全链路三大环节的保障策略：</p>
+<ul>
+<li><strong>生</strong> = <strong>生</strong>产者端（Producer）：acks=all + 重试 + 幂等 + 回调</li>
+<li><strong>不</strong> = <strong>Broker</strong> 端：replication.factor≥3 + min.insync.replicas≥2 + 刷盘 + 不准脏选举</li>
+<li><strong>逢</strong> = 消费者端（<strong>Con</strong>sumer）：手动提交 + 先处理后提交 + Rebalance 监听</li>
+<li><strong>时</strong> = <strong>数据</strong> = 数据可靠性</li>
+<li><strong>副本不准脏选</strong> = 记忆 Broker 端四项配置的缩写</li>
+<li><strong>副本</strong> = <code>replication.factor ≥ 3</code>（副本至少三份）</li>
+<li><strong>不</strong> = <code>min.insync.replicas ≥ 2</code>（最少同步副本数不小于 2）</li>
+<li><strong>准</strong> = <code>log.flush.interval.*</code>（准点刷盘）</li>
+<li><strong>脏选</strong> = <code>unclean.leader.election.enable=false</code>（不允许脏选举）</li>
+</ul>
+<p><strong>辅助记忆图</strong>:</p>
+<div class="highlight"><pre><span></span><code>生产者(生) ──acks=all──→ Broker(不) ──手动提交──→ 消费者(逢)
+                           │
+                    副本不准脏选
+</code></pre></div>
+
+<hr />
+<h2 id="in-depth-answer">📖 深度解答 (In-Depth Answer)</h2>
+<h3 id="core-concepts">一、核心概念（Core Concepts）</h3>
+<p>Kafka 是一个分布式消息队列系统（Distributed Message Queue System），其数据可靠性保障需要从<strong>生产者（Producer）→ Broker → 消费者（Consumer）</strong>全链路共同协作。任何一个环节的疏忽都可能导致数据丢失（Data Loss）。</p>
+<p><strong>数据丢失的场景分类</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>丢失原因</th>
+<th>严重程度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>生产者</td>
+<td>网络分区导致发送失败、未处理回调异常</td>
+<td>部分丢失</td>
+</tr>
+<tr>
+<td>Broker</td>
+<td>Leader 宕机导致未同步数据丢失、磁盘故障</td>
+<td>集群级丢失</td>
+</tr>
+<tr>
+<td>消费者</td>
+<td>消费后未提交 offset 前崩溃、自动提交导致丢数据</td>
+<td>业务级丢失</td>
+</tr>
+</tbody>
+</table>
+<p><strong>核心权衡</strong>：Kafka 设计遵循 <strong>CAP 理论（Consistency/Availability/Partition Tolerance）</strong>，在保证高吞吐的同时通过 ACK 机制和副本机制在一致性与可用性之间做权衡（Trade-off）。关键区别是：<br />
+- <strong>数据不丢失（No Data Loss）</strong>：保证每条消息至少被持久化一次，不会因故障消失<br />
+- <strong>数据不重复（No Data Duplication）</strong>：保证每条消息恰好被处理一次（Exactly-Once Semantics, EOS）</p>
+<p>两者是正交问题（Orthogonal Concerns），需要不同的机制来解决。</p>
+<hr />
+<h3 id="underlying-principles">二、底层原理（Underlying Principles）</h3>
+<h4 id="21-producer">2.1 生产者端（Producer）—— 从源头确保数据到达</h4>
+<p><strong>2.1.1 acks 参数</strong></p>
+<p><code>acks</code> 是生产者最重要的可靠性配置，决定了生产者需要收到多少副本确认后才认为消息发送成功：</p>
+<table>
+<thead>
+<tr>
+<th>acks 值</th>
+<th>行为</th>
+<th>可靠性</th>
+<th>延迟</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>不等待任何确认，发送即视为成功</td>
+<td>最低，可能丢失全部数据</td>
+<td>最低</td>
+<td>指标监控、日志（可丢）</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>等待 Leader 副本写入确认，不等待 Follower 同步</td>
+<td>中等，Leader 宕机可能丢数据</td>
+<td>中</td>
+<td>大部分业务场景，默认配置</td>
+</tr>
+<tr>
+<td><code>all</code> / <code>-1</code></td>
+<td>等待 Leader <strong>和所有 ISR 副本</strong>写入确认</td>
+<td>最高</td>
+<td>最高</td>
+<td>金融、订单等不丢数据场景</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>版本说明</strong>：Kafka 3.0+ 已将 <code>acks</code> 默认值从 <code>1</code> 改为 <code>all</code>，体现了社区对数据可靠性的重视。</p>
+</blockquote>
+<p><strong>底层原理</strong>：当 <code>acks=all</code> 时，Leader 会等待所有 <strong>ISR（In-Sync Replicas，同步中副本）</strong> 列表中的副本都确认写入后，才向生产者返回成功响应。这确保即使 Leader 宕机，已确认的消息也至少在多个副本中存在。</p>
+<p><strong>2.1.2 重试机制（Retries）与顺序保证</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">ENABLE_IDEMPOTENCE_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">ACKS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;all&quot;</span><span class="p">);</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">RETRIES_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">MAX_VALUE</span><span class="p">);</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span>
+</code></pre></div>
+
+<ul>
+<li><code>retries</code>：配置为 <code>Integer.MAX_VALUE</code> 表明愿意无限重试，但实际上受 <code>delivery.timeout.ms</code>（默认 120 秒）的约束——超过该总时长后 Producer 会放弃并抛出异常。单纯设置 <code>retries=Integer.MAX_VALUE</code> 不等于无限重试。</li>
+<li><code>max.in.flight.requests.per.connection</code>：控制单个连接上未确认的最大请求数</li>
+<li><strong>不使用幂等性时</strong>：必须设为 <code>1</code> 才能保证顺序，因为重试可能导致后发出的请求先成功</li>
+<li><strong>使用幂等性时</strong>：可以设为 <code>5</code>（Kafka 1.0+ 默认值），Kafka 会自动处理序列号重排</li>
+</ul>
+<blockquote>
+<p><strong>关键理解</strong>：<code>retries</code> 控制单次尝试失败后的重试次数，而 <code>delivery.timeout.ms</code> 控制从发送到最终放弃的总时间阈值。两者配合工作，<code>retries</code> 再大也会被 <code>delivery.timeout.ms</code> 兜底。</p>
+</blockquote>
+<p><strong>2.1.3 幂等性（Idempotence）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">ENABLE_IDEMPOTENCE_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="c1">// 注意：enable.idempotence=true 时会自动将 acks 设为 &quot;all&quot;</span>
+</code></pre></div>
+
+<p>启用幂等性后，Producer 为每个消息批次分配一个 <strong>Producer ID (PID)</strong> 和 <strong>序列号（Sequence Number）</strong>。Broker 为每个 PID 维护序列号缓存，收到相同序列号时自动去重（Deduplication）。这保证了"精确一次生产语义"（Exactly-once Producer Semantics）。</p>
+<p><strong>2.1.4 正确处理发送回调</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// ✅ 正确的回调处理</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="s">&quot;topic&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span><span class="w"> </span><span class="n">exception</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">exception</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">error</span><span class="p">(</span><span class="s">&quot;消息发送失败: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">exception</span><span class="p">.</span><span class="na">getMessage</span><span class="p">());</span>
+<span class="w">        </span><span class="n">saveToDeadLetterQueue</span><span class="p">(</span><span class="n">record</span><span class="p">,</span><span class="w"> </span><span class="n">exception</span><span class="p">);</span><span class="w"> </span><span class="c1">// 转入死信队列后续补偿</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">&quot;发送成功: partition={}, offset={}&quot;</span><span class="p">,</span><span class="w"> </span>
+<span class="w">                 </span><span class="n">metadata</span><span class="p">.</span><span class="na">partition</span><span class="p">(),</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="na">offset</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1">// ❌ 错误方式：fire-and-forget（发送即忘）</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="s">&quot;topic&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">));</span>
+<span class="c1">// 异常被静默吞没，消息丢失无从知晓</span>
+</code></pre></div>
+
+<h4 id="22-broker">2.2 Broker 端 —— 存储层的可靠性保障</h4>
+<p><strong>2.2.1 副本因子（Replication Factor）</strong></p>
+<div class="highlight"><pre><span></span><code>bin/kafka-topics.sh<span class="w"> </span>--create<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--topic<span class="w"> </span>my-topic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--replication-factor<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--partitions<span class="w"> </span><span class="m">6</span>
+</code></pre></div>
+
+<p><code>replication.factor=3</code> 意味着每个分区有 3 个副本，其中 1 个 Leader，2 个 Follower。当 Leader 宕机时，从 ISR 中选举新的 Leader，保证数据不丢失。</p>
+<p><strong>2.2.2 最小同步副本数（min.insync.replicas）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="na">min.insync.replicas</span><span class="o">=</span><span class="s">2</span>
+</code></pre></div>
+
+<p>与 <code>acks=all</code> 配合使用。如果 ISR 中的同步副本数低于此值，写入时会抛出 <code>NotEnoughReplicasException</code>，防止在副本不足时写入导致数据丢失。</p>
+<p><strong>可靠性公式组合</strong>：<code>acks=all</code> + <code>min.insync.replicas=2</code> + <code>replication.factor=3</code></p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>acks</code></td>
+<td><code>all</code></td>
+<td>生产者等待所有 ISR 确认</td>
+</tr>
+<tr>
+<td><code>min.insync.replicas</code></td>
+<td><code>2</code></td>
+<td>ISR 至少需要 2 个副本才能写入</td>
+</tr>
+<tr>
+<td><code>replication.factor</code></td>
+<td><code>3</code></td>
+<td>共有 3 个副本，容错 1 个</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2.2.3 脏选举控制（Unclean Leader Election）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="na">unclean.leader.election.enable</span><span class="o">=</span><span class="s">false</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>版本说明</strong>：在 Kafka 2.x 和 3.x 中该参数默认值均为 <code>false</code>，行为一致。</p>
+</blockquote>
+<p>当设置为 <code>true</code> 时，允许非 ISR 中落后过多的副本（Out-of-Sync Replica）被选举为 Leader，这会导致数据永久丢失。<code>false</code> 则宁可集群不可用，也不允许数据不一致。</p>
+<p><strong>2.2.4 日志刷盘策略（Log Flush Policy）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="na">log.flush.interval.messages</span><span class="o">=</span><span class="s">10000</span>
+<span class="na">log.flush.interval.ms</span><span class="o">=</span><span class="s">1000</span>
+</code></pre></div>
+
+<p>Kafka 通过操作系统 <strong>Page Cache（页缓存）</strong> 写入数据，然后异步刷盘。核心设计哲学是：<strong>Kafka 依靠副本机制保证数据可靠性，而非强依赖刷盘</strong>。单机刷盘再快也防不住整机宕机。现代 Kafka（2.8+）推荐优先关注副本配置，<code>log.flush.*</code> 在新版本中被标记为不建议手动调整。</p>
+<h4 id="23-consumer">2.3 消费者端（Consumer）—— 消费确认机制</h4>
+<p><strong>2.3.1 手动提交 Offset</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ConsumerConfig</span><span class="p">.</span><span class="na">ENABLE_AUTO_COMMIT_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ConsumerRecords</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">records</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">consumer</span><span class="p">.</span><span class="na">poll</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMillis</span><span class="p">(</span><span class="mi">1000</span><span class="p">));</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">ConsumerRecord</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">records</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">processBusinessLogic</span><span class="p">(</span><span class="n">record</span><span class="p">);</span><span class="w"> </span><span class="c1">// 第1步：先处理业务</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">consumer</span><span class="p">.</span><span class="na">commitSync</span><span class="p">();</span><span class="w"> </span><span class="c1">// 第2步：全部处理完成再提交</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>为什么必须这样做？</strong> <code>enable.auto.commit=true</code> 默认每 5 秒自动提交 offset。如果消费者在处理消息后、自动提交前崩溃，恢复后会从已提交的 offset 开始消费，导致中间的消息永久丢失。手动提交 + 先处理业务 → <strong>At-Least-Once 语义（至少一次）</strong>。</p>
+<p><strong>2.3.2 Rebalance 监听器（Rebalance Listener）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">consumer</span><span class="p">.</span><span class="na">subscribe</span><span class="p">(</span><span class="n">Collections</span><span class="p">.</span><span class="na">singletonList</span><span class="p">(</span><span class="s">&quot;topic&quot;</span><span class="p">),</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ConsumerRebalanceListener</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onPartitionsRevoked</span><span class="p">(</span><span class="n">Collection</span><span class="o">&lt;</span><span class="n">TopicPartition</span><span class="o">&gt;</span><span class="w"> </span><span class="n">partitions</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">consumer</span><span class="p">.</span><span class="na">commitSync</span><span class="p">(</span><span class="n">currentOffsets</span><span class="p">);</span><span class="w"> </span><span class="c1">// 提交当前处理进度</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onPartitionsAssigned</span><span class="p">(</span><span class="n">Collection</span><span class="o">&lt;</span><span class="n">TopicPartition</span><span class="o">&gt;</span><span class="w"> </span><span class="n">partitions</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>消费者组内成员变化或分区数变化触发 <strong>Rebalance（再均衡）</strong>。如果不提交当前已处理的 offset，新消费者可能从更早的偏移量开始（重复消费）或从更晚的偏移量开始（丢失数据）。</p>
+<hr />
+<h3 id="practical-application">三、实践应用（Practical Application）</h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// ==================== 生产者端完整配置 ====================</span>
+<span class="n">Properties</span><span class="w"> </span><span class="n">producerProps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Properties</span><span class="p">();</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">BOOTSTRAP_SERVERS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;broker1:9092,broker2:9092,broker3:9092&quot;</span><span class="p">);</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">KEY_SERIALIZER_CLASS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="n">StringSerializer</span><span class="p">.</span><span class="na">class</span><span class="p">.</span><span class="na">getName</span><span class="p">());</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">VALUE_SERIALIZER_CLASS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="n">StringSerializer</span><span class="p">.</span><span class="na">class</span><span class="p">.</span><span class="na">getName</span><span class="p">());</span>
+
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">ACKS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;all&quot;</span><span class="p">);</span><span class="w">                                      </span><span class="c1">// 1. 等待所有ISR确认</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">ENABLE_IDEMPOTENCE_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span><span class="w">                         </span><span class="c1">// 2. 幂等性（自动设acks=all）</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">RETRIES_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">MAX_VALUE</span><span class="p">);</span><span class="w">                       </span><span class="c1">// 3. 允许无限重试</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">DELIVERY_TIMEOUT_MS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="mi">120000</span><span class="p">);</span><span class="w">                      </span><span class="c1">// 4. 总超时兜底 2 分钟</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span><span class="w">                </span><span class="c1">// 5. 幂等时可达 5</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">REQUEST_TIMEOUT_MS_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="mi">30000</span><span class="p">);</span>
+<span class="n">producerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ProducerConfig</span><span class="p">.</span><span class="na">BUFFER_MEMORY_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="mi">33554432</span><span class="p">);</span><span class="w">                          </span><span class="c1">// 6. 32MB 发送缓冲区</span>
+
+<span class="n">KafkaProducer</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">producer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">KafkaProducer</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">producerProps</span><span class="p">);</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ProducerRecord</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="s">&quot;orders&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">orderId</span><span class="p">,</span><span class="w"> </span><span class="n">orderJson</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">meta</span><span class="p">,</span><span class="w"> </span><span class="n">ex</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ex</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">error</span><span class="p">(</span><span class="s">&quot;发送失败, orderId={}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">orderId</span><span class="p">,</span><span class="w"> </span><span class="n">ex</span><span class="p">.</span><span class="na">getMessage</span><span class="p">());</span>
+<span class="w">        </span><span class="n">saveToDeadLetter</span><span class="p">(</span><span class="n">orderId</span><span class="p">,</span><span class="w"> </span><span class="n">orderJson</span><span class="p">,</span><span class="w"> </span><span class="n">ex</span><span class="p">);</span><span class="w"> </span><span class="c1">// 死信队列</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1">// ==================== 消费者端完整配置 ====================</span>
+<span class="n">Properties</span><span class="w"> </span><span class="n">consumerProps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Properties</span><span class="p">();</span>
+<span class="n">consumerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ConsumerConfig</span><span class="p">.</span><span class="na">GROUP_ID_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;order-group&quot;</span><span class="p">);</span>
+<span class="n">consumerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ConsumerConfig</span><span class="p">.</span><span class="na">ENABLE_AUTO_COMMIT_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span><span class="w">       </span><span class="c1">// 1. 关闭自动提交</span>
+<span class="n">consumerProps</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">ConsumerConfig</span><span class="p">.</span><span class="na">AUTO_OFFSET_RESET_CONFIG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;earliest&quot;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 2. 从头消费</span>
+
+<span class="n">KafkaConsumer</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">consumer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">KafkaConsumer</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">consumerProps</span><span class="p">);</span>
+<span class="n">consumer</span><span class="p">.</span><span class="na">subscribe</span><span class="p">(</span><span class="n">List</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">&quot;orders&quot;</span><span class="p">),</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ConsumerRebalanceListener</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onPartitionsRevoked</span><span class="p">(</span><span class="n">Collection</span><span class="o">&lt;</span><span class="n">TopicPartition</span><span class="o">&gt;</span><span class="w"> </span><span class="n">partitions</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">currentOffsets</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">consumer</span><span class="p">.</span><span class="na">commitSync</span><span class="p">(</span><span class="n">currentOffsets</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onPartitionsAssigned</span><span class="p">(</span><span class="n">Collection</span><span class="o">&lt;</span><span class="n">TopicPartition</span><span class="o">&gt;</span><span class="w"> </span><span class="n">partitions</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="p">});</span>
+
+<span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ConsumerRecords</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">records</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">consumer</span><span class="p">.</span><span class="na">poll</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMillis</span><span class="p">(</span><span class="mi">1000</span><span class="p">));</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">ConsumerRecord</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">records</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">processOrder</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">());</span><span class="w"> </span><span class="c1">// 先处理业务</span>
+<span class="w">        </span><span class="n">currentOffsets</span><span class="p">.</span><span class="na">put</span><span class="p">(</span>
+<span class="w">            </span><span class="k">new</span><span class="w"> </span><span class="n">TopicPartition</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">topic</span><span class="p">(),</span><span class="w"> </span><span class="n">record</span><span class="p">.</span><span class="na">partition</span><span class="p">()),</span>
+<span class="w">            </span><span class="k">new</span><span class="w"> </span><span class="n">OffsetAndMetadata</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">offset</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="p">);</span>
+<span class="w">        </span><span class="n">consumer</span><span class="p">.</span><span class="na">commitSync</span><span class="p">(</span><span class="n">currentOffsets</span><span class="p">);</span><span class="w"> </span><span class="c1">// 再提交 offset</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># Broker 端 server.properties</span>
+<span class="na">default.replication.factor</span><span class="o">=</span><span class="s">3</span>
+<span class="na">min.insync.replicas</span><span class="o">=</span><span class="s">2</span>
+<span class="na">unclean.leader.election.enable</span><span class="o">=</span><span class="s">false</span>
+<span class="na">log.flush.interval.ms</span><span class="o">=</span><span class="s">1000</span>
+</code></pre></div>
+
+<p><strong>数据可靠性公式</strong>:</p>
+<div class="highlight"><pre><span></span><code>数据不丢失 = 
+    Producer：acks=all + enable.idempotence=true + 处理回调 + delivery.timeout.ms
+    + Broker：replication.factor=3 + min.insync.replicas=2 + unclean.leader.election=false
+    + Consumer：enable.auto.commit=false + 先处理再提交 + Rebalance 监听器
+</code></pre></div>
+
+<hr />
+<h3 id="deep-insights">四、深入思考（Deep Insights）</h3>
+<h4 id="41-cap-kafka">4.1 CAP 理论在 Kafka 中的深度分析</h4>
+<p>Kafka 并非严格的 CP 或 AP 系统，其定位随配置动态变化：</p>
+<table>
+<thead>
+<tr>
+<th>配置组合</th>
+<th>CAP 倾向</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>unclean.leader.election=false</code> + <code>min.insync.replicas=2</code></td>
+<td><strong>偏 CP</strong></td>
+<td>副本不足时拒绝写入，保证一致性优先</td>
+</tr>
+<tr>
+<td><code>unclean.leader.election=true</code></td>
+<td><strong>偏 AP</strong></td>
+<td>允许脏选举，即使丢失数据也要保持可用</td>
+</tr>
+<tr>
+<td>默认配置（3.x）</td>
+<td><strong>CP with graceful AP fallback</strong></td>
+<td>ISR 正常时强一致，ISR 不足时阻塞写入</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键洞察</strong>：Kafka 通过 ISR 机制实现了"动态一致性（Dynamic Consistency）"。当网络稳定时，ISR 保持完整，系统提供强一致性；当网络分区发生时，ISR 收缩，系统根据配置决定偏 CP 还是偏 AP。</p>
+<h4 id="42-vs">4.2 数据不丢失 vs 数据不重复的边界</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>数据不丢失（No Data Loss）</th>
+<th>数据不重复（No Duplication）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关注点</td>
+<td>消息不会因故障消失</td>
+<td>消息不会被多次处理</td>
+</tr>
+<tr>
+<td>实现手段</td>
+<td>副本 + ACK + 手动提交</td>
+<td>幂等性 + 事务 + 业务去重</td>
+</tr>
+<tr>
+<td>对应语义</td>
+<td>At-Least-Once</td>
+<td>Exactly-Once</td>
+</tr>
+<tr>
+<td>性能开销</td>
+<td>较低（主要在网络延迟）</td>
+<td>较高（序列号检查 + 事务协调）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实现 Exactly-Once 需要事务性 API</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="n">producer</span><span class="p">.</span><span class="na">initTransactions</span><span class="p">();</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">beginTransaction</span><span class="p">();</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">record</span><span class="p">);</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">sendOffsetsToTransaction</span><span class="p">(</span><span class="n">offsets</span><span class="p">,</span><span class="w"> </span><span class="n">groupId</span><span class="p">);</span>
+<span class="n">producer</span><span class="p">.</span><span class="na">commitTransaction</span><span class="p">();</span><span class="w"> </span><span class="c1">// 原子性提交</span>
+</code></pre></div>
+
+<h4 id="43">4.3 灾难场景与兜底策略</h4>
+<table>
+<thead>
+<tr>
+<th>灾难场景</th>
+<th>影响</th>
+<th>兜底策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Broker 磁盘损坏</td>
+<td>该副本数据全部丢失</td>
+<td>replication.factor≥3 分散风险</td>
+</tr>
+<tr>
+<td>全机房断电</td>
+<td>所有副本不可用</td>
+<td>跨机房部署（MirrorMaker / MM2）</td>
+</tr>
+<tr>
+<td>网络分区</td>
+<td>ISR 收缩，写入可能阻塞</td>
+<td>min.insync.replicas + 监控告警</td>
+</tr>
+<tr>
+<td>消息发送超时</td>
+<td>生产者重试但 delivery.timeout 耗尽</td>
+<td>回调 + 死信队列 + 定时补偿</td>
+</tr>
+</tbody>
+</table>
+<h4 id="44">4.4 监控与告警</h4>
+<div class="highlight"><pre><span></span><code><span class="c1"># 关键 JMX 监控指标</span>
+<span class="na">kafka.server</span><span class="o">:</span><span class="s">type=ReplicaManager,name=UnderReplicatedPartitions  # 未完全同步的分区数</span>
+<span class="na">kafka.server</span><span class="o">:</span><span class="s">type=ReplicaManager,name=IsrShrinksPerSec            # ISR 收缩速率</span>
+<span class="na">kafka.server</span><span class="o">:</span><span class="s">type=ReplicaManager,name=IsrExpandsPerSec            # ISR 扩展速率</span>
+</code></pre></div>
+
+<hr />
+<h2 id="answer-framework">🗺️ 回答思路 (Answer Framework)</h2>
+<p><strong>答题逻辑框架（总-分-总）</strong>：</p>
+<p><strong>第一步（30秒）：总述框架</strong><br />
+"Kafka 数据不丢失需要从三个环节保证：Producer 端确保消息可靠发送、Broker 端确保消息可靠存储、Consumer 端确保消息可靠消费。整体公式是：acks=all + replication.factor=3 + min.insync.replicas=2 + 手动提交 offset。"</p>
+<p><strong>第二步（3-4分钟）：分环节展开</strong><br />
+- <strong>Producer 端（1.5分钟）</strong>：acks 三级别对比（0/1/all），快递签收类比，delivery.timeout.ms 兜底，幂等性 PID+序列号，回调不能 fire-and-forget<br />
+- <strong>Broker 端（1.5分钟）</strong>：三副本+两同步，不允许脏选举，刷盘是补充非核心，CAP 分析<br />
+- <strong>Consumer 端（1.5分钟）</strong>：手动提交，先处理后提交，Rebalance 监听器，At-Least-Once</p>
+<p><strong>第三步（30秒）：总结升华</strong><br />
+"最可靠的配置组合是：acks=all + replication.factor=3 + min.insync.replicas=2 + enable.idempotence=true + manual commit。但要根据实际业务场景权衡——金融系统必须全开。"</p>
+<p><strong>常见追问准备</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>追问</th>
+<th>应答要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"ISR 不够了怎么办？"</td>
+<td>生产者抛 <code>NotEnoughReplicasException</code>，需业务降级或本地缓存</td>
+</tr>
+<tr>
+<td>"怎么避免重复消费？"</td>
+<td>Consumer 端幂等操作：去重表、唯一键约束</td>
+</tr>
+<tr>
+<td>"性能太慢怎么优化？"</td>
+<td>调整 batch.size、compression.type（snappy/zstd）、增加分区数</td>
+</tr>
+<tr>
+<td>"Kafka 3.x 有什么变化？"</td>
+<td>默认 acks=all；KRaft 模式移除 ZooKeeper</td>
+</tr>
+</tbody>
+</table>
+<p><strong>时间分配</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>时间</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开篇总述</td>
+<td>30秒</td>
+<td>全链路框架 + 可靠性公式</td>
+</tr>
+<tr>
+<td>Producer 端</td>
+<td>1.5分钟</td>
+<td>acks 对比 + 幂等 + 重试兜底 + 回调</td>
+</tr>
+<tr>
+<td>Broker 端</td>
+<td>1.5分钟</td>
+<td>副本/ISR/脏选举/刷盘 + CAP 分析</td>
+</tr>
+<tr>
+<td>Consumer 端</td>
+<td>1.5分钟</td>
+<td>手动提交 + Rebalance + At-Least-Once</td>
+</tr>
+<tr>
+<td>总结升华</td>
+<td>30秒</td>
+<td>公式重申 + 追问展开</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <blockquote>
 <p>📋 <strong>分类</strong>: 分布式系统<br />
-🏷️ <strong>标签</strong>: <code>Kafka</code> <code>消息队列</code> <code>分布式</code> <code>数据可靠性</code> <code>ISR</code> <code>ACK</code><br />
-📊 <strong>难度</strong>: 进阶<br />
-📅 <strong>归档时间</strong>: 2026-07-04 18:00:00</p>
+🏷️ <strong>标签</strong>: <code>Kafka</code> <code>消息队列</code> <code>分布式</code> <code>数据可靠性</code> <code>ISR</code> <code>ACK</code> <code>幂等性</code> <code>offset提交</code><br />
+📊 <strong>难度</strong>: hard<br />
+📅 <strong>归档时间</strong>: 2026-07-04 18:00:00<br />
+📝 <strong>更新时间</strong>: 2026-07-04 14:23</p>
 </blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0029')">

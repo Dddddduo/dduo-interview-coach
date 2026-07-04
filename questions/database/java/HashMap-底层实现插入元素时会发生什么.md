@@ -2,13 +2,11 @@
 id: q0034
 question: "HashMap 底层实现，插入元素时会发生什么"
 category: java
-tags: []
+tags: ["Java基础", "集合", "源码"]
 difficulty: medium
-created: 2026-07-04 14:28:11
-source: C:/Program Files/Git/面经助手-20260704
+created: 2026-07-04 15:30:00
+source: /面经助手-20260704
 ---
-
-# HashMap 底层实现，插入元素时会发生什么
 
 # HashMap 底层实现：插入元素时会发生什么
 
@@ -662,11 +660,3 @@ if ((p = tab[i = (n - 1) & hash]) == null)
 | **生成日期** | 2026-07-04 |
 | **内容结构** | 🧠 联想记忆法 → 📖 深度解答 → 🗺️ 回答思路 |
 | **来源文件** | `HashMap-answer.md` |
-
-
----
-
-> 📋 **分类**: Java
-> 🏷️ **标签**: 
-> 📊 **难度**: 中级
-> 📅 **归档时间**: 2026-07-04 14:28:11
