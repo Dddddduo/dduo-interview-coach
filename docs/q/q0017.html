@@ -150,7 +150,7 @@ body {
         <span style="font-size:0.85rem;">q0017</span>
         <div class="q-meta">
             <span class="q-meta-item q-meta-cat">⚡ Redis / 缓存</span>
-            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
     </div>
@@ -161,386 +161,429 @@ body {
     <div class="tag-row"><span class="tag-item">Redis</span>
 <span class="tag-item">分布式锁</span>
 <span class="tag-item">缓存</span>
-<span class="tag-item">原子性</span></div>
-    <pre># 面经深度解答
-
-&gt; 生成时间：2026-07-04 14:20
-&gt; 来源：/面经助手
-
----
-
-## 题目
-
-**setnx 和 setx 区别；setnx 如何释放锁**
-
----
-
-## 🧠 联想记忆法
-
-**记忆锚点：SETNX -&gt; "Set if Not eXists"**
-
-将 SETNX 拆解为三个字母的含义：Set The key Not eXists。中文直译是"不存在才设置"，对应分布式锁中的"互斥获取"语义。
-
-**记忆链：SETNX 的三个致命缺陷 -&gt; 三段演变史**
-
-```
-缺陷1：无过期 -&gt; 宕机变死锁 -&gt; 解决：SETEX/SET+EXPIRE（但不原子）
-缺陷2：非原子 -&gt; EXPIRE 失败仍死锁 -&gt; 解决：SET NX EX（2.6.12+ 原子版）
-缺陷3：直接 DEL -&gt; 误删他人锁 -&gt; 解决：Lua 脚本 + UUID 校验
-```
-
-将这三个缺陷串成一句话："没超时会死锁，不原子会死锁，直接删会误删"。
-
-**记忆红绿灯口诀**：
-- SETNX 老版本 = 红灯（有坑，别单独用）
-- SET NX EX = 黄灯（好的获取方式）
-- Lua + UUID = 绿灯（安全的释放方式）
-
----
-
-## 📖 深度解答
-
-### 一、核心概念：SETNX 与 SETEX（SETX）的命令对比
-
-面试官口中所说的"setx"，在 Redis 命令体系中并无此精确命名，通常指代 SETEX（SET + EX 的组合语义），或泛指带过期时间的 SET 命令变体。以下对相关命令进行逐一对比。
-
-#### 1.1 SETNX 命令
-
-```
-SETNX key value
-```
-
-- **语义**：SET if Not eXists，仅在 key **不存在**时才执行设置操作；若 key 已存在，则不做任何操作，返回 0。
-- **原子性**：单个 Redis 命令，天然原子。
-- **过期时间**：老版本中不提供过期时间参数（Redis 2.6.12 之前）。这意味着若客户端在 SETNX 成功后崩溃，该 key 将永久存在，造成死锁。
-- **返回值**：1 表示设置成功，0 表示 key 已存在。
-- **时间复杂度**：O(1)。
-
-#### 1.2 SETEX 命令
-
-```
-SETEX key seconds value
-```
-
-- **语义**：原子性地设置 key 并指定其生存时间（以秒为单位）。等同以下两步操作的原子版本：SET key value + EXPIRE key seconds。
-- **原子性**：SETEX 本身是原子操作，不存在"设置成功但过期未生效"的问题。
-- **与 SETNX 的关键区别**：SETEX **不检查 key 是否存在**，即无论 key 是否存在都会直接覆盖写入。
-- **时间复杂度**：O(1)。
-
-#### 1.3 PSETEX 命令（毫秒级）
-
-```
-PSETEX key milliseconds value
-```
-
-- **语义**：与 SETEX 完全一致，区别仅在于过期时间单位是**毫秒**（milliseconds）。SETEX 用 seconds，PSETEX 用 milliseconds。
-- **使用场景**：需要更精细过期粒度时使用，例如缓存有效期 500ms。
-
-#### 1.4 SET key value NX EX seconds（原子替代方案，Redis 2.6.12+）
-
-```
-SET key value NX EX 30
-```
-
-- **语义**：NX 表示"不存在才设置"（等同于 SETNX 语义），EX 30 表示设置 30 秒过期。**一条命令实现了 SETNX + EXPIRE 原子的效果**。
-- **重要性**：这是 Redis 官方推荐的分布式锁获取方式，是解决 SETNX + EXPIRE 非原子问题的标准方案。从 Redis 2.6.12 版本起，SET 命令扩展了 NX、XX、EX、PX 等选项。
-- **注意事项**：NX 与 XX（存在才设置）互斥，不可同时使用；EX 与 PX 互斥。
-
-#### 1.5 命令对比总表
-
-| 命令 | 检查存在 | 过期时间 | 原子性 | 推荐度 |
-|------|---------|---------|--------|-------|
-| SETNX key value | 仅不存在时设置 | 无 | 单命令原子 | 不推荐单独使用 |
-| SETEX key seconds value | 直接覆盖 | 秒级 | 原子 | 设缓存场景 |
-| PSETEX key ms value | 直接覆盖 | 毫秒级 | 原子 | 需毫秒精度场景 |
-| SET key value NX EX sec | 仅不存在时设置 | 秒级 | 原子 | 分布式锁首选 |
-| SET key value NX PX ms | 仅不存在时设置 | 毫秒级 | 原子 | 分布式锁毫秒版 |
-
----
-
-### 二、底层原理：为什么 SETNX 单独使用是有问题的
-
-#### 2.1 非原子操作导致死锁
-
-在 Redis 2.6.12 之前，无法通过一条命令同时完成"不存在才设置"和"设置过期时间"。开发者只能这样写：
-
-```java
-// 非原子操作：两行代码两个命令
-Long result = jedis.setnx("lock:order:1001", "1");
-if (result == 1) {
-    // 在另一个命令中设置过期时间
-    jedis.expire("lock:order:1001", 30);
-    // 执行业务逻辑...
-}
-```
-
-**问题**：SETNX 和 EXPIRE 是两条独立的命令，不是原子操作。若在 SETNX 成功之后、EXPIRE 执行之前，客户端进程崩溃、网络断开或 Redis 主从切换导致命令丢失，则：
-
-1. SETNX 已成功写入 key
-2. EXPIRE 未执行
-3. 该 key 永不过期，变为死锁
-4. 所有后续线程再也无法获取该锁
-
-这就是分布式锁实现中最经典的**死锁陷阱**。
-
-#### 2.2 错误释放锁导致锁误删
-
-即使获取锁的流程正确，锁释放环节也隐藏着另一个陷阱：
-
-```java
-// 错误做法：直接 DEL，未校验持有者身份
-jedis.del("lock:order:1001");
-```
-
-**场景复现**：
-
-| 时间 | 线程A | 线程B |
-|------|-------|-------|
-| T1 | SETNX 成功，获取锁 value=UUID_A | - |
-| T2 | 业务执行超时，锁自动过期 | - |
-| T3 | - | SETNX 成功，获取锁 value=UUID_B |
-| T4 | 线程A finally 块执行 DEL | - |
-| T5 | 线程A 误删了线程B 的锁 | - |
-| T6 | - | 锁被删除，临界区失去保护 |
-
-线程A 在 finally 中调用了 DEL，但此时它持有的锁已经过期且被线程B 获取，DEL 删除了线程B 的锁，导致线程B 的临界区暴露。
-
----
-
-### 三、实践应用：SETNX 的正确使用方式
-
-#### 3.1 正确的获取方式（Redis 2.6.12+）
-
-使用单条 SET key value NX EX seconds 命令，将加锁和过期设置在同一个原子操作中：
-
-```java
-// 正确做法：原子操作
-String result = jedis.set("lock:order:1001", lockValue, "NX", "EX", 30);
-if ("OK".equals(result)) {
-    // 获取锁成功，执行业务
-}
-```
-
-其中 lockValue 是唯一标识（如 UUID），用于释放锁时校验持有者身份。
-
-#### 3.2 正确的释放方式：Lua 脚本 + UUID 校验
-
-释放锁的**黄金法则是"谁加的锁谁释放"**，即先通过 GET 命令获取 key 的当前 value，仅当 value 与自己持有的 UUID 一致时，才执行 DEL。但这个 GET + DEL 是两个操作，需要原子性——因此使用 **Lua 脚本**。
-
-**Lua 脚本**：
-
-```lua
--- KEYS[1]：锁的 key
--- ARGV[1]：客户端持有的唯一标识（UUID）
-if redis.call("get", KEYS[1]) == ARGV[1] then
-    return redis.call("del", KEYS[1])
-else
-    return 0
-end
-```
-
-**Java 调用代码（Jedis 客户端）**：
-
-```java
-import redis.clients.jedis.Jedis;
-import java.util.Collections;
-import java.util.UUID;
-
-public class RedisDistributedLock {
-
-    private static final String LOCK_SUCCESS = "OK";
-    private static final Long RELEASE_SUCCESS = 1L;
-    private static final String LOCK_SCRIPT =
-        "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-        "    return redis.call('del', KEYS[1]) " +
-        "else " +
-        "    return 0 " +
-        "end";
-
-    private final Jedis jedis;
-    private final String lockKey;
-    private final String lockValue;
-    private final int expireSeconds;
-
-    public RedisDistributedLock(Jedis jedis, String lockKey, int expireSeconds) {
-        this.jedis = jedis;
-        this.lockKey = lockKey;
-        this.lockValue = UUID.randomUUID().toString();
-        this.expireSeconds = expireSeconds;
-    }
-
-    public boolean tryLock() {
-        String result = jedis.set(lockKey, lockValue, "NX", "EX", expireSeconds);
-        return LOCK_SUCCESS.equals(result);
-    }
-
-    public boolean unlock() {
-        Object result = jedis.eval(LOCK_SCRIPT,
-            Collections.singletonList(lockKey),
-            Collections.singletonList(lockValue));
-        return RELEASE_SUCCESS.equals(result);
-    }
-}
-```
-
-#### 3.3 完整对比：错误实现 vs 正确实现
-
-```java
-import redis.clients.jedis.Jedis;
-import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-public class LockDemo {
-
-    private static final String LOCK_KEY = "lock:order:1001";
-    private static final int EXPIRE_SEC = 30;
-
-    // ==================== 错误实现 ====================
-    public static void wrongLock(Jedis jedis) {
-        Long nxResult = jedis.setnx(LOCK_KEY, "1");
-        if (nxResult == 1) {
-            jedis.expire(LOCK_KEY, EXPIRE_SEC);  // 进程可能在此行前崩溃
-            try {
-                System.out.println("执行业务逻辑...");
-                TimeUnit.SECONDS.sleep(5);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } finally {
-                jedis.del(LOCK_KEY);  // 可能误删他人锁
-            }
-        }
-    }
-
-    // ==================== 正确实现 ====================
-    public static class SafeLock {
-        private final Jedis jedis;
-        private final String lockKey;
-        private final String lockValue;
-        private final int expireSeconds;
-
-        private static final String UNLOCK_SCRIPT =
-            "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-            "    return redis.call('del', KEYS[1]) " +
-            "else " +
-            "    return 0 " +
-            "end";
-
-        public SafeLock(Jedis jedis, String lockKey, int expireSeconds) {
-            this.jedis = jedis;
-            this.lockKey = lockKey;
-            this.lockValue = UUID.randomUUID().toString();
-            this.expireSeconds = expireSeconds;
-        }
-
-        public boolean tryLock() {
-            String result = jedis.set(lockKey, lockValue, "NX", "EX", expireSeconds);
-            return "OK".equals(result);
-        }
-
-        public boolean unlock() {
-            Object result = jedis.eval(
-                UNLOCK_SCRIPT,
-                Collections.singletonList(lockKey),
-                Collections.singletonList(lockValue)
-            );
-            return Long.valueOf(1).equals(result);
-        }
-
-        public void executeWithinLock(Runnable task) {
-            boolean locked = false;
-            try {
-                locked = tryLock();
-                if (!locked) {
-                    throw new RuntimeException("获取锁失败，key: " + lockKey);
-                }
-                task.run();
-            } finally {
-                if (locked) {
-                    unlock();
-                }
-            }
-        }
-    }
-
-    public static void main(String[] args) {
-        Jedis jedis = new Jedis("localhost", 6379);
-        SafeLock safeLock = new SafeLock(jedis, LOCK_KEY, EXPIRE_SEC);
-        safeLock.executeWithinLock(() -&gt; {
-            System.out.println("在锁保护下执行业务逻辑");
-        });
-        jedis.close();
-    }
-}
-```
-
----
-
-### 四、深入思考：进阶话题与最佳实践
-
-#### 4.1 Redisson 的看门狗机制（Watchdog）
-
-即使有了原子加锁和 Lua 释放，仍有锁超时自动释放但业务未完成的风险。Redisson 提供了**看门狗**（Watchdog）机制：
-
-- 默认每 10 秒检查一次锁是否仍被持有
-- 若锁仍在持有，自动将过期时间续期到 30 秒
-- 在 unlock() 或客户端宕机时停止续期
-
-避免了两难困境：过期太短则业务未完成锁已释放，过期太长则宕机后锁迟迟不释放。
-
-#### 4.2 RedLock 算法
-
-在 Redis 主从（master-slave）架构中，若 master 宕机，从节点（slave）尚未同步锁数据就升为 master，可能导致锁丢失。Redis 作者提出了 **RedLock** 算法，要求向大多数（N/2 + 1）Redis 节点同时加锁。不过 RedLock 在分布式系统学术界存在争议，主流分布式系统（如 Consul、etcd）更倾向于使用强一致性的分布式锁。
-
-#### 4.3 SETNX 演进时间线
-
-| 版本 | 变化 | 意义 |
-|------|------|------|
-| Redis 1.0 | 引入 SETNX | 提供基础排他性 |
-| Redis 2.0 | 引入 EXPIRE | 可设过期，但非原子 |
-| **Redis 2.6.12** | **SET 扩展 NX/EX/PX** | **原子加锁+过期，里程碑版本** |
-| Redis 3.2 | Lua 脚本增强 | 安全释放锁成为标准实践 |
-
----
-
-## 🗺️ 回答思路
-
-面试官抛出这个问题时，核心考察的是：**是否踩过分布式锁的坑，以及是否理解"原子性"是分布式锁最底层的要求**。
-
-### 分层回答框架
-
-**第一层：直击本质（15秒）**
-
-&gt; SETNX 的核心语义是"不存在才设置"，适合做分布式锁的互斥获取；SETEX 的核心语义是"设置并带过期"。但两者各自有局限性——SETNX 无过期、SETEX 无排他。Redis 2.6.12+ 的 SET key value NX EX seconds 将两者优势合二为一。
-
-**第二层：暴露坑点（30秒）**
-
-&gt; SETNX 单独使用有两个经典问题：一是与 EXPIRE 组合非原子，EXPIRE 可能执行失败导致死锁；二是释放锁时直接 DEL，可能误删其他线程的锁。第一个问题用 SET NX EX 解决，第二个问题用 Lua 脚本 + UUID 解决。
-
-**第三层：深入原理（45秒）**
-
-&gt; 为什么一定要 Lua 脚本？因为 GET（校验）和 DEL（删除）是两个操作，非原子操作在并发下必然出错。Lua 脚本在 Redis 中是原子的——整个脚本作为一个整体执行，中间不会被其他命令插入。
-
-**第四层：升华高度（30秒）**
-
-&gt; 不过即使做到了这些，仍面临锁超时业务未完成的问题。真正生产环境中我会使用 Redisson 的看门狗自动续期。在要求强一致性的场景下，我会考虑使用 ZooKeeper 或 etcd 的分布式锁，而非 Redis。
-
-### 面试加分点
-
-1. **主动引出 RedLock**：显示你对分布式锁的深度研究
-2. **提及具体版本号**：Redis 2.6.12、3.2 等版本细节，证明读过官方文档
-3. **Lua 脚本的原子性原理**：Redis 使用串行化执行 Lua，不会被打断
-4. **对比 ZK/etcd**：展示对 CAP 理论和一致性模型的理解
-5. **追问防御**：如果面试官追问"RedLock 有没有争议"——你已准备好讨论 Martin Kleppmann 与 Antirez 的争论
-
-### 避坑指南
-
-- 不要说 "SETX 是 Redis 命令"（不存在，显得不专业）
-- 应该说 "您说的 SETX 应该是指 SETEX，或者带 EX 选项的 SET 命令"
-- 不要只说 "用 Lua 脚本" 而不写出 Lua 代码
-- 必须手写 Lua + 说明 KEYS/ARGV 的区别
-- 不要只说 "用 UUID 做标识" 而不解释原因
-- 明确说出 UUID 是为了"锁持有者身份校验"</pre>
+<span class="tag-item">原子性</span>
+<span class="tag-item">Lua</span>
+<span class="tag-item">并发编程</span></div>
+    <h1 id="_1">面经深度解答</h1>
+<blockquote>
+<p>生成时间：2026-07-04 14:20<br />
+来源：/面经助手</p>
+</blockquote>
+<hr />
+<h2 id="_2">题目</h2>
+<p><strong>setnx 和 setx 区别；setnx 如何释放锁</strong></p>
+<hr />
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>记忆锚点：SETNX -&gt; "Set if Not eXists"</strong></p>
+<p>将 SETNX 拆解为三个字母的含义：Set The key Not eXists。中文直译是"不存在才设置"，对应分布式锁中的"互斥获取"语义。</p>
+<p><strong>记忆链：SETNX 的三个致命缺陷 -&gt; 三段演变史</strong></p>
+<div class="highlight"><pre><span></span><code><span class="err">缺陷</span><span class="mi">1</span><span class="err">：无过期</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="err">宕机变死锁</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="err">解决：</span><span class="n">SETEX</span><span class="o">/</span><span class="nf">SET</span><span class="o">+</span><span class="kr">EXPIRE</span><span class="err">（但不原子）</span>
+<span class="err">缺陷</span><span class="mi">2</span><span class="err">：非原子</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kr">EXPIRE</span><span class="w"> </span><span class="err">失败仍死锁</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="err">解决：</span><span class="nf">SET</span><span class="w"> </span><span class="n">NX</span><span class="w"> </span><span class="n">EX</span><span class="err">（</span><span class="mf">2.6.12</span><span class="o">+</span><span class="w"> </span><span class="err">原子版）</span>
+<span class="err">缺陷</span><span class="mi">3</span><span class="err">：直接</span><span class="w"> </span><span class="n">DEL</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="err">误删他人锁</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="err">解决：</span><span class="n">Lua</span><span class="w"> </span><span class="err">脚本</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="err">校验</span>
+</code></pre></div>
+
+<p>将这三个缺陷串成一句话："没超时会死锁，不原子会死锁，直接删会误删"。</p>
+<p><strong>记忆红绿灯口诀</strong>：<br />
+- SETNX 老版本 = 红灯（有坑，别单独用）<br />
+- SET NX EX = 黄灯（好的获取方式）<br />
+- Lua + UUID = 绿灯（安全的释放方式）</p>
+<hr />
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="setnx-setexsetx">一、核心概念：SETNX 与 SETEX（SETX）的命令对比</h3>
+<p>面试官口中所说的"setx"，在 Redis 命令体系中并无此精确命名，通常指代 SETEX（SET + EX 的组合语义），或泛指带过期时间的 SET 命令变体。以下对相关命令进行逐一对比。</p>
+<h4 id="11-setnx">1.1 SETNX 命令</h4>
+<div class="highlight"><pre><span></span><code>SETNX key value
+</code></pre></div>
+
+<ul>
+<li><strong>语义</strong>：SET if Not eXists，仅在 key <strong>不存在</strong>时才执行设置操作；若 key 已存在，则不做任何操作，返回 0。</li>
+<li><strong>原子性</strong>：单个 Redis 命令，天然原子。</li>
+<li><strong>过期时间</strong>：老版本中不提供过期时间参数（Redis 2.6.12 之前）。这意味着若客户端在 SETNX 成功后崩溃，该 key 将永久存在，造成死锁。</li>
+<li><strong>返回值</strong>：1 表示设置成功，0 表示 key 已存在。</li>
+<li><strong>时间复杂度</strong>：O(1)。</li>
+</ul>
+<h4 id="12-setex">1.2 SETEX 命令</h4>
+<div class="highlight"><pre><span></span><code>SETEX key seconds value
+</code></pre></div>
+
+<ul>
+<li><strong>语义</strong>：原子性地设置 key 并指定其生存时间（以秒为单位）。等同以下两步操作的原子版本：SET key value + EXPIRE key seconds。</li>
+<li><strong>原子性</strong>：SETEX 本身是原子操作，不存在"设置成功但过期未生效"的问题。</li>
+<li><strong>与 SETNX 的关键区别</strong>：SETEX <strong>不检查 key 是否存在</strong>，即无论 key 是否存在都会直接覆盖写入。</li>
+<li><strong>时间复杂度</strong>：O(1)。</li>
+</ul>
+<h4 id="13-psetex">1.3 PSETEX 命令（毫秒级）</h4>
+<div class="highlight"><pre><span></span><code>PSETEX key milliseconds value
+</code></pre></div>
+
+<ul>
+<li><strong>语义</strong>：与 SETEX 完全一致，区别仅在于过期时间单位是<strong>毫秒</strong>（milliseconds）。SETEX 用 seconds，PSETEX 用 milliseconds。</li>
+<li><strong>使用场景</strong>：需要更精细过期粒度时使用，例如缓存有效期 500ms。</li>
+</ul>
+<h4 id="14-set-key-value-nx-ex-secondsredis-2612">1.4 SET key value NX EX seconds（原子替代方案，Redis 2.6.12+）</h4>
+<div class="highlight"><pre><span></span><code>SET key value NX EX 30
+</code></pre></div>
+
+<ul>
+<li><strong>语义</strong>：NX 表示"不存在才设置"（等同于 SETNX 语义），EX 30 表示设置 30 秒过期。<strong>一条命令实现了 SETNX + EXPIRE 原子的效果</strong>。</li>
+<li><strong>重要性</strong>：这是 Redis 官方推荐的分布式锁获取方式，是解决 SETNX + EXPIRE 非原子问题的标准方案。从 Redis 2.6.12 版本起，SET 命令扩展了 NX、XX、EX、PX 等选项。</li>
+<li><strong>注意事项</strong>：NX 与 XX（存在才设置）互斥，不可同时使用；EX 与 PX 互斥。</li>
+</ul>
+<h4 id="15">1.5 命令对比总表</h4>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>检查存在</th>
+<th>过期时间</th>
+<th>原子性</th>
+<th>推荐度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SETNX key value</td>
+<td>仅不存在时设置</td>
+<td>无</td>
+<td>单命令原子</td>
+<td>不推荐单独使用</td>
+</tr>
+<tr>
+<td>SETEX key seconds value</td>
+<td>直接覆盖</td>
+<td>秒级</td>
+<td>原子</td>
+<td>设缓存场景</td>
+</tr>
+<tr>
+<td>PSETEX key ms value</td>
+<td>直接覆盖</td>
+<td>毫秒级</td>
+<td>原子</td>
+<td>需毫秒精度场景</td>
+</tr>
+<tr>
+<td>SET key value NX EX sec</td>
+<td>仅不存在时设置</td>
+<td>秒级</td>
+<td>原子</td>
+<td>分布式锁首选</td>
+</tr>
+<tr>
+<td>SET key value NX PX ms</td>
+<td>仅不存在时设置</td>
+<td>毫秒级</td>
+<td>原子</td>
+<td>分布式锁毫秒版</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="setnx">二、底层原理：为什么 SETNX 单独使用是有问题的</h3>
+<h4 id="21">2.1 非原子操作导致死锁</h4>
+<p>在 Redis 2.6.12 之前，无法通过一条命令同时完成"不存在才设置"和"设置过期时间"。开发者只能这样写：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 非原子操作：两行代码两个命令</span>
+<span class="n">Long</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">setnx</span><span class="p">(</span><span class="s">&quot;lock:order:1001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 在另一个命令中设置过期时间</span>
+<span class="w">    </span><span class="n">jedis</span><span class="p">.</span><span class="na">expire</span><span class="p">(</span><span class="s">&quot;lock:order:1001&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 执行业务逻辑...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>问题</strong>：SETNX 和 EXPIRE 是两条独立的命令，不是原子操作。若在 SETNX 成功之后、EXPIRE 执行之前，客户端进程崩溃、网络断开或 Redis 主从切换导致命令丢失，则：</p>
+<ol>
+<li>SETNX 已成功写入 key</li>
+<li>EXPIRE 未执行</li>
+<li>该 key 永不过期，变为死锁</li>
+<li>所有后续线程再也无法获取该锁</li>
+</ol>
+<p>这就是分布式锁实现中最经典的<strong>死锁陷阱</strong>。</p>
+<h4 id="22">2.2 错误释放锁导致锁误删</h4>
+<p>即使获取锁的流程正确，锁释放环节也隐藏着另一个陷阱：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 错误做法：直接 DEL，未校验持有者身份</span>
+<span class="n">jedis</span><span class="p">.</span><span class="na">del</span><span class="p">(</span><span class="s">&quot;lock:order:1001&quot;</span><span class="p">);</span>
+</code></pre></div>
+
+<p><strong>场景复现</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>线程A</th>
+<th>线程B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>SETNX 成功，获取锁 value=UUID_A</td>
+<td>-</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>业务执行超时，锁自动过期</td>
+<td>-</td>
+</tr>
+<tr>
+<td>T3</td>
+<td>-</td>
+<td>SETNX 成功，获取锁 value=UUID_B</td>
+</tr>
+<tr>
+<td>T4</td>
+<td>线程A finally 块执行 DEL</td>
+<td>-</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>线程A 误删了线程B 的锁</td>
+<td>-</td>
+</tr>
+<tr>
+<td>T6</td>
+<td>-</td>
+<td>锁被删除，临界区失去保护</td>
+</tr>
+</tbody>
+</table>
+<p>线程A 在 finally 中调用了 DEL，但此时它持有的锁已经过期且被线程B 获取，DEL 删除了线程B 的锁，导致线程B 的临界区暴露。</p>
+<hr />
+<h3 id="setnx_1">三、实践应用：SETNX 的正确使用方式</h3>
+<h4 id="31-redis-2612">3.1 正确的获取方式（Redis 2.6.12+）</h4>
+<p>使用单条 SET key value NX EX seconds 命令，将加锁和过期设置在同一个原子操作中：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 正确做法：原子操作</span>
+<span class="n">String</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="s">&quot;lock:order:1001&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">lockValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;NX&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;EX&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;OK&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">result</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 获取锁成功，执行业务</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>其中 lockValue 是唯一标识（如 UUID），用于释放锁时校验持有者身份。</p>
+<h4 id="32-lua-uuid">3.2 正确的释放方式：Lua 脚本 + UUID 校验</h4>
+<p>释放锁的<strong>黄金法则是"谁加的锁谁释放"</strong>，即先通过 GET 命令获取 key 的当前 value，仅当 value 与自己持有的 UUID 一致时，才执行 DEL。但这个 GET + DEL 是两个操作，需要原子性——因此使用 <strong>Lua 脚本</strong>。</p>
+<p><strong>Lua 脚本</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- KEYS[1]：锁的 key</span>
+<span class="c1">-- ARGV[1]：客户端持有的唯一标识（UUID）</span>
+<span class="kr">if</span><span class="w"> </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">&quot;get&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s2">&quot;del&quot;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="kr">else</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="mi">0</span>
+<span class="kr">end</span>
+</code></pre></div>
+
+<p><strong>Java 调用代码（Jedis 客户端）</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">redis.clients.jedis.Jedis</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Collections</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.UUID</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RedisDistributedLock</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">LOCK_SUCCESS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;OK&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Long</span><span class="w"> </span><span class="n">RELEASE_SUCCESS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1L</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">LOCK_SCRIPT</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="s">&quot;if redis.call(&#39;get&#39;, KEYS[1]) == ARGV[1] then &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">        </span><span class="s">&quot;    return redis.call(&#39;del&#39;, KEYS[1]) &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">        </span><span class="s">&quot;else &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">        </span><span class="s">&quot;    return 0 &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">        </span><span class="s">&quot;end&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockKey</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockValue</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">RedisDistributedLock</span><span class="p">(</span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockKey</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">jedis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">lockKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lockKey</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">lockValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">().</span><span class="na">toString</span><span class="p">();</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">expireSeconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryLock</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="n">lockKey</span><span class="p">,</span><span class="w"> </span><span class="n">lockValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;NX&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;EX&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">LOCK_SUCCESS</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">unlock</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Object</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">eval</span><span class="p">(</span><span class="n">LOCK_SCRIPT</span><span class="p">,</span>
+<span class="w">            </span><span class="n">Collections</span><span class="p">.</span><span class="na">singletonList</span><span class="p">(</span><span class="n">lockKey</span><span class="p">),</span>
+<span class="w">            </span><span class="n">Collections</span><span class="p">.</span><span class="na">singletonList</span><span class="p">(</span><span class="n">lockValue</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">RELEASE_SUCCESS</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="33-vs">3.3 完整对比：错误实现 vs 正确实现</h4>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">redis.clients.jedis.Jedis</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Collections</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.UUID</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.TimeUnit</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LockDemo</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">LOCK_KEY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;lock:order:1001&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">EXPIRE_SEC</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// ==================== 错误实现 ====================</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">wrongLock</span><span class="p">(</span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Long</span><span class="w"> </span><span class="n">nxResult</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">setnx</span><span class="p">(</span><span class="n">LOCK_KEY</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nxResult</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">jedis</span><span class="p">.</span><span class="na">expire</span><span class="p">(</span><span class="n">LOCK_KEY</span><span class="p">,</span><span class="w"> </span><span class="n">EXPIRE_SEC</span><span class="p">);</span><span class="w">  </span><span class="c1">// 进程可能在此行前崩溃</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;执行业务逻辑...&quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">jedis</span><span class="p">.</span><span class="na">del</span><span class="p">(</span><span class="n">LOCK_KEY</span><span class="p">);</span><span class="w">  </span><span class="c1">// 可能误删他人锁</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// ==================== 正确实现 ====================</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SafeLock</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockKey</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockValue</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">;</span>
+
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">UNLOCK_SCRIPT</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="s">&quot;if redis.call(&#39;get&#39;, KEYS[1]) == ARGV[1] then &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">            </span><span class="s">&quot;    return redis.call(&#39;del&#39;, KEYS[1]) &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">            </span><span class="s">&quot;else &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">            </span><span class="s">&quot;    return 0 &quot;</span><span class="w"> </span><span class="o">+</span>
+<span class="w">            </span><span class="s">&quot;end&quot;</span><span class="p">;</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="nf">SafeLock</span><span class="p">(</span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">lockKey</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">jedis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">;</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">lockKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lockKey</span><span class="p">;</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">lockValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">().</span><span class="na">toString</span><span class="p">();</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">expireSeconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryLock</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">set</span><span class="p">(</span><span class="n">lockKey</span><span class="p">,</span><span class="w"> </span><span class="n">lockValue</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;NX&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;EX&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">expireSeconds</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;OK&quot;</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">unlock</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Object</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">eval</span><span class="p">(</span>
+<span class="w">                </span><span class="n">UNLOCK_SCRIPT</span><span class="p">,</span>
+<span class="w">                </span><span class="n">Collections</span><span class="p">.</span><span class="na">singletonList</span><span class="p">(</span><span class="n">lockKey</span><span class="p">),</span>
+<span class="w">                </span><span class="n">Collections</span><span class="p">.</span><span class="na">singletonList</span><span class="p">(</span><span class="n">lockValue</span><span class="p">)</span>
+<span class="w">            </span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">Long</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="mi">1</span><span class="p">).</span><span class="na">equals</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">executeWithinLock</span><span class="p">(</span><span class="n">Runnable</span><span class="w"> </span><span class="n">task</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kt">boolean</span><span class="w"> </span><span class="n">locked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">locked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tryLock</span><span class="p">();</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">locked</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RuntimeException</span><span class="p">(</span><span class="s">&quot;获取锁失败，key: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">lockKey</span><span class="p">);</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="n">task</span><span class="p">.</span><span class="na">run</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">locked</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">unlock</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Jedis</span><span class="w"> </span><span class="n">jedis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Jedis</span><span class="p">(</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">6379</span><span class="p">);</span>
+<span class="w">        </span><span class="n">SafeLock</span><span class="w"> </span><span class="n">safeLock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SafeLock</span><span class="p">(</span><span class="n">jedis</span><span class="p">,</span><span class="w"> </span><span class="n">LOCK_KEY</span><span class="p">,</span><span class="w"> </span><span class="n">EXPIRE_SEC</span><span class="p">);</span>
+<span class="w">        </span><span class="n">safeLock</span><span class="p">.</span><span class="na">executeWithinLock</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;在锁保护下执行业务逻辑&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="p">});</span>
+<span class="w">        </span><span class="n">jedis</span><span class="p">.</span><span class="na">close</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h3 id="_5">四、深入思考：进阶话题与最佳实践</h3>
+<h4 id="41-redisson-watchdog">4.1 Redisson 的看门狗机制（Watchdog）</h4>
+<p>即使有了原子加锁和 Lua 释放，仍有锁超时自动释放但业务未完成的风险。Redisson 提供了<strong>看门狗</strong>（Watchdog）机制：</p>
+<ul>
+<li>默认每 10 秒检查一次锁是否仍被持有</li>
+<li>若锁仍在持有，自动将过期时间续期到 30 秒</li>
+<li>在 unlock() 或客户端宕机时停止续期</li>
+</ul>
+<p>避免了两难困境：过期太短则业务未完成锁已释放，过期太长则宕机后锁迟迟不释放。</p>
+<h4 id="42-redlock">4.2 RedLock 算法</h4>
+<p>在 Redis 主从（master-slave）架构中，若 master 宕机，从节点（slave）尚未同步锁数据就升为 master，可能导致锁丢失。Redis 作者提出了 <strong>RedLock</strong> 算法，要求向大多数（N/2 + 1）Redis 节点同时加锁。不过 RedLock 在分布式系统学术界存在争议，主流分布式系统（如 Consul、etcd）更倾向于使用强一致性的分布式锁。</p>
+<h4 id="43-setnx">4.3 SETNX 演进时间线</h4>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>变化</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Redis 1.0</td>
+<td>引入 SETNX</td>
+<td>提供基础排他性</td>
+</tr>
+<tr>
+<td>Redis 2.0</td>
+<td>引入 EXPIRE</td>
+<td>可设过期，但非原子</td>
+</tr>
+<tr>
+<td><strong>Redis 2.6.12</strong></td>
+<td><strong>SET 扩展 NX/EX/PX</strong></td>
+<td><strong>原子加锁+过期，里程碑版本</strong></td>
+</tr>
+<tr>
+<td>Redis 3.2</td>
+<td>Lua 脚本增强</td>
+<td>安全释放锁成为标准实践</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_6">🗺️ 回答思路</h2>
+<p>面试官抛出这个问题时，核心考察的是：<strong>是否踩过分布式锁的坑，以及是否理解"原子性"是分布式锁最底层的要求</strong>。</p>
+<h3 id="_7">分层回答框架</h3>
+<p><strong>第一层：直击本质（15秒）</strong></p>
+<blockquote>
+<p>SETNX 的核心语义是"不存在才设置"，适合做分布式锁的互斥获取；SETEX 的核心语义是"设置并带过期"。但两者各自有局限性——SETNX 无过期、SETEX 无排他。Redis 2.6.12+ 的 SET key value NX EX seconds 将两者优势合二为一。</p>
+</blockquote>
+<p><strong>第二层：暴露坑点（30秒）</strong></p>
+<blockquote>
+<p>SETNX 单独使用有两个经典问题：一是与 EXPIRE 组合非原子，EXPIRE 可能执行失败导致死锁；二是释放锁时直接 DEL，可能误删其他线程的锁。第一个问题用 SET NX EX 解决，第二个问题用 Lua 脚本 + UUID 解决。</p>
+</blockquote>
+<p><strong>第三层：深入原理（45秒）</strong></p>
+<blockquote>
+<p>为什么一定要 Lua 脚本？因为 GET（校验）和 DEL（删除）是两个操作，非原子操作在并发下必然出错。Lua 脚本在 Redis 中是原子的——整个脚本作为一个整体执行，中间不会被其他命令插入。</p>
+</blockquote>
+<p><strong>第四层：升华高度（30秒）</strong></p>
+<blockquote>
+<p>不过即使做到了这些，仍面临锁超时业务未完成的问题。真正生产环境中我会使用 Redisson 的看门狗自动续期。在要求强一致性的场景下，我会考虑使用 ZooKeeper 或 etcd 的分布式锁，而非 Redis。</p>
+</blockquote>
+<h3 id="_8">面试加分点</h3>
+<ol>
+<li><strong>主动引出 RedLock</strong>：显示你对分布式锁的深度研究</li>
+<li><strong>提及具体版本号</strong>：Redis 2.6.12、3.2 等版本细节，证明读过官方文档</li>
+<li><strong>Lua 脚本的原子性原理</strong>：Redis 使用串行化执行 Lua，不会被打断</li>
+<li><strong>对比 ZK/etcd</strong>：展示对 CAP 理论和一致性模型的理解</li>
+<li><strong>追问防御</strong>：如果面试官追问"RedLock 有没有争议"——你已准备好讨论 Martin Kleppmann 与 Antirez 的争论</li>
+</ol>
+<h3 id="_9">避坑指南</h3>
+<ul>
+<li>不要说 "SETX 是 Redis 命令"（不存在，显得不专业）</li>
+<li>应该说 "您说的 SETX 应该是指 SETEX，或者带 EX 选项的 SET 命令"</li>
+<li>不要只说 "用 Lua 脚本" 而不写出 Lua 代码</li>
+<li>必须手写 Lua + 说明 KEYS/ARGV 的区别</li>
+<li>不要只说 "用 UUID 做标识" 而不解释原因</li>
+<li>明确说出 UUID 是为了"锁持有者身份校验"</li>
+</ul>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0017')">
             ✅ Mark as Reviewed Today

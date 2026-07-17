@@ -1,7 +1,7 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-04T14:33:16",
+    "last_updated": "2026-07-17T20:43:55",
     "total_questions": 37
   },
   "categories": {
@@ -683,6 +683,17 @@
       "created": "2026-07-04 14:33:16",
       "source": "面经助手-20260704",
       "hash": "1c51dc6e"
+    },
+    {
+      "id": "q0041",
+      "question": "自我介绍",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/自我介绍.md",
+      "created": "2026-07-17 20:43:55",
+      "source": "用户输入",
+      "hash": "177b93f3"
     }
   ]
 }

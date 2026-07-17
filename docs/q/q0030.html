@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>线程、进程、协程相关知识点：请深入讲解三者的区别和联系，涵盖进程定义与IPC、线程定义与Java线程机制、协程定义与Ja — Interview Coach</title>
+    <title>Redisson 锁实现；看门狗机制原理 — Interview Coach</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -149,376 +149,510 @@ body {
         <span class="sep">/</span>
         <span style="font-size:0.85rem;">q0030</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">💻 操作系统</span>
-            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item q-meta-cat">⚡ Redis / 缓存</span>
+            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
     </div>
 </header>
 
 <div class="q-container">
-    <h1>线程、进程、协程相关知识点：请深入讲解三者的区别和联系，涵盖进程定义与IPC、线程定义与Java线程机制、协程定义与Java虚拟线程、三者对比表格、实际场景选型</h1>
-    <div class="tag-row"><span class="tag-item">并发编程</span></div>
-    <h1 id="ipcjavajava">线程、进程、协程相关知识点：请深入讲解三者的区别和联系，涵盖进程定义与IPC、线程定义与Java线程机制、协程定义与Java虚拟线程、三者对比表格、实际场景选型</h1>
-<h1 id="_1">线程、进程、协程相关知识点 — 深度解答</h1>
+    <h1>Redisson 锁实现；看门狗机制原理</h1>
+    <div class="tag-row"><span class="tag-item">Redis</span>
+<span class="tag-item">分布式锁</span>
+<span class="tag-item">Redisson</span>
+<span class="tag-item">Watch Dog</span>
+<span class="tag-item">Lua脚本</span>
+<span class="tag-item">可重入锁</span>
+<span class="tag-item">并发编程</span></div>
+    <h1 id="redisson">Redisson 锁实现；看门狗机制原理</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>核心记忆锚点：酒店行李寄存柜</strong></p>
+<p>想象你走进一家<strong>五星级酒店</strong>，前台有一个<strong>智能行李柜（Redis Hash）</strong>。</p>
+<ul>
+<li><strong>锁 = 寄存柜</strong>：柜子编号是锁的 key（锁名）</li>
+<li><strong>线程ID = 房卡号</strong>：每个住客（线程）有唯一房卡号，写在柜台登记簿的"客人姓名"字段（Hash field）</li>
+<li><strong>重入次数 = 行李件数</strong>：你可以多次往同一个柜子放行李（同一线程多次加锁），寄存单上写着"行李：3件"（Hash value = 3）</li>
+</ul>
+<p><strong>看门狗机制</strong>：酒店的<strong>24小时值班保安（Watch Dog）</strong>，每隔10分钟检查一次你的柜子。如果发现你的房间还亮着灯（业务还在执行），就自动把你的寄存时间再续30分钟。<strong>保安只认你的房卡号</strong>，别的人来续期，保安不理。</p>
+<p><strong>释放锁</strong>：你退房时，保安先查登记簿确认你是本人（field = 当前线程ID），然后清空柜子。如果你存了3件行李，每取走1件就减1次数，直到0才彻底关闭柜子（重入释放）。</p>
+<p><strong>红锁（RedLock）</strong>：你怕一家酒店不可靠，同时向 <strong>5家酒店</strong> 寄存同一个行李，超过3家确认寄存成功才算真正存好 —— 这就是多节点投票。</p>
+<blockquote>
+<p>一句话记忆：<strong>Hash存锁，Lua保原子，看门狗续命，红锁防脑裂。</strong></p>
+</blockquote>
 <hr />
-<h2 id="_2">🧠 联想记忆法</h2>
-<p><strong>口诀："进线协，重中轻"</strong> -- 进程重、线程中、协程轻。</p>
-<p><strong>"三剑客"比喻法：</strong><br />
-- <strong>进程（Process） = 独立别墅</strong>：每栋别墅有独立的围墙（地址空间）、水电表（资源）。别墅间通信要靠电话线（IPC 管道/消息队列/Socket）。搬家（上下文切换）要重新布线、换门牌，代价极大。<br />
-- <strong>线程（Thread） = 别墅里的房间</strong>：共享同一栋别墅的客厅厨房（共享内存），有自己的卧室和衣柜（寄存器和栈）。房间之间可以直接喊话（共享变量），但要小心抢东西（同步/锁）。换房间住（线程切换）只需带随身物品。<br />
-- <strong>协程（Coroutine） = 房间里的办公桌</strong>：在一张桌子上同时处理多个任务（用户态调度），任务之间切换只需要换笔记本（挂起/恢复上下文），连椅子都不用离开，开销极小。Java 虚拟线程（Virtual Thread）就是 JDK 官方给你发的"办公桌"。</p>
-<p><strong>"资源-调度-切换"三维记忆：</strong></p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="redisson_1">一、核心概念 —— Redisson 是什么</h3>
+<p><strong>Redisson</strong> 是 Redis 官方推荐的 <strong>Java 分布式工具集框架</strong>，基于 Netty 实现高性能网络通信。它不像 Jedis 那样只是暴露 Redis API 的客户端，而是提供了丰富的<strong>分布式数据结构</strong>：RLock（分布式锁）、RCountDownLatch、RSemaphore、RQueue 等。</p>
 <table>
 <thead>
 <tr>
-<th>维度</th>
-<th>进程</th>
-<th>线程</th>
-<th>协程</th>
+<th>对比维度</th>
+<th>Jedis / Lettuce</th>
+<th>Redisson</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>资源拥有</td>
-<td>独立别墅（独立地址空间）</td>
-<td>共享别墅（共享进程资源）</td>
-<td>共享房间（共享线程资源）</td>
+<td>定位</td>
+<td>Redis 原生客户端，操作基础数据结构</td>
+<td>分布式工具集，封装高级场景</td>
 </tr>
 <tr>
-<td>谁来调度</td>
-<td>物业（操作系统内核）</td>
-<td>管家（操作系统内核）</td>
-<td>自己（用户态程序）</td>
+<td>分布式锁</td>
+<td>需手动 SETNX + Lua</td>
+<td>内置 RLock，开箱即用</td>
 </tr>
 <tr>
-<td>切换开销</td>
-<td>搬家（昂贵）</td>
-<td>换房间（中等）</td>
-<td>翻笔记本（极低）</td>
+<td>锁续期</td>
+<td>无，需自己写定时任务</td>
+<td>内置 Watch Dog 自动续期</td>
+</tr>
+<tr>
+<td>网络模型</td>
+<td>阻塞 I/O / Netty</td>
+<td>Netty NIO，异步驱动</td>
 </tr>
 </tbody>
 </table>
+<p><strong>核心术语对照</strong>：<br />
+- 分布式锁 = <strong>Distributed Lock</strong><br />
+- 可重入锁 = <strong>Reentrant Lock</strong><br />
+- 看门狗 = <strong>Watch Dog (Auto-Renewal)</strong><br />
+- RedLock = <strong>Redlock Algorithm</strong></p>
 <hr />
-<h2 id="_3">📖 深度解答</h2>
-<h3 id="_4">一、核心概念</h3>
-<h4 id="11-process">1.1 进程（Process）</h4>
-<p>进程是<strong>操作系统资源分配的最小单位</strong>（the smallest unit of resource allocation）。每个进程拥有<strong>独立的地址空间</strong>（independent address space），包括代码段、数据段、堆和栈。进程之间的隔离性极强——一个进程的崩溃不会直接影响其他进程，这是现代操作系统稳定性的基石。</p>
-<p><strong>进程间通信（Inter-Process Communication, IPC）</strong> 是进程协作的核心机制，主要方式包括：</p>
+<h3 id="rlock">二、底层原理 —— RLock 核心实现</h3>
+<h4 id="21-redis-hash">2.1 锁的数据结构：Redis Hash</h4>
+<p>Redisson 的锁不是简单用 String，而是用 <strong>Hash 结构</strong>：</p>
+<div class="highlight"><pre><span></span><code>KEY:   &quot;myLock&quot;                    ← 锁名（lockName）
+FIELD: &quot;UUID:threadId&quot;            ← 线程唯一标识（客户端ID:线程ID）
+VALUE: 2                          ← 重入次数（加锁几次就是几）
+</code></pre></div>
+
+<p>为什么用 Hash 而不用 String？<br />
+- Hash 天然支持<strong>字段级操作</strong>：HGET 查持有者、HINCRBY 计数<br />
+- 一个 key 下可以存多个 field，支持锁的<strong>可重入</strong>特性<br />
+- 相比 String 拼接"UUID:threadId:count"的臃肿做法，Hash 语义更清晰</p>
+<h4 id="22-lua">2.2 加锁 Lua 脚本（原子性保证）</h4>
+<p>Redisson 加锁的 Lua 脚本（简化版）：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- KEYS[1] = lockName, ARGV[1] = leaseTime, ARGV[2] = threadId, ARGV[3] = UUID:threadId</span>
+<span class="c1">-- 锁不存在，直接加锁</span>
+<span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;exists&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hset&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;pexpire&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="kr">end</span>
+<span class="c1">-- 锁已存在且是当前线程持有，重入+1</span>
+<span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hexists&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hincrby&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;pexpire&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="kr">end</span>
+<span class="c1">-- 锁被其他线程持有，返回剩余过期时间</span>
+<span class="kr">return</span><span class="w"> </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;pttl&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</code></pre></div>
+
+<p><strong>原子性</strong>：整个脚本在 Redis 单线程模型内执行，中间不会被其他命令打断，<strong>不存在竞态条件</strong>。</p>
+<h4 id="23">2.3 可重入的实现机制</h4>
 <ul>
-<li><strong>管道（Pipe）</strong>：半双工通信，常用于父子进程。本质是内核中的环形缓冲区。</li>
-<li><strong>消息队列（Message Queue）</strong>：通过消息传递实现通信，支持优先级。</li>
-<li><strong>共享内存（Shared Memory）</strong>：最快的 IPC 方式，多个进程直接读写同一块内存区域，通常需配合信号量使用。</li>
-<li><strong>信号量（Semaphore）</strong>：一种同步原语，用于控制多个进程对共享资源的访问。</li>
-<li><strong>Socket</strong>：跨网络节点的进程通信方式，是分布式系统的基石。</li>
+<li><strong>同线程首次加锁</strong>：Hash field 不存在，hset value = 1</li>
+<li><strong>再次加锁</strong>：hexists 发现 field 存在 → hincrby value +1</li>
+<li><strong>解锁</strong>：hincrby value -1，若减到 0 则 hdel field；若 field 删完后 Hash 为空，del key</li>
 </ul>
-<h4 id="12-thread">1.2 线程（Thread）</h4>
-<p>线程是 <strong>CPU 调度的最小单位</strong>（the smallest unit of CPU scheduling）。同一进程内的所有线程共享该进程的地址空间，包括堆和方法区（或元空间），但每个线程拥有独立的<strong>程序计数器（Program Counter）、寄存器集合（Register Set）和栈（Stack）</strong>。</p>
-<p>在 Java 中，线程的实现方式包括：<br />
-- <strong>继承 <code>Thread</code> 类</strong>：重写 <code>run()</code> 方法<br />
-- <strong>实现 <code>Runnable</code> 接口</strong>：实现 <code>run()</code> 方法<br />
-- <strong>实现 <code>Callable</code> 接口</strong>：带返回值的任务，与 <code>FutureTask</code> 配合使用<br />
-- <strong>线程池（ThreadPoolExecutor）</strong>：通过 <code>ExecutorService</code> 框架管理线程生命周期，避免频繁创建/销毁</p>
-<p><strong>线程同步机制（Thread Synchronization）</strong>：<br />
-- <strong><code>synchronized</code></strong>：JVM 内置的互斥锁，基于 Monitor 对象实现<br />
-- <strong><code>ReentrantLock</code></strong>：基于 AQS（AbstractQueuedSynchronizer）的可重入锁，支持公平/非公平、可中断、超时等待<br />
-- <strong><code>volatile</code></strong>：保证可见性和禁止指令重排序，但不保证原子性<br />
-- <strong>CAS（Compare-And-Swap）</strong>：无锁并发策略，通过硬件级别的原子指令实现乐观锁</p>
-<h4 id="13-coroutine">1.3 协程（Coroutine）</h4>
-<p>协程是<strong>用户态轻量级线程</strong>（user-mode lightweight thread），由程序自身调度而非操作系统内核。协程的核心特征是<strong>协作式调度</strong>（cooperative scheduling）：协程主动让出执行权（yield/await），而非被操作系统抢占。</p>
-<p><strong>Java 虚拟线程（Virtual Thread / Project Loom）</strong> 在 Java 21 正式发布（正式版 GA）。虚拟线程是由 JVM 管理的数百万级轻量级线程，其底层使用 <strong>M:N 调度模型</strong>——M 个虚拟线程映射到 N 个平台线程（Platform Thread，即传统的内核线程）。当虚拟线程执行阻塞 I/O 操作时，JVM 自动将其从平台线程上卸载（unmount），并将平台线程分配给另一个就绪的虚拟线程。</p>
-<hr />
-<h3 id="_5">二、底层原理</h3>
-<h4 id="21-context-switch">2.1 进程上下文切换（Context Switch）为什么昂贵</h4>
-<p>进程切换时，操作系统必须执行以下操作：<br />
-1. <strong>保存/恢复 CPU 寄存器</strong>（通用寄存器、程序计数器、栈指针等）<br />
-2. <strong>切换页表（Page Table）</strong>：每个进程拥有独立的页表，切换后 CPU 的 MMU（Memory Management Unit）需要重新映射虚拟地址到物理地址<br />
-3. <strong>刷新 TLB（Translation Lookaside Buffer）</strong>：TLB 是 CPU 内部的页表缓存，页表切换后必须全部失效，导致后续的内存访问会产生大量的 TLB Miss，显著降低性能<br />
-4. <strong>更新进程控制块（Process Control Block, PCB）</strong> 中的状态信息</p>
-<p>一次进程切换的延迟通常在 <strong>微秒级（1-10μs）</strong>，看似很小，但乘以数千次切换对系统吞吐的影响不可忽视。</p>
-<h4 id="22">2.2 线程上下文切换的中间态</h4>
-<p>线程切换属于<strong>同一进程内的切换</strong>，因此：<br />
-- <strong>无需切换页表</strong>：同一进程的所有线程共享地址空间<br />
-- <strong>无需刷新 TLB</strong>：虚拟地址映射不变<br />
-- <strong>只需保存/恢复寄存器集合和栈指针</strong></p>
-<p>线程切换的延迟通常在 <strong>亚微秒级（0.1-1μs）</strong>，约为进程切换的十分之一。但对于频繁的锁竞争和大量线程争抢 CPU 的场景，开销仍不容忽视。</p>
-<h4 id="23">2.3 协程切换的极低成本</h4>
-<p>协程切换完全在<strong>用户态</strong>完成，不涉及系统调用（system call）：<br />
-- 仅需保存/恢复协程的<strong>栈帧指针和局部变量</strong><br />
-- 不需要陷入内核（no kernel trap），不需要切换特权级<br />
-- 不需要操作系统的调度器介入</p>
-<p>一次协程切换的延迟通常在 <strong>纳秒级（10-100ns）</strong>，比线程切换快两个数量级。</p>
-<p>从 <strong>系统调用开销</strong>（system call overhead）的角度对比：</p>
-<div class="highlight"><pre><span></span><code>进程切换:  保存寄存器 + 切换页表 + 刷新 TLB + 内核态切换 ≈ 5-10μs
-线程切换:  保存寄存器 + 内核态切换                     ≈ 0.5-2μs
-协程切换:  保存局部变量（纯用户态）                     ≈ 0.01-0.1μs
+<h4 id="24-lua">2.4 解锁 Lua 脚本</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">-- KEYS[1] = lockName, KEYS[2] = channelName, ARGV[1] = UUID:threadId</span>
+<span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hexists&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">  </span><span class="c1">-- 锁不属于当前线程，无权释放</span>
+<span class="kr">end</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">counter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hincrby&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">counter</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;pexpire&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="mi">0</span><span class="w">   </span><span class="c1">-- 重入未完全释放</span>
+<span class="kr">else</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;del&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;publish&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="mi">1</span><span class="w">   </span><span class="c1">-- 完全释放</span>
+<span class="kr">end</span>
 </code></pre></div>
 
 <hr />
-<h3 id="_6">三、实践应用</h3>
-<h4 id="31-java-vs">3.1 Java 虚拟线程 vs 传统线程代码对比</h4>
-<p>以下代码演示虚拟线程在高并发 I/O 场景下的优势：</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.*</span><span class="p">;</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.atomic.AtomicInteger</span><span class="p">;</span>
+<h3 id="watch-dog">三、深度机制 —— 看门狗（Watch Dog）原理</h3>
+<h4 id="31">3.1 为什么要看门狗？</h4>
+<p>分布式锁面临的核心矛盾：<strong>锁的过期时间设置多大才合理？</strong></p>
+<ul>
+<li>设小了：业务还没执行完，锁自动过期了 → 其他线程拿到锁 → <strong>数据竞争</strong></li>
+<li>设大了：持有锁的线程挂了，锁迟迟不释放 → <strong>死锁</strong></li>
+</ul>
+<p>看门狗（Watch Dog）的答案是：<strong>动态续期，过期时间设一个合理默认值（30s），每 1/3 过期时间（10s）续一次，业务一直执行就一直续；业务/线程挂了，续期停止，锁自然释放。</strong></p>
+<h4 id="32">3.2 看门狗触发条件</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">// === 场景一：看门狗生效 ===</span>
+<span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">();</span><span class="w">            </span><span class="c1">// 不传过期时间 → 默认 30s → 看门狗启动</span>
+<span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span><span class="w">  </span><span class="c1">// 显式传了 30s → 看门狗也启动</span>
 
-<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">VirtualThreadDemo</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// === 场景二：看门狗不生效 ===</span>
+<span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span><span class="w">  </span><span class="c1">// 传了自定义过期时间 → 看门狗不启动</span>
+<span class="n">lock</span><span class="p">.</span><span class="na">tryLock</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span><span class="w">  </span><span class="c1">// tryLock 传了 leaseTime → 不启动</span>
+</code></pre></div>
 
-<span class="w">    </span><span class="c1">// 模拟 I/O 阻塞操作</span>
-<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">simulateIoCall</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">taskId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<p><strong>核心规则</strong>：只有不传 <code>leaseTime</code> 或传的 <code>leaseTime</code> 等于默认值（INTERNAL_LOCK_LEASE_TIME = 30000ms）时，看门狗才启动。</p>
+<h4 id="33">3.3 看门狗的底层实现</h4>
+<p>看门狗基于 <strong>Netty 的 Timeout + TimerTask</strong> 实现：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Redisson 源码核心逻辑（概念层面）</span>
+<span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">renewExpiration</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 创建一个 Netty 定时任务，延迟 internalLockLeaseTime / 3 后执行</span>
+<span class="w">    </span><span class="n">Timeout</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">commandExecutor</span><span class="p">.</span><span class="na">getConnectionManager</span><span class="p">()</span>
+<span class="w">        </span><span class="p">.</span><span class="na">newTimeout</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">TimerTask</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nd">@Override</span>
+<span class="w">            </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="n">Timeout</span><span class="w"> </span><span class="n">timeout</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// 执行 Lua 续期脚本</span>
+<span class="w">                </span><span class="n">RFuture</span><span class="o">&lt;</span><span class="n">Boolean</span><span class="o">&gt;</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">renewExpirationAsync</span><span class="p">(</span><span class="n">threadId</span><span class="p">);</span>
+<span class="w">                </span><span class="n">future</span><span class="p">.</span><span class="na">onComplete</span><span class="p">((</span><span class="n">res</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">res</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="c1">// 续期成功 → 递归调用自己，形成循环续期</span>
+<span class="w">                        </span><span class="n">renewExpiration</span><span class="p">();</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">});</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span><span class="w"> </span><span class="n">internalLockLeaseTime</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">MILLISECONDS</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 将 Timeout 对象存入 EXPIRATION_RENEWAL_MAP 供解锁时取消</span>
+<span class="w">    </span><span class="n">EXPIRATION_RENEWAL_MAP</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">entryName</span><span class="p">,</span><span class="w"> </span><span class="n">task</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>续期 Lua 脚本</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- KEYS[1] = lockName, ARGV[1] = UUID:threadId, ARGV[2] = leaseTime</span>
+<span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;hexists&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;pexpire&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="mi">1</span>
+<span class="kr">end</span>
+<span class="kr">return</span><span class="w"> </span><span class="mi">0</span>
+</code></pre></div>
+
+<p><strong>续期分三步</strong>：<br />
+1. 检查 Hash 的 field 是否等于当前线程 ID（<code>hexists</code>）<br />
+2. 是 → 将锁的过期时间重新设为 30s（<code>pexpire</code>）<br />
+3. 递归调用自己，10s 后再来续</p>
+<h4 id="34">3.4 线程挂了的场景</h4>
+<p>如果业务线程突然崩溃（OOM、Kill -9、机器宕机）：</p>
+<ul>
+<li>看门狗任务和业务线程在<strong>同一个 JVM 进程</strong>中</li>
+<li>进程挂了 → Netty 的 EventLoop 也停了 → <strong>定时任务不再执行</strong></li>
+<li>锁的 30s 过期时间自然倒计时 → 到期自动释放</li>
+<li>新的等待线程正常获取锁</li>
+</ul>
+<blockquote>
+<p>这解决了一个经典问题：<strong>锁持有者挂了，锁不释放怎么办？</strong></p>
+</blockquote>
+<h4 id="35">3.5 看门狗风险点</h4>
+<p>看门狗有一个<strong>微妙的竞态窗口</strong>：如果业务线程在 Watch Dog 续期后的 10s 间隔内 GC STW（Stop-The-World）超过 30s → 锁过期了 → 其他线程拿到锁 → GC 恢复后业务线程以为还有锁 → 数据不一致。</p>
+<p><strong>应对</strong>：实际场景中 Full GC 几十秒不常见，但如果严格要求，可以用 RedLock 降低概率。</p>
+<hr />
+<h3 id="_3">四、实践应用 —— 完整代码示例</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">org.redisson.Redisson</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">org.redisson.api.RLock</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">org.redisson.api.RedissonClient</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">org.redisson.config.Config</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">RedissonLockDemo</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">static</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Config</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Config</span><span class="p">();</span>
+<span class="w">        </span><span class="n">config</span><span class="p">.</span><span class="na">useSingleServer</span><span class="p">()</span>
+<span class="w">              </span><span class="p">.</span><span class="na">setAddress</span><span class="p">(</span><span class="s">&quot;redis://127.0.0.1:6379&quot;</span><span class="p">);</span>
+
+<span class="w">        </span><span class="c1">// 设置看门狗相关参数（可选，默认即可）</span>
+<span class="w">        </span><span class="n">config</span><span class="p">.</span><span class="na">setLockWatchdogTimeout</span><span class="p">(</span><span class="mi">30_000</span><span class="p">);</span><span class="w"> </span><span class="c1">// 默认 30s，可不配</span>
+
+<span class="w">        </span><span class="n">redisson</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">RLock</span><span class="w"> </span><span class="n">lock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;order:pay:12345&quot;</span><span class="p">);</span>
+
 <span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w"> </span><span class="c1">// 模拟 100ms 的 I/O 等待</span>
+<span class="w">            </span><span class="c1">// === 方案一：看门狗自动续期（推荐） ===</span>
+<span class="w">            </span><span class="c1">// 不传过期时间 → Watch Dog 启动，每 10s 续期到 30s</span>
+<span class="w">            </span><span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">();</span>
+<span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;获取到锁，threadId=&quot;</span><span class="w"> </span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">getId</span><span class="p">());</span>
+
+<span class="w">            </span><span class="c1">// 模拟耗时业务操作（超过 30s 也能保住锁）</span>
+<span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">60_000</span><span class="p">);</span><span class="w"> </span><span class="c1">// 执行 60s</span>
+<span class="w">            </span><span class="c1">// 看门狗会在第 10s、20s、30s、40s、50s 各续期一次</span>
+
+<span class="w">            </span><span class="c1">// === 方案二：可重入验证 ===</span>
+<span class="w">            </span><span class="c1">// 同一线程再次加锁（value 从 1 → 2）</span>
+<span class="w">            </span><span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">();</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;可重入成功，重入次数=&quot;</span><span class="w"> </span>
+<span class="w">                    </span><span class="o">+</span><span class="w"> </span><span class="n">lock</span><span class="p">.</span><span class="na">getHoldCount</span><span class="p">());</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span><span class="w"> </span><span class="c1">// value 从 2 → 1</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// === 释放锁并停止看门狗 ===</span>
+<span class="w">            </span><span class="c1">// 看门狗任务从 EXPIRATION_RENEWAL_MAP 中移除</span>
+<span class="w">            </span><span class="n">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="w">            </span><span class="c1">// Lua 脚本检查 field == threadId，匹配则 del</span>
+<span class="w">            </span><span class="c1">// 看门狗停止续期</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// === 方案三：tryLock 手动控制 ===</span>
+<span class="w">        </span><span class="n">RLock</span><span class="w"> </span><span class="n">lock2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;order:refund:67890&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// waitTime=100ms, leaseTime=10s → 看门狗不启动</span>
+<span class="w">            </span><span class="kt">boolean</span><span class="w"> </span><span class="n">acquired</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lock2</span><span class="p">.</span><span class="na">tryLock</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span>
+<span class="w">                </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">acquired</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="c1">// 业务必须在 10s 内完成，否则锁自动释放</span>
+<span class="w">                    </span><span class="n">doBusiness</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">lock2</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="c1">// 传统线程池方式处理大量 I/O 任务</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">platformThreadWay</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">taskCount</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-<span class="w">        </span><span class="n">AtomicInteger</span><span class="w"> </span><span class="n">completed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">AtomicInteger</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="n">taskCount</span><span class="p">);</span>
-
-<span class="w">        </span><span class="n">ThreadPoolExecutor</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
-<span class="w">            </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">()</span>
-<span class="w">        </span><span class="p">);</span>
-
-<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">taskCount</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">taskId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
-<span class="w">            </span><span class="n">executor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="n">simulateIoCall</span><span class="p">(</span><span class="n">taskId</span><span class="p">);</span>
-<span class="w">                </span><span class="n">completed</span><span class="p">.</span><span class="na">incrementAndGet</span><span class="p">();</span>
-<span class="w">                </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="n">latch</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">printf</span><span class="p">(</span><span class="s">&quot;线程池方式: 完成 %d 个任务, 耗时 %dms%n&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">completed</span><span class="p">.</span><span class="na">get</span><span class="p">(),</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
-<span class="w">        </span><span class="n">executor</span><span class="p">.</span><span class="na">shutdown</span><span class="p">();</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="c1">// 虚拟线程方式处理大量 I/O 任务</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">virtualThreadWay</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">taskCount</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-<span class="w">        </span><span class="n">AtomicInteger</span><span class="w"> </span><span class="n">completed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">AtomicInteger</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">latch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="n">taskCount</span><span class="p">);</span>
-
-<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="n">ExecutorService</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">taskCount</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="kt">int</span><span class="w"> </span><span class="n">taskId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
-<span class="w">                </span><span class="n">executor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="n">simulateIoCall</span><span class="p">(</span><span class="n">taskId</span><span class="p">);</span>
-<span class="w">                    </span><span class="n">completed</span><span class="p">.</span><span class="na">incrementAndGet</span><span class="p">();</span>
-<span class="w">                    </span><span class="n">latch</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
-<span class="w">                </span><span class="p">});</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="c1">// try-with-resources: 自动 shutdown 等待所有任务完成</span>
-
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">printf</span><span class="p">(</span><span class="s">&quot;虚拟线程方式: 完成 %d 个任务, 耗时 %dms%n&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">completed</span><span class="p">.</span><span class="na">get</span><span class="p">(),</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="c1">// 虚拟线程创建成本演示</span>
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">createCostDemo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
-<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100_000</span><span class="p">;</span>
-
-<span class="w">        </span><span class="c1">// 创建 10 万个虚拟线程</span>
-<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">(</span><span class="n">ExecutorService</span><span class="w"> </span><span class="n">executor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Executors</span><span class="p">.</span><span class="na">newVirtualThreadPerTaskExecutor</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">count</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="n">executor</span><span class="p">.</span><span class="na">submit</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
-<span class="w">                </span><span class="p">});</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">printf</span><span class="p">(</span><span class="s">&quot;创建 %d 个虚拟线程耗时: %dms%n&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">taskCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10_000</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1 万个并发 I/O 任务</span>
-
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;=== 线程池 vs 虚拟线程 对比 ===&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">printf</span><span class="p">(</span><span class="s">&quot;任务数量: %d, 每个任务 I/O 等待: 100ms%n%n&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">taskCount</span><span class="p">);</span>
-
-<span class="w">        </span><span class="c1">// 注意：传统线程池处理 10000 个任务需要很大的池，实际生产环境不会这样做</span>
-<span class="w">        </span><span class="c1">// 此处仅用于对比演示，实际运行可能由于线程创建受限而失败</span>
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;虚拟线程方式:&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="n">virtualThreadWay</span><span class="p">(</span><span class="n">taskCount</span><span class="p">);</span>
-
-<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;\n虚拟线程创建成本演示:&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="n">createCostDemo</span><span class="p">();</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">doBusiness</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;执行业务逻辑...&quot;</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p><strong>预期输出说明</strong>：对于 10000 个 100ms I/O 的并发任务，传统线程池需要 1000+ 个线程（消耗数 GB 内存）才能达到同等吞吐；而虚拟线程只需少量平台线程，创建 10 万个虚拟线程仅需数百毫秒，内存消耗约 10MB（每个虚拟线程约 1-2KB 栈空间）。</p>
-<h4 id="32">3.2 实际场景选型指南</h4>
-<table>
-<thead>
-<tr>
-<th>场景</th>
-<th>推荐方案</th>
-<th>原因</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>CPU 密集型计算</strong>（图像渲染、加密、科学计算）</td>
-<td>线程池（<code>ThreadPoolExecutor</code>），核心线程数 = <code>Runtime.getRuntime().availableProcessors()</code></td>
-<td>过多线程切换反而降低吞吐</td>
-</tr>
-<tr>
-<td><strong>I/O 密集型任务</strong>（Web 服务器、数据库访问、RPC 调用）</td>
-<td>虚拟线程 / 协程</td>
-<td>大量时间阻塞在 I/O 等待，虚拟线程切换成本极低</td>
-</tr>
-<tr>
-<td><strong>需要强隔离性</strong>（运行不可信代码、多租户场景）</td>
-<td>进程（或容器）</td>
-<td>进程地址空间天然隔离，安全性最高</td>
-</tr>
-<tr>
-<td><strong>高实时性要求</strong>（工业控制、金融交易）</td>
-<td>绑定特定 CPU 的线程（<code>affinity</code>）</td>
-<td>避免 CPU 缓存失效，保证低延迟</td>
-</tr>
-<tr>
-<td><strong>超高并发连接数</strong>（10万+，如即时通讯服务器）</td>
-<td>Go goroutine / Java 虚拟线程 / Kotlin 协程</td>
-<td>用户态调度，百万级协程轻松支撑</td>
-</tr>
-</tbody>
-</table>
 <hr />
-<h3 id="_7">四、深入思考</h3>
-<h4 id="41">4.1 三者对比表格</h4>
+<h3 id="_4">五、深入思考 —— 对比与延伸</h3>
+<h4 id="51-redis-vs-redisson">5.1 普通 Redis 锁 vs Redisson 锁</h4>
 <table>
 <thead>
 <tr>
-<th>特性</th>
-<th style="text-align: center;">进程（Process）</th>
-<th style="text-align: center;">线程（Thread）</th>
-<th style="text-align: center;">协程（Coroutine）</th>
+<th>对比项</th>
+<th>SETNX + EXPIRE</th>
+<th>Redisson RLock</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>调度者</strong></td>
-<td style="text-align: center;">操作系统内核</td>
-<td style="text-align: center;">操作系统内核</td>
-<td style="text-align: center;">用户态程序/运行时</td>
+<td>加锁</td>
+<td>SET NX + EXPIRE 两条命令</td>
+<td>Lua 脚本单次原子执行</td>
 </tr>
 <tr>
-<td><strong>调度方式</strong></td>
-<td style="text-align: center;">抢占式（Preemptive）</td>
-<td style="text-align: center;">抢占式（Preemptive）</td>
-<td style="text-align: center;">协作式（Cooperative）</td>
+<td>可重入</td>
+<td>不支持（需自行实现计数）</td>
+<td>Hash 结构原生支持</td>
 </tr>
 <tr>
-<td><strong>地址空间</strong></td>
-<td style="text-align: center;">独立（独立页表）</td>
-<td style="text-align: center;">共享（同进程地址空间）</td>
-<td style="text-align: center;">共享（绑定线程）</td>
+<td>过期时间</td>
+<td>固定值，难预估</td>
+<td>看门狗动态续期</td>
 </tr>
 <tr>
-<td><strong>内存占用</strong></td>
-<td style="text-align: center;">几十 MB ~ 数 GB</td>
-<td style="text-align: center;">约 1~8 MB（栈+TCB）</td>
-<td style="text-align: center;">约 1~16 KB（栈）</td>
+<td>释放安全</td>
+<td>每人都能 del（除非自己设随机值）</td>
+<td>Lua 脚本验证 field 匹配</td>
 </tr>
 <tr>
-<td><strong>创建开销</strong></td>
-<td style="text-align: center;">高（fork/clone 系统调用）</td>
-<td style="text-align: center;">中（pthread_create）</td>
-<td style="text-align: center;">极低（函数调用级）</td>
+<td>等待队列</td>
+<td>无，需循环 sleep 重试</td>
+<td>内置信号量订阅，阻塞等待</td>
 </tr>
 <tr>
-<td><strong>切换开销</strong></td>
-<td style="text-align: center;">5~10 μs（切换页表+TLB+寄存器）</td>
-<td style="text-align: center;">0.5~2 μs（寄存器+栈）</td>
-<td style="text-align: center;">0.01~0.1 μs（寄存器级）</td>
-</tr>
-<tr>
-<td><strong>通信方式</strong></td>
-<td style="text-align: center;">IPC（Pipe/共享内存/消息队列/Socket）</td>
-<td style="text-align: center;">共享内存 + 锁机制</td>
-<td style="text-align: center;">共享变量 + Channel（Go 的 CSP 模型）</td>
-</tr>
-<tr>
-<td><strong>隔离性</strong></td>
-<td style="text-align: center;">最强（进程隔离）</td>
-<td style="text-align: center;">中等（可能影响同进程其他线程）</td>
-<td style="text-align: center;">弱（依赖宿主线程）</td>
-</tr>
-<tr>
-<td><strong>创建数量</strong></td>
-<td style="text-align: center;">几十 ~ 几百</td>
-<td style="text-align: center;">几千 ~ 几万</td>
-<td style="text-align: center;">几十万 ~ 数百万</td>
-</tr>
-<tr>
-<td><strong>适用场景</strong></td>
-<td style="text-align: center;">多租户、隔离需求强、分布式系统</td>
-<td style="text-align: center;">CPU 密集型计算、中等并发</td>
-<td style="text-align: center;">高并发 I/O、微服务、异步流式处理</td>
+<td>极端情况</td>
+<td>业务超时 → 锁误释放</td>
+<td>续期机制防止误释放</td>
 </tr>
 </tbody>
 </table>
-<h4 id="42">4.2 "无协程不并发"的误区</h4>
-<p>协程并非银弹。对于 <strong>CPU 密集型任务</strong>（CPU-bound tasks），协程并不能加速计算——计算需要真实的 CPU 核心资源，而协程的轻量仅在 I/O 等待时体现优势。协程的核心价值在于<strong>等待时让出执行权</strong>（yield on wait），让 CPU 去处理其他就绪的任务。因此正确的选型原则是：</p>
-<blockquote>
-<p><strong>I/O 密集型 → 协程/虚拟线程；CPU 密集型 → 线程池，核心数匹配。</strong></p>
-</blockquote>
-<h4 id="43-java-java-2122">4.3 Java 虚拟线程的局限性（截至 Java 21~22）</h4>
-<ul>
-<li><strong><code>synchronized</code> 锁膨胀（Pinning）</strong>：如果虚拟线程在 <code>synchronized</code> 块内执行阻塞操作，会被"钉住"（pinned）在平台线程上，无法卸载。解决：使用 <code>ReentrantLock</code> 替代 <code>synchronized</code>。</li>
-<li><strong>纯 CPU 计算无优势</strong>：虚拟线程不减少计算时间，只减少等待时间。</li>
-<li><strong>本地方法（native method）/ JNI 中的阻塞</strong>：无法在 native 调用处卸载虚拟线程。</li>
-</ul>
-<h4 id="44">4.4 演进趋势</h4>
-<p>从操作系统的发展来看，进程→线程→协程的演进体现了 <strong>"从内核态到用户态"</strong> 的抽象下沉趋势：</p>
-<div class="highlight"><pre><span></span><code>进程（完备隔离，重） → 线程（共享地址空间，中） → 协程（用户态调度，轻）
-                 隔离性递减 → → →     调度效率递增 → → →
+<h4 id="52-redlock">5.2 RedLock 红锁算法</h4>
+<p><strong>为什么需要 RedLock？</strong></p>
+<p>在 Redis 主从架构（Master-Slave）中：</p>
+<ol>
+<li>客户端 A 在 Master 上加锁成功</li>
+<li>Master 在同步到 Slave 之前宕机</li>
+<li>Slave 升为 Master</li>
+<li>客户端 B 上来对这个新 Master 加锁成功</li>
+<li><strong>两个客户端同时持有了同一个锁</strong> → 分布式锁失效</li>
+</ol>
+<p><strong>RedLock 算法步骤</strong>：</p>
+<ol>
+<li>准备 N 个（通常 <strong>5 个</strong>）完全独立的 Redis 节点（不主从、不集群）</li>
+<li>客户端按顺序向所有节点发送加锁请求</li>
+<li>每个请求设置超时时间（远小于锁过期时间）</li>
+<li>如果成功获得超过 <strong>N/2 + 1</strong>（即 3/5）个节点的锁，且总耗时小于锁过期时间 → <strong>加锁成功</strong></li>
+<li>否则，向所有节点发起解锁（撤销已获得的锁）</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// Redisson RedLock 使用示例</span>
+<span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config1</span><span class="p">);</span>
+<span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config2</span><span class="p">);</span>
+<span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config3</span><span class="p">);</span>
+<span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config4</span><span class="p">);</span>
+<span class="n">RedissonClient</span><span class="w"> </span><span class="n">redisson5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Redisson</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">config5</span><span class="p">);</span>
+
+<span class="n">RLock</span><span class="w"> </span><span class="n">lock1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson1</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;lockKey&quot;</span><span class="p">);</span>
+<span class="n">RLock</span><span class="w"> </span><span class="n">lock2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson2</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;lockKey&quot;</span><span class="p">);</span>
+<span class="n">RLock</span><span class="w"> </span><span class="n">lock3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson3</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;lockKey&quot;</span><span class="p">);</span>
+<span class="n">RLock</span><span class="w"> </span><span class="n">lock4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson4</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;lockKey&quot;</span><span class="p">);</span>
+<span class="n">RLock</span><span class="w"> </span><span class="n">lock5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redisson5</span><span class="p">.</span><span class="na">getLock</span><span class="p">(</span><span class="s">&quot;lockKey&quot;</span><span class="p">);</span>
+
+<span class="n">RedissonRedLock</span><span class="w"> </span><span class="n">redLock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RedissonRedLock</span><span class="p">(</span><span class="n">lock1</span><span class="p">,</span><span class="w"> </span><span class="n">lock2</span><span class="p">,</span><span class="w"> </span>
+<span class="w">    </span><span class="n">lock3</span><span class="p">,</span><span class="w"> </span><span class="n">lock4</span><span class="p">,</span><span class="w"> </span><span class="n">lock5</span><span class="p">);</span>
+
+<span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// RedLock 内部自动完成多数投票机制</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">redLock</span><span class="p">.</span><span class="na">tryLock</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 加锁成功，执行业务</span>
+<span class="w">        </span><span class="n">doBusiness</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">redLock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="p">}</span>
 </code></pre></div>
 
-<p>而现代语言运行时正在融合协程与异步 I/O。Go 语言的 goroutine + channel（CSP 模型）、Java 的虚拟线程 + <code>Structured Concurrency</code>（JEP 428）、Kotlin 的协程 + Flow，都代表了这种融合趋势。未来，百万级并发的编程门槛将持续降低。</p>
+<p><strong>RedLock 的争议</strong>：分布式系统专家 Martin Kleppmann 曾发文质疑 RedLock，认为它依赖<strong>严格的时间假设</strong>（时钟漂移会导致问题）。但 RedLock 仍是业界使用最广泛的<strong>跨节点容错锁方案</strong>。</p>
+<h4 id="53">5.3 锁的粒度考虑</h4>
+<p>在实践中，除了锁的实现机制，还需要思考：<br />
+- <strong>锁粒度</strong>：锁订单 <code>order:123</code> 还是锁用户 <code>user:456</code>？粒度越细，并发越高<br />
+- <strong>热点 Key</strong>：秒杀场景下，同一个 key 可能被大量线程争抢，需要分段加锁（sharding）<br />
+- <strong>锁超时兜底</strong>：即使有看门狗，也应该在业务代码中设置<strong>全局超时</strong>，防止死循环无限续期</p>
 <hr />
-<h2 id="_8">🗺️ 回答思路</h2>
-<p>面试官问"进程、线程、协程的区别"，本质上在考察你对<strong>操作系统调度模型</strong>和<strong>并发编程模型演变</strong>的理解深度。以下是回答策略：</p>
-<h3 id="1">1. 开头要给出大框架</h3>
-<p>先用一组递进关系定调：<strong>"进程是资源分配单位，线程是调度单位，协程是用户态轻量级线程，三者体现了从内核态到用户态的抽象下沉。"</strong></p>
-<h3 id="2">2. 分三个层次展开</h3>
-<p><strong>第一层（定义层）</strong>：用通俗比喻建立直观理解——别墅 vs 房间 vs 办公桌。</p>
-<p><strong>第二层（原理层）</strong>：从上下文切换的底层机制入手，展示技术深度：<br />
-- 进程：页表切换 + TLB 刷新（这是区分进程和线程的关键点）<br />
-- 线程：仅寄存器 + 栈指针<br />
-- 协程：纯用户态，无系统调用</p>
-<p>提到 TLB 和 MMU 是加分项，说明你对计算机体系结构有了解。</p>
-<p><strong>第三层（实践层）</strong>：展示代码和项目经验：<br />
-- 给出虚拟线程创建和对比的代码<br />
-- 结合 I/O 密集型和 CPU 密集型的场景选型分析<br />
-- 如果能提到自己用过的技术（如你在项目中用 ThreadPoolExecutor 优化了某个接口），会更有说服力</p>
-<h3 id="3">3. 对比表格是必杀技</h3>
-<p>面试官喜欢结构化的对比。直接把对比表格抛出来，一目了然。特别是在调度者、切换开销、创建数量这三个维度的对比最能体现差异。</p>
-<h3 id="4">4. 展示深度思考</h3>
-<ul>
-<li>指出协程不是万能的："我注意到很多同学认为协程能解决所有并发问题，但实际上 CPU 密集型任务用协程并无优势"</li>
-<li>提到虚拟线程的局限性（pinning 问题），展示你对新技术的跟进</li>
-<li>从演进趋势指出行业方向，"我认为未来几年，协程会成为服务端开发的标准配置"</li>
-</ul>
-<h3 id="5">5. 常见追问准备</h3>
-<p>回答完主体后，面试官可能追问：<br />
-- <strong>"进程间有哪些通信方式？"</strong> → 快速列举 6 种 IPC<br />
-- <strong>"虚拟线程和平台线程的关系？"</strong> → M:N 调度模型讲解<br />
-- <strong>"协程有栈还是无栈？"</strong> → Kotlin 协程是无栈（状态机），Java 虚拟线程是有栈（可恢复的 Runnable）<br />
-- <strong>"一万个线程和一万个虚拟线程的区别？"</strong> → 内存消耗对比（8GB vs 16MB）和调度开销对比</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h3 id="_6">答题逻辑框架</h3>
+<div class="highlight"><pre><span></span><code>第一层（30s）：Redisson 是什么，和 Jedis/Lettuce 的区别
+  → 一句话定位：Redis 分布式工具集，不只是客户端
+
+第二层（2min）：RLock 核心实现
+  → Hash 结构（key/field/value）
+  → Lua 脚本保证原子性
+  → 可重入原理（+1/-1 计数）
+
+第三层（3min）：看门狗机制 ← 这是面试官最想听的
+  → 为什么需要（业务超时 vs 死锁的矛盾）
+  → 怎么实现（Netty TimerTask + Lua 续期）
+  → 触发条件（不传 leaseTime）
+  → 线程挂了怎么办
+
+第四层（30s）：解锁流程
+  → 先检查 field 匹配
+  → 重入减到 0 才真正释放
+  → 同时停止看门狗
+
+第五层（1min）：对比与延伸
+  → 普通 Redis 锁的问题（SETNX + EXPIRE 非原子、不可重入、无续期）
+  → RedLock 解决了主从切换的脑裂问题
+  → RedLock 的争议
+</code></pre></div>
+
+<h3 id="_7">重点得分点（按权重排序）</h3>
+<ol>
+<li><strong>⭐⭐⭐ Lua 脚本保证原子性</strong> — 每次提到锁操作都要强调原子性</li>
+<li><strong>⭐⭐⭐ 看门狗续期周期 = 1/3 过期时间</strong> — 默认 30s/10s 这个数字要准确</li>
+<li><strong>⭐⭐⭐ 看门狗续期前检查 field = threadId</strong> — 不检查直接续期会有安全问题</li>
+<li><strong>⭐⭐ 可重入用 Hash 的 value 计数</strong> — 体现出数据结构选择的思考</li>
+<li><strong>⭐⭐ 解锁时停止看门狗</strong> — 防止解锁后空转浪费资源</li>
+<li><strong>⭐ RedLock 多数投票机制</strong> — 至少知道主从切换会导致什么问题</li>
+</ol>
+<h3 id="_8">常见误区</h3>
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>正确理解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Redisson 和 Jedis 一样，都是 Redis 客户端"</td>
+<td>Redisson 是分布式工具集，封装了大量高级分布式数据结构，远不止是客户端</td>
+</tr>
+<tr>
+<td>"看门狗是无限续期的"</td>
+<td>看门狗续期依赖于业务线程存活，线程/进程挂了就不会再续</td>
+</tr>
+<tr>
+<td>"RedLock 保证绝对安全"</td>
+<td>任何分布式锁都有时钟漂移等隐患，只能降低概率</td>
+</tr>
+<tr>
+<td>"tryLock 不启动看门狗"</td>
+<td>准确说是：传了 <code>leaseTime</code> 的 tryLock 不启动</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5">时间分配建议（5分钟回答）</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开头</td>
+<td>20s</td>
+<td>Redisson 一句话定位（分布式工具集）</td>
+</tr>
+<tr>
+<td>核心机制</td>
+<td>90s</td>
+<td>Hash + Lua + 可重入（重点展开）</td>
+</tr>
+<tr>
+<td>看门狗</td>
+<td>2min</td>
+<td>作用→触发条件→实现→线程挂了的场景</td>
+</tr>
+<tr>
+<td>解锁流程</td>
+<td>30s</td>
+<td>三步走：检查→减数→释放+停看门狗</td>
+</tr>
+<tr>
+<td>对比</td>
+<td>30s</td>
+<td>普通 Redis 锁的缺陷，为什么需要 Redisson</td>
+</tr>
+<tr>
+<td>延伸</td>
+<td>30s</td>
+<td>RedLock 解决什么问题</td>
+</tr>
+<tr>
+<td>结尾</td>
+<td>10s</td>
+<td>总结：原子性、续期、容错</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_9">过渡话术</h3>
+<p><strong>从 Redisson 定位到锁实现</strong>：</p>
+<blockquote>
+<p>"Redisson 最核心的功能就是分布式锁，下面我详细拆解它的 RLock 实现..."</p>
+</blockquote>
+<p><strong>从锁结构到看门狗</strong>：</p>
+<blockquote>
+<p>"不过光有 Hash 和 Lua 还不够 —— 怎么解决锁过期时间设置的问题？这就引出了看门狗机制..."</p>
+</blockquote>
+<p><strong>从看门狗到解锁</strong>：</p>
+<blockquote>
+<p>"看门狗是保障业务执行期锁不释放的，那业务正常结束后的解锁流程是怎样的？..."</p>
+</blockquote>
+<p><strong>从 Redisson 到 RedLock</strong>：</p>
+<blockquote>
+<p>"以上讨论的都是单 Redis 节点场景，但在主从架构下有一个经典的问题 —— 如果 Master 挂了怎么办？这时候就需要 RedLock 了..."</p>
+</blockquote>
 <hr />
 <blockquote>
-<p>📋 <strong>分类</strong>: 操作系统<br />
-🏷️ <strong>标签</strong>: <code>并发编程</code><br />
-📊 <strong>难度</strong>: 中级<br />
-📅 <strong>归档时间</strong>: 2026-07-04 14:26:57</p>
+<p><strong>一句话终结论</strong>：Redisson RLock 通过 <strong>Lua 脚本 + Hash 结构</strong> 保证了锁的<strong>原子性</strong>和<strong>可重入性</strong>，<strong>看门狗</strong>机制解决了<strong>过期时间难以预估</strong>的核心痛点，<strong>RedLock</strong> 则进一步在<strong>跨节点场景</strong>下提供了容错保障。面试中重点突出"如何解决分布式锁的三个核心问题"：原子性、自动续期、安全性。</p>
 </blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0030')">

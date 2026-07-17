@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引 — Interview Coach</title>
+    <title>自我介绍 — Interview Coach</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -147,168 +147,29 @@ body {
         <span class="sep">/</span>
         <a href="questions.html">📚 题库</a>
         <span class="sep">/</span>
-        <span style="font-size:0.85rem;">q0014</span>
+        <span style="font-size:0.85rem;">q0041</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
             <span class="q-meta-item q-meta-diff-medium">● 中级</span>
-            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-17</span>
         </div>
     </div>
 </header>
 
 <div class="q-container">
-    <h1>联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引</h1>
-    <div class="tag-row"><span class="tag-item">索引优化</span>
-<span class="tag-item">B+树</span>
-<span class="tag-item">MySQL</span>
-<span class="tag-item">查询优化</span></div>
-    <h1 id="abc-where-c2-and-a1">联合索引 (a,b,c)，查询条件 where c=2 and a=1，是否走索引</h1>
-<hr />
-<h3 id="_1">🧠 联想记忆法</h3>
-<p><strong>记忆口诀/联想</strong>: <strong>"引擎自动调顺序，最左前缀是铁律"</strong></p>
-<p>口诀前半句"引擎自动调顺序"对应 MySQL 优化器会自动重排 WHERE 条件（<code>c=2 AND a=1</code> → <code>a=1 AND c=2</code>），因此不要求 SQL 书写顺序与索引列顺序一致。口诀后半句"最左前缀是铁律"对应索引使用的根本原则：必须从最左列开始匹配，中间不能断。</p>
-<p><strong>记忆原理</strong>: 将"优化器自动性"和"最左前缀原则"这两个关键点压缩成一句对仗口诀，朗朗上口。"调顺序"和"是铁律"形成对比反差——优化器可以灵活调整 WHERE 顺序，但最左前缀原则是不可突破的底线。</p>
-<p><strong>关联知识</strong>: 类比字典查找——联合索引 (a, b, c) 就像一本电话簿先按姓氏(a)排、再按名字(b)排、最后按电话号码(c)排。查询时优化器会自动把你问的问题重新组织成最高效的查找顺序，但无论怎么组织，没有姓氏(a)就直接查名字(b)和电话(c)是找不到的。</p>
-<hr />
-<h3 id="_2">📖 深度解答</h3>
-<p><strong>1. 核心概念（是什么）</strong></p>
-<p><strong>直接答案：会走索引，但只使用了联合索引中的 a 列，c 列无法通过索引直接定位。</strong></p>
-<p>具体来说：</p>
-<table>
-<thead>
-<tr>
-<th>索引使用情况</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>a 列</td>
-<td><strong>走索引</strong> —— 通过 B+ 树定位到 a=1 的记录范围</td>
-</tr>
-<tr>
-<td>b 列</td>
-<td><strong>未使用</strong> —— 条件中没有 b 的等值条件</td>
-</tr>
-<tr>
-<td>c 列</td>
-<td><strong>通过 ICP（Index Condition Pushdown，索引条件下推）或回表后过滤</strong>，无法通过索引直接定位</td>
-</tr>
-</tbody>
-</table>
-<p>MySQL 优化器（Optimizer）会自动将 <code>WHERE c=2 AND a=1</code> 重写为 <code>WHERE a=1 AND c=2</code>，因此 SQL 的书写顺序不影响索引使用。</p>
-<p><strong>2. 底层原理（为什么）</strong></p>
-<p><strong>2.1 联合索引的 B+ 树结构</strong></p>
-<p>联合索引 (a, b, c) 的 B+ 树按照以下规则构建：</p>
-<ul>
-<li><strong>第一排序键</strong>：按 a 列升序排列</li>
-<li><strong>第二排序键</strong>：a 相同时，按 b 列升序排列</li>
-<li><strong>第三排序键</strong>：a 和 b 都相同时，按 c 列升序排列</li>
-</ul>
-<p>B+ 树的非叶子节点和叶子节点中存储的是 (a, b, c) 这个三元组，按 <code>(a, b, c)</code> 的字典序（lexicographical order）组织。</p>
-<p><strong>2.2 最左前缀原则（Leftmost Prefix Principle）</strong></p>
-<p>MySQL 使用联合索引时，只能从最左边开始连续匹配。索引 (a, b, c) 等价于创建了三个索引：<code>(a)</code>、<code>(a, b)</code>、<code>(a, b, c)</code>。</p>
-<p>条件 <code>WHERE a=1 AND c=2</code> 中，a 匹配了最左前缀，b 缺失，因此 c 无法利用索引的有序性进行定位。这被称为<strong>中间断裂（gap in the middle）</strong>。</p>
-<p><strong>2.3 查询优化器的自动重排</strong></p>
-<p>MySQL 优化器将 <code>WHERE c=2 AND a=1</code> 解析后，由于 AND 是<strong>可交换的（commutative）</strong>，优化器可以自由重排为 <code>WHERE a=1 AND c=2</code>。完整步骤包括：词法分析、CNF 转换、条件简化、条件排序（基于索引定义）、访问路径选择。</p>
-<p><strong>2.4 ICP（Index Condition Pushdown，索引条件下推）</strong></p>
-<p>MySQL 5.6 引入。在 <code>WHERE a=1 AND c=2</code> 中，存储引擎通过索引找到 a=1 的所有记录后，<strong>在索引层面</strong>直接判断 c=2 的条件，只有满足条件的记录才回表。Extra 显示 <code>Using index condition</code>。</p>
-<p><strong>2.5 key_len 计算规则</strong></p>
-<table>
-<thead>
-<tr>
-<th>类型</th>
-<th>字节</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>INT</td>
-<td>4</td>
-<td></td>
-</tr>
-<tr>
-<td>VARCHAR(n)</td>
-<td><code>n * 字符集 + 1(可空) + 2(变长)</code></td>
-<td></td>
-</tr>
-<tr>
-<td>可空列</td>
-<td>+1</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p><strong>3. 实践应用（怎么用）</strong></p>
-<p><strong>场景对比表：</strong></p>
-<table>
-<thead>
-<tr>
-<th>SQL</th>
-<th>走索引？</th>
-<th>key_len</th>
-<th>Extra</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>WHERE a=1 AND b=2 AND c=3</code></td>
-<td>是 (a,b,c)</td>
-<td>12</td>
-<td>Using index</td>
-</tr>
-<tr>
-<td><code>WHERE c=2 AND a=1</code></td>
-<td>是 (a列)</td>
-<td>4</td>
-<td>Using index condition</td>
-</tr>
-<tr>
-<td><code>WHERE b=1 AND a=2</code></td>
-<td>是 (a,b列)</td>
-<td>8</td>
-<td>Using index condition</td>
-</tr>
-<tr>
-<td><code>WHERE b=1 AND c=2</code></td>
-<td><strong>否</strong></td>
-<td>NULL</td>
-<td>Using where</td>
-</tr>
-<tr>
-<td><code>WHERE a=1 AND c=2</code></td>
-<td>是 (a列)</td>
-<td>4</td>
-<td>Using index condition</td>
-</tr>
-</tbody>
-</table>
-<p><strong>4. 深入思考（注意事项）</strong></p>
-<p>常见误区：WHERE 条件必须按索引顺序写（错）、走了索引等于用了全部列（错）、ICP 可替代索引列（错）。</p>
-<p>范围查询阻断：<code>WHERE a=1 AND b&gt;10 AND c=5</code> 中 c 列无法走索引。</p>
-<hr />
-<h3 id="_3">🗺️ 回答思路</h3>
-<p><strong>答题逻辑框架</strong>: 结论先行 → 原理展开 → 场景对比 → 延伸升华</p>
-<p><strong>重点得分点</strong>:<br />
-- 明确回答"会走索引"并精确说明"只用到 a 列"<br />
-- 提到优化器自动重排和 ICP 索引下推<br />
-- 分析 key_len 展示对索引存储的理解<br />
-- 举反例 <code>WHERE b=1 AND c=2</code> 不走索引</p>
-<p><strong>常见误区</strong>:<br />
-- ❌ "WHERE 必须按 (a,b,c) 顺序写" — 不懂优化器重排<br />
-- ❌ "走了索引所以 a、b、c 都用了" — 混淆走索引和用全部列<br />
-- ❌ "b=1 and c=2 也可以走" — 缺最左列 a</p>
-<p><strong>时间分配</strong>: 结论10秒 → 原理40秒 → EXPLAIN示范40秒 → 延伸30秒 → 总结30秒</p>
+    <h1>自我介绍</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">自我介绍</h1>
+<p>记忆口诀: 三线一亮点——技术线、项目线、AI线，每线一个亮点数据。自我介绍是面试的定调环节，3分钟内让面试官建立基础印象。结构: 我是谁(10s)→技术栈(20s)→核心项目+量化成果(90s)→AI经验(30s)→求职动机(10s)。重点: 量化数据&gt;技术堆砌，项目结果&gt;项目职责，避免流水账式读简历。</p>
 <hr />
 <blockquote>
-<p>📋 <strong>分类</strong>: MySQL / 数据库<br />
-🏷️ <strong>标签</strong>: <code>索引优化</code> <code>B+树</code> <code>MySQL</code> <code>查询优化</code><br />
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
 📊 <strong>难度</strong>: 中级<br />
-📅 <strong>归档时间</strong>: 2026-07-04</p>
+📅 <strong>归档时间</strong>: 2026-07-17 20:43:55</p>
 </blockquote>
     <div class="review-actions">
-        <button class="btn-review" id="review-btn" onclick="toggleReview('q0014')">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0041')">
             ✅ Mark as Reviewed Today
         </button>
         <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
@@ -352,7 +213,7 @@ function toggleReview(qid) {
 (function() {
     const key = 'reviewed_' + new Date().toISOString().slice(0,10);
     const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
-    if (reviewed.includes('q0014')) {
+    if (reviewed.includes('q0041')) {
         const btn = document.getElementById('review-btn');
         btn.textContent = '✓ Reviewed Today!';
         btn.classList.add('reviewed');

@@ -150,7 +150,7 @@ body {
         <span style="font-size:0.85rem;">q0013</span>
         <div class="q-meta">
             <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
-            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
     </div>
@@ -160,335 +160,655 @@ body {
     <h1>MySQL 事务过程中有哪些日志，各自作用</h1>
     <div class="tag-row"><span class="tag-item">事务</span>
 <span class="tag-item">日志</span>
-<span class="tag-item">InnoDB</span>
-<span class="tag-item">MySQL</span></div>
-    <pre># MySQL 事务过程中有哪些日志，各自作用
+<span class="tag-item">UndoLog</span>
+<span class="tag-item">RedoLog</span>
+<span class="tag-item">Binlog</span>
+<span class="tag-item">两阶段提交</span>
+<span class="tag-item">崩溃恢复</span>
+<span class="tag-item">MVCC</span>
+<span class="tag-item">WAL</span></div>
+    <h1 id="mysql">MySQL 事务过程中有哪些日志，各自作用</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<h3 id="_2">记忆口诀：「日食双倍，三山一河」</h3>
+<table>
+<thead>
+<tr>
+<th>口诀</th>
+<th>对应</th>
+<th>详解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>日</strong></td>
+<td>日志系统</td>
+<td>三大日志构成了 InnoDB 的"日"志体系</td>
+</tr>
+<tr>
+<td><strong>食</strong></td>
+<td>事务(Transaction)</td>
+<td>日志服务于事务的 ACID</td>
+</tr>
+<tr>
+<td><strong>双倍</strong></td>
+<td>Redo + Undo</td>
+<td>一对"双胞胎"——Redo 重做、Undo 撤销</td>
+</tr>
+<tr>
+<td><strong>三山</strong></td>
+<td>三大日志</td>
+<td>Undo Log、Redo Log、Binlog，共三座"山"</td>
+</tr>
+<tr>
+<td><strong>一河</strong></td>
+<td>两阶段提交(2PC)</td>
+<td>贯穿 Redo Log 与 Binlog 的"河"流，保证一致性</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ubr">扩展口诀：「UBR 三剑客」</h3>
+<ul>
+<li><strong>Undo（Undo Log）</strong>：回滚看前朝——记录旧版本，保证原子性</li>
+<li><strong>Redo（Redo Log）</strong>：WAL 写前头——日志先行，保证持久性</li>
+<li><strong>Binlog（Binary Log）</strong>：复制到处走——主从复制，时间点恢复</li>
+</ul>
+<h3 id="_3">记忆原理</h3>
+<ul>
+<li>"Undo"发音 ≈ "undo = 撤销"，天然关联回滚操作</li>
+<li>"Redo"发音 ≈ "reado = 重新做"，天然关联崩溃恢复</li>
+<li>"Binlog" = Binary Log = 二进制日志，DBA 日常备份和主从复制的核心</li>
+<li>两阶段提交可联想为"先签字审批（Prepare），再盖章生效（Commit）"</li>
+</ul>
+<h3 id="_4">关联知识</h3>
+<ul>
+<li>Undo Log + Redo Log → 对应 ACID 中的 A（原子性，Atomicity）+ D（持久性，Durability）</li>
+<li>Redo Log + Binlog 的两阶段提交 → 保证事务的 C（一致性，Consistency）</li>
+<li>WAL（Write-Ahead Logging）设计模式 → PostgreSQL、RocksDB 等同源设计</li>
+<li>Git 类比：Undo ≈ git stash（暂存旧版本）；Redo ≈ git reflog（操作日志可重放）；Binlog ≈ git push（同步到远程仓库）</li>
+</ul>
+<hr />
+<h2 id="_5">📖 深度解答</h2>
+<h3 id="_6">一、核心概念：三大日志概览</h3>
+<p>MySQL InnoDB 存储引擎的事务日志系统由三个核心日志组件构成，分别服务于事务的 <strong>ACID</strong> 不同维度：</p>
+<table>
+<thead>
+<tr>
+<th>日志</th>
+<th>全称</th>
+<th>所属层次</th>
+<th>核心作用</th>
+<th>对应 ACID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Undo Log</td>
+<td>回滚日志（Undo Log）</td>
+<td>InnoDB 引擎层</td>
+<td>事务回滚 + MVCC 快照读</td>
+<td>原子性(A) + 隔离性(I)</td>
+</tr>
+<tr>
+<td>Redo Log</td>
+<td>重做日志（Redo Log）</td>
+<td>InnoDB 引擎层</td>
+<td>崩溃恢复，已提交事务不丢失</td>
+<td>持久性(D)</td>
+</tr>
+<tr>
+<td>Binlog</td>
+<td>二进制日志（Binary Log）</td>
+<td>MySQL Server 层</td>
+<td>主从复制 + 时间点恢复(PITR)</td>
+<td>架构级保障</td>
+</tr>
+</tbody>
+</table>
+<p>三个日志之间的关系可以概括为：<strong>Undo Log 保证你能"后悔"，Redo Log 保证不会"失忆"，Binlog 保证可以"分身"</strong>。</p>
+<hr />
+<h3 id="_7">二、底层原理</h3>
+<h4 id="1-undo-log">1. Undo Log（回滚日志）</h4>
+<h5 id="11">1.1 物理存储结构</h5>
+<ul>
+<li><strong>存储位置</strong>：Undo Tablespace（MySQL 8.0 默认 2 个，通过 <code>innodb_undo_tablespaces</code> 配置）</li>
+<li><strong>段结构</strong>：每个 Undo Tablespace 包含多个 Rollback Segment，每个 Rollback Segment 包含 1024 个 Undo Slot</li>
+<li><strong>记录单元</strong>：Undo Log Record（行级别，存储在 Undo Page 中）</li>
+</ul>
+<div class="highlight"><pre><span></span><code>Undo Tablespace
+  └── Rollback Segment 0
+        └── Undo Slot 0 ~ 1023
+              └── Undo Log Record (存储旧版本数据)
+</code></pre></div>
 
-# 面经深度解答：MySQL 事务过程中有哪些日志，各自作用
+<h5 id="12">1.2 记录内容与格式</h5>
+<p>Undo Log 分为两种类型：<br />
+- <strong>INSERT Undo Log</strong>：记录插入行的主键值，回滚时通过主键删除<br />
+- <strong>UPDATE Undo Log</strong>：记录更新前的完整行数据（包括主键），回滚时用旧值覆盖</p>
+<p>一条 UPDATE 语句的 Undo Log 记录格式（简化伪代码）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">undo_log_record</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">trx_id_t</span><span class="w">       </span><span class="n">trx_id</span><span class="p">;</span><span class="w">              </span><span class="c1">// 事务ID</span>
+<span class="w">    </span><span class="n">roll_ptr_t</span><span class="w">     </span><span class="n">rollback_pointer</span><span class="p">;</span><span class="w">    </span><span class="c1">// 回滚指针，指向修改前的旧版本</span>
+<span class="w">    </span><span class="n">undo_type_t</span><span class="w">    </span><span class="n">type</span><span class="p">;</span><span class="w">                </span><span class="c1">// INSERT_UNDO / UPDATE_UNDO</span>
+<span class="w">    </span><span class="n">byte</span><span class="o">*</span><span class="w">          </span><span class="n">old_values</span><span class="p">;</span><span class="w">          </span><span class="c1">// 字段级别的修改前值</span>
+<span class="w">    </span><span class="n">dict_index_t</span><span class="o">*</span><span class="w">  </span><span class="n">clustered_index</span><span class="p">;</span><span class="w">     </span><span class="c1">// 主键索引信息</span>
+<span class="p">};</span>
+</code></pre></div>
 
----
+<h5 id="13">1.3 双重作用机制</h5>
+<p><strong>作用一：事务回滚（保证原子性）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">START</span><span class="w"> </span><span class="k">TRANSACTION</span><span class="p">;</span>
+<span class="w">    </span><span class="k">UPDATE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">-- Undo Log 记录了 balance 的旧值</span>
+<span class="w">    </span><span class="c1">-- 如果后续操作失败:</span>
+<span class="w">    </span><span class="k">UPDATE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">-- ROLLBACK 触发 → InnoDB 读取 Undo Log 恢复 id=1 的旧值</span>
+<span class="k">ROLLBACK</span><span class="p">;</span>
+</code></pre></div>
 
-## 🧠 联想记忆法
+<p><strong>作用二：MVCC 快照读（保证隔离性）</strong></p>
+<p>MVCC（Multi-Version Concurrency Control）通过 Undo Log 构建的<strong>版本链</strong>（Version Chain）实现：每行数据都有隐藏列 <code>DB_TRX_ID</code>（最后修改事务ID）和 <code>DB_ROLL_PTR</code>（回滚指针），后者指向 Undo Log 中的旧版本，形成链表。</p>
+<div class="highlight"><pre><span></span><code>当前行 (name=&#39;B&#39;, trx_id=100) ──DB_ROLL_PTR──→ Undo (name=&#39;A&#39;, trx_id=99)
+                                                    │
+                                              DB_ROLL_PTR
+                                                    │
+                                                    ▼
+                                              Undo (name=&#39;0&#39;, trx_id=98)
+</code></pre></div>
 
-- **记忆口诀/联想**: "二舅逼我改" — "二"（二进制日志 Binlog）+ "舅"（Redo Log 重做日志）+ "逼"（Undo Log 回滚日志）+ "我改"（事务修改数据时三者协同工作）。也可以用英文首字母联想：**B.U.R.P.** — Binlog, Undo Log, Redo Log, 两阶段提交（2PC/Prepare）。
-
-- **记忆原理**: "二舅逼我改" 是一个有故事性的短句，易于上口。"二"对应 Binlog（二进制日志），"舅"谐音 Redo（重做），"逼"谐音 Undo（回滚），"我改"对应数据修改操作。B.U.R.P. 则利用英文首字母组合成一个可读的单词，帮助记忆三种日志和一个关键机制的英文名称。
-
-- **关联知识**: 
-  - Binlog 类比 Git 的操作记录，可以 replay 任意历史点
-  - Redo Log 类比银行交易流水（只追加、防丢失），WAL 策略类似先记账再收银
-  - Undo Log 类比 Photoshop 的历史记录面板，用于撤销和查看旧版本
-  - 两阶段提交类比"登机准备（Prepare）→ 确认起飞（Commit）"的两步确认机制
-
----
-
-## 📖 深度解答
-
-### 一、核心概念
-
-MySQL InnoDB 存储引擎在事务处理过程中，依赖三种日志（Log）来保证事务的 **ACID** 特性。三种日志各有分工：
-
-| 日志类型 | 英文名 | 保证的 ACID 特性 | 产生层 | 存储位置 |
-|---------|--------|-----------------|--------|---------|
-| 重做日志 | Redo Log | 持久性（Durability） | InnoDB 引擎层 | ib_logfile0 / ib_logfile1 |
-| 回滚日志 | Undo Log | 原子性（Atomicity）+ 隔离性（Isolation - MVCC） | InnoDB 引擎层 | Undo Tablespace（ibdata1 或独立 undo 表空间） |
-| 二进制日志 | Binary Log / Binlog | 非 ACID，用于复制和恢复 | MySQL Server 层 | binlog.NNNNNN 文件 |
-
-### 二、底层原理
-
-#### 1. Undo Log（回滚日志）
-
-**作用**：
-- **原子性**：当事务执行过程中发生错误或用户执行 ROLLBACK 时，利用 Undo Log 将数据恢复到修改前的状态
-- **隔离性（MVCC）**：实现多版本并发控制（Multi-Version Concurrency Control），为不同隔离级别（如 READ COMMITTED、REPEATABLE READ）提供一致性非锁定读（Consistent Nonlocking Read）
-
-**存储位置**：
-- MySQL 5.6 之前：存储在系统表空间（ibdata1）中
-- MySQL 5.6+：可独立配置 Undo Tablespace，通过 `innodb_undo_tablespaces` 参数控制
-- Undo Log 本质上也是 InnoDB 表空间中的一段连续存储区域
-
-**记录内容**：
-- INSERT 操作：记录新插入行的主键值，回滚时执行 DELETE
-- DELETE 操作：记录被删除行的完整数据，回滚时执行 INSERT
-- UPDATE 操作：记录被修改列的旧值，回滚时执行反向 UPDATE
-- Undo Log 分为两种类型：
-  - **insert undo log**：仅在事务回滚时需要，提交后可以立即丢弃
-  - **update undo log**：不仅用于回滚，还用于 MVCC 的快照读（Snapshot Read），因此需要在所有快照不再访问后才能清理（由 Purge 线程负责）
-
-**与 Redo Log 的关系**：
-- **先写 Redo，再写 Undo**：这是 InnoDB 的关键设计。Undo Log 是逻辑日志，本身不保证持久性；Redo Log 是物理日志，记录对数据页（Page）的修改。Redo Log 保证了 Undo Log 所在数据页的持久化。
-- 崩溃恢复（Crash Recovery）时，系统首先通过 Redo Log 恢复所有已提交（COMMIT）事务的数据修改；然后通过 Undo Log 回滚所有未提交的事务。
-- 简单记忆：**Redo 向前滚（Roll-Forward），Undo 向后滚（Roll-Back）**。
-
-#### 2. Redo Log（重做日志）
-
-**作用**：
-- **持久性（Durability）**：确保一旦事务提交，其修改即使在系统崩溃后也不会丢失
-- **崩溃恢复（Crash Recovery）**：系统重启时，通过 Redo Log 重做所有已提交但尚未写入数据文件的事务修改
-
-**WAL（Write-Ahead Logging）策略**：
-- 核心原则：**日志先行**。在修改数据页之前，必须先将修改操作写入 Redo Log。
-- 流程：修改内存中的 Buffer Pool 数据页 → 写入 Redo Log Buffer → 将 Redo Log Buffer 刷入磁盘（事务提交时）→ 后续由 Checkpoint 机制将脏页写入数据文件
-- 这样即使脏页来不及刷入数据文件就发生崩溃，系统也能通过 Redo Log 恢复数据
-
-**物理日志 vs 逻辑日志**：
-- Redo Log 是 **物理日志（Physical Log）**：记录的是"对某个数据页（Page Number=XXX，Offset=YYY）修改了什么字节"，而非 SQL 语句本身
-- Binlog 是 **逻辑日志（Logical Log）**：记录的是 SQL 语句或被修改的行数据
-- Redo Log 的物理性质使其恢复速度远快于 Binlog，因为它不需要重新执行 SQL，只需按页地址直接修改
-
-**循环写机制**：
-```text
-+-------------------+        +-------------------+
-|   ib_logfile0     |        |   ib_logfile1     |
-| [written][free]   | -----&gt; | [written][free]   | -----&gt; (循环)
-+-------------------+        +-------------------+
-
-LSN (Log Sequence Number) 单调递增
-Checkpoint LSN → 此前的脏页已刷入数据文件，对应的 Redo Log 可覆盖
-```
-
-- Redo Log 是**固定大小、循环写入**的物理文件集（默认 2 个文件，各 48MB，即重做日志组 Redo Log Group）
-- 参数：`innodb_log_file_size`（文件大小）、`innodb_log_files_in_group`（文件数量）、`innodb_log_group_home_dir`（文件路径）
-- LSN（Log Sequence Number，日志序列号）贯穿整个 Redo Log 系统，用于标识日志写入位置和检查点位置
-
-**写入策略（`innodb_flush_log_at_trx_commit`）**：
-| 参数值 | 行为 | 持久性 | 性能 |
-|--------|------|--------|------|
-| 1（默认） | 每次事务提交时，将 Redo Log Buffer 写入 OS Buffer 并 fsync() 到磁盘 | 最高（不会丢失任何已提交事务） | 最低（每次提交都 fsync） |
-| 0 | 事务提交时不写入磁盘，仅每秒将 Redo Log Buffer 写入 OS Buffer 并 fsync() | 最低（崩溃时丢失最近 1 秒数据） | 最高 |
-| 2 | 事务提交时写入 OS Buffer，每秒 fsync() 到磁盘 | 中等（OS 崩溃丢失，MySQL 崩溃不丢） | 中等 |
-
-**Buffer 写入流程**：
-```text
-事务修改数据
+<p>读取时根据 ReadView 判断当前事务应该看到版本链中的哪个版本：<br />
+- <strong>READ COMMITTED</strong>：每次 SELECT 生成新的 ReadView<br />
+- <strong>REPEATABLE READ</strong>：事务开始时的第一次 SELECT 生成 ReadView，整个事务复用</p>
+<h5 id="14-undo-log-redo-log">1.4 Undo Log 与 Redo Log 的关系</h5>
+<p><strong>关键原则：Redo Log 保护 Undo Log 的持久化</strong></p>
+<p>Undo Log 本身也是数据页（Undo Page），也需要持久化保护。InnoDB 的写入策略：<br />
+1. 修改 Undo Page 前，先写对应的 Redo Log Record<br />
+2. Undo Page 本身通过 Buffer Pool 管理，其刷盘由 Redo Log 保护<br />
+3. 崩溃恢复时，通过 Redo Log 重放可以恢复已写入但未落盘的 Undo Page</p>
+<div class="highlight"><pre><span></span><code>事务修改数据
     ↓
-写入 Redo Log Buffer（内存）
+写入 Undo Log Record (记录旧值) ← 写 Undo Page
     ↓
-事务 COMMIT
+为 Undo Page 写 Redo Log (保护 Undo 的持久化)
     ↓
-[根据 innodb_flush_log_at_trx_commit 配置]
+写入 Redo Log (保护数据页的持久化)
+</code></pre></div>
+
+<hr />
+<h4 id="2-redo-log">2. Redo Log（重做日志）</h4>
+<h5 id="21">2.1 物理存储结构</h5>
+<div class="highlight"><pre><span></span><code>磁盘文件 (循环写):
+  ib_logfile0  ← 当前写位置 (current_lsn)
+  ib_logfile1  ← 检查点位置 (checkpoint_lsn)
+  ...
+
+内存:
+  redo log buffer (innodb_log_buffer_size, 默认 16MB)
+      ↓ flush
+  OS Buffer (Page Cache)
+      ↓ fsync()
+  磁盘文件
+</code></pre></div>
+
+<ul>
+<li><strong>存储路径</strong>：<code>datadir/ib_logfile0</code>, <code>ib_logfile1</code></li>
+<li><strong>总大小配置</strong>：MySQL 8.0.30 之前 <code>innodb_log_file_size × innodb_log_files_in_group</code>，之后 <code>innodb_redo_log_capacity</code></li>
+</ul>
+<h5 id="22-vs">2.2 物理日志 vs 逻辑日志</h5>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>物理日志 (Redo Log)</th>
+<th>逻辑日志 (Binlog STATEMENT)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>记录粒度</td>
+<td>页级别的字节修改</td>
+<td>SQL 语句或行变更</td>
+</tr>
+<tr>
+<td>记录内容</td>
+<td>"将页 X 偏移量 Y 处改为 Z"</td>
+<td>"UPDATE user SET ..."</td>
+</tr>
+<tr>
+<td>并发重放</td>
+<td>可并行（不同页互不干扰）</td>
+<td>串行执行</td>
+</tr>
+<tr>
+<td>空间占用</td>
+<td>相对较小</td>
+<td>相对较大</td>
+</tr>
+<tr>
+<td>幂等性</td>
+<td>不幂等</td>
+<td>ROW 格式幂等</td>
+</tr>
+</tbody>
+</table>
+<p>Redo Log Record 的简化结构：</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">redo_log_record</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w">   </span><span class="n">type</span><span class="p">;</span><span class="w">         </span><span class="c1">// MLOG_WRITE_STRING, MLOG_1BYTE 等</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w">  </span><span class="n">space_id</span><span class="p">;</span><span class="w">     </span><span class="c1">// 表空间ID</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w">  </span><span class="n">page_no</span><span class="p">;</span><span class="w">      </span><span class="c1">// 页号 (定位到 16KB 数据页)</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w">  </span><span class="n">offset</span><span class="p">;</span><span class="w">       </span><span class="c1">// 页内偏移量</span>
+<span class="w">    </span><span class="n">byte</span><span class="o">*</span><span class="w">     </span><span class="n">data</span><span class="p">;</span><span class="w">         </span><span class="c1">// 实际修改的字节数据</span>
+<span class="w">    </span><span class="n">lsn_t</span><span class="w">     </span><span class="n">lsn</span><span class="p">;</span><span class="w">          </span><span class="c1">// Log Sequence Number，单调递增</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<h5 id="23-wal-write-ahead-logging">2.3 WAL 策略（Write-Ahead Logging）</h5>
+<p><strong>核心原则：日志先行，数据后写</strong>。在修改 Buffer Pool 中的脏页之前，必须先将该修改的 Redo Log 写入磁盘。</p>
+<div class="highlight"><pre><span></span><code>用户发起 UPDATE
     ↓
-OS Buffer（操作系统缓存）
+① 在 Buffer Pool 中修改数据页 (脏页, Dirty Page)
     ↓
-fsync() → 磁盘（ib_logfileN）
-```
+② 将修改记录写入 Redo Log Buffer (内存)
+    ↓
+③ Redo Log Buffer → OS Buffer → 磁盘 (根据刷盘策略)
+    ↓
+④ 脏页可在之后任意时间刷盘 (Checkpoint)
+</code></pre></div>
 
-#### 3. Binlog（归档日志 / 二进制日志）
+<p>WAL 的收益：<strong>写 Redo Log 是顺序 I/O（追加写 + 循环覆盖），写数据页是随机 I/O（分散到不同页）</strong>。顺序 I/O 比随机 I/O 快 2-3 个数量级，因此 WAL 大幅提升了事务提交性能。</p>
+<h5 id="24-innodb_flush_log_at_trx_commit">2.4 写入策略：innodb_flush_log_at_trx_commit</h5>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+<th>安全性</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1（默认）</strong></td>
+<td>每次事务提交时，将 Redo Log Buffer 写入 OS Buffer 并 fsync() 到磁盘</td>
+<td>最高（不会丢任何已提交事务）</td>
+<td>最慢</td>
+</tr>
+<tr>
+<td><strong>0</strong></td>
+<td>每秒将 Redo Log Buffer 写入 OS Buffer 并 fsync()，事务提交时不主动写</td>
+<td>最低（崩溃可能丢 1 秒数据）</td>
+<td>最快</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>每次事务提交时写入 OS Buffer，但每秒 fsync() 一次</td>
+<td>中（OS 崩溃可能丢数据，MySQL 崩溃不丢）</td>
+<td>较快</td>
+</tr>
+</tbody>
+</table>
+<p><strong>崩溃恢复（Crash Recovery）</strong>：<br />
+1. 通过 Redo Log 前滚（Roll Forward）所有已刷盘的已提交事务<br />
+2. 通过 Undo Log 回滚（Rollback）所有未提交事务<br />
+3. 恢复完成后，系统才能接受新的连接和事务</p>
+<hr />
+<h4 id="3-binlog">3. Binlog（二进制日志/归档日志）</h4>
+<h5 id="31-server">3.1 Server 层地位</h5>
+<p>Binlog 是 <strong>MySQL Server 层</strong>日志，与存储引擎无关。这意味着：<br />
+- 无论使用 InnoDB、MyISAM 还是其他引擎，Binlog 都会记录<br />
+- 可以通过 <code>binlog_format</code> 配置所有引擎的统一日志格式<br />
+- 主从复制架构依赖 Binlog 在 Server 层的统一性</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 查看 Binlog 相关设置</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;log_bin&#39;</span><span class="p">;</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;binlog_format&#39;</span><span class="p">;</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="n">VARIABLES</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;sync_binlog&#39;</span><span class="p">;</span>
+</code></pre></div>
 
-**作用**：
-- **主从复制（Replication）**：主库（Master）将 Binlog 发送给从库（Slave），从库重放 Binlog 实现数据同步
-- **数据恢复（Point-in-Time Recovery, PITR）**：基于全量备份 + Binlog，可以将数据库恢复到任意时间点
-- **审计（Audit）**：记录所有数据变更操作
+<h5 id="32">3.2 三种格式对比</h5>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>记录方式</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>STATEMENT</strong></td>
+<td>记录原始 SQL</td>
+<td>日志量小，可读性强</td>
+<td>非确定性函数（NOW()、UUID()）导致主从不一致</td>
+</tr>
+<tr>
+<td><strong>ROW（MySQL 5.7+ 默认）</strong></td>
+<td>记录每行数据的变更前后值</td>
+<td>绝对一致性，任何语句都可安全复制</td>
+<td>日志量大（尤其大批量更新时）</td>
+</tr>
+<tr>
+<td><strong>MIXED</strong></td>
+<td>自动判断：确定性用 STATEMENT，否则 ROW</td>
+<td>兼顾日志大小与一致性</td>
+<td>判断逻辑复杂，偶有不一致风险</td>
+</tr>
+</tbody>
+</table>
+<p>ROW 格式的 Binlog 内容示例（查看方式：<code>mysqlbinlog --base64-output=decode-rows -v mysql-bin.000001</code>）：</p>
+<div class="highlight"><pre><span></span><code><span class="o">###</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="o">`</span><span class="n">test</span><span class="o">`</span><span class="p">.</span><span class="o">`</span><span class="k">user</span><span class="o">`</span>
+<span class="o">###</span><span class="w"> </span><span class="k">WHERE</span>
+<span class="o">###</span><span class="w">   </span><span class="o">@</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w">  </span><span class="cm">/* id */</span>
+<span class="o">###</span><span class="w">   </span><span class="o">@</span><span class="mi">2</span><span class="o">=</span><span class="s1">&#39;Bob&#39;</span><span class="w">  </span><span class="cm">/* name (旧值) */</span>
+<span class="o">###</span><span class="w"> </span><span class="k">SET</span>
+<span class="o">###</span><span class="w">   </span><span class="o">@</span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w">  </span><span class="cm">/* id */</span>
+<span class="o">###</span><span class="w">   </span><span class="o">@</span><span class="mi">2</span><span class="o">=</span><span class="s1">&#39;Alice&#39;</span><span class="w">  </span><span class="cm">/* name (新值) */</span>
+</code></pre></div>
 
-**Server 层日志**：
-- Binlog 由 MySQL Server 层产生，与存储引擎无关
-- 无论使用 InnoDB、MyISAM 还是其他引擎，Binlog 都会记录
-- Redo Log / Undo Log 只对 InnoDB 引擎有效
+<h5 id="33-binlog-redo-log">3.3 Binlog 与 Redo Log 的关键区别</h5>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>Redo Log</th>
+<th>Binlog</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>所属层</strong></td>
+<td>InnoDB 引擎层（插件式引擎）</td>
+<td>MySQL Server 层（所有引擎共享）</td>
+</tr>
+<tr>
+<td><strong>记录内容</strong></td>
+<td>物理日志：页级别的字节修改</td>
+<td>逻辑日志(SQL) 或 行变更(ROW)</td>
+</tr>
+<tr>
+<td><strong>写入时机</strong></td>
+<td>事务执行过程中持续写入</td>
+<td>事务提交时一次性写入</td>
+</tr>
+<tr>
+<td><strong>写入方式</strong></td>
+<td><strong>循环写</strong>，固定大小文件，空间覆盖重用</td>
+<td><strong>追加写</strong>，文件轮换，保留历史</td>
+</tr>
+<tr>
+<td><strong>存储位置</strong></td>
+<td>InnoDB 数据目录下</td>
+<td>可通过 <code>log-bin</code> 参数指定独立位置</td>
+</tr>
+<tr>
+<td><strong>崩溃恢复作用</strong></td>
+<td>必须：恢复未刷盘的已提交事务</td>
+<td>辅助：结合全量备份做 PITR</td>
+</tr>
+<tr>
+<td><strong>副本同步</strong></td>
+<td>不用于复制</td>
+<td>主从复制的核心数据源</td>
+</tr>
+<tr>
+<td><strong>是否可禁用</strong></td>
+<td>不可禁用（InnoDB 强制）</td>
+<td>可禁用（<code>--skip-log-bin</code>）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="4-two-phase-commit-2pc">4. 两阶段提交（Two-Phase Commit, 2PC）</h4>
+<h5 id="41">4.1 为什么需要两阶段提交</h5>
+<p>如果 Redo Log 和 Binlog 各自独立提交，可能出现：</p>
+<ul>
+<li><strong>场景 A</strong>：Redo Log 写入完成但 Binlog 未写入时崩溃 → 主库恢复后事务存在，从库缺失该事务</li>
+<li><strong>场景 B</strong>：Binlog 写入完成但 Redo Log 未写入时崩溃 → 从库已同步该事务，主库却丢失</li>
+</ul>
+<p><strong>解决方案</strong>：两阶段提交保证 Redo Log 和 Binlog 的逻辑一致性。</p>
+<h5 id="42">4.2 两阶段提交流程</h5>
+<div class="highlight"><pre><span></span><code>事务提交
+    │
+    ├── 阶段一：Prepare（准备阶段）
+    │   ├── ① 将 Redo Log 设为 prepare 状态
+    │   ├── ② 写入 XID（事务ID）到 Redo Log
+    │   └── ③ Redo Log 刷盘
+    │
+    ├── 阶段二：Commit（提交阶段）
+    │   ├── ④ 写入 Binlog（包含相同 XID）
+    │   ├── ⑤ Binlog 刷盘
+    │   └── ⑥ 将 Redo Log 从 prepare 更新为 commit 状态
+    │
+    └── 完成：返回客户端 &quot;事务已提交&quot;
+</code></pre></div>
 
-**三种格式**：
+<h5 id="43">4.3 崩溃恢复时的判断规则</h5>
+<div class="highlight"><pre><span></span><code>重启扫描 Redo Log &amp; Binlog
+    │
+    ├── Redo Log = prepare, XID 存在于 Binlog → 提交该事务
+    │                                            (Binlog 是&quot;提交凭证&quot;)
+    │
+    ├── Redo Log = prepare, XID 不存在于 Binlog → 回滚该事务
+    │
+    └── Redo Log = commit → 直接提交，无需额外处理
+</code></pre></div>
 
-| 格式 | 记录内容 | 优点 | 缺点 |
-|------|---------|------|------|
-| STATEMENT | 执行的原始 SQL 语句 | 日志量小 | 非确定性函数（NOW()、UUID()）会导致主从不一致 |
-| ROW（默认） | 每行数据的变更（前值 + 后值） | 最安全，绝对一致 | 日志量大（尤其大表 UPDATE） |
-| MIXED | 混合模式：默认使用 STATEMENT，遇到不安全的 SQL 自动切换为 ROW | 兼顾大小和安全 | 复杂场景下行为不易预测 |
+<p><strong>核心原理</strong>：Binlog 是"提交凭证"。只要 Binlog 写成功了，就认为事务已提交，即使 Redo Log 仍处于 prepare 状态。</p>
+<hr />
+<h4 id="5-update">5. 一条 UPDATE 语句的完整日志流转</h4>
+<p>以 <code>UPDATE user SET age = 28 WHERE id = 1;</code>（原 age = 25）为例：</p>
+<div class="highlight"><pre><span></span><code><span class="nx">时间线</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">事务执行过程</span>
+<span class="err">─────────────────────────────────────────────────────────────────────</span>
 
-- MySQL 5.7.7+ 默认使用 ROW 格式
-- 查看当前格式：`SHOW VARIABLES LIKE 'binlog_format';`
+<span class="nx">Step</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="w"> </span><span class="nx">解析与优化</span>
+<span class="w">  </span><span class="nx">MySQL</span><span class="w"> </span><span class="nx">Server</span><span class="w"> </span><span class="nx">解析</span><span class="w"> </span><span class="nx">SQL</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">生成执行计划</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">InnoDB</span><span class="w"> </span><span class="nx">开始执行</span>
 
-**与 Redo Log 的关键区别**：
+<span class="nx">Step</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span><span class="w"> </span><span class="nx">查找记录</span>
+<span class="w">  </span><span class="nx">InnoDB</span><span class="w"> </span><span class="nx">通过主键索引</span><span class="err">（</span><span class="nx">聚簇索引</span><span class="err">）</span><span class="nx">找到</span><span class="w"> </span><span class="nx">id</span><span class="p">=</span><span class="mi">1</span><span class="w"> </span><span class="nx">的数据页</span>
+<span class="w">  </span><span class="nx">将该页从磁盘加载到</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="nx">Pool</span><span class="err">（</span><span class="nx">如果不在内存中</span><span class="err">）</span>
 
-| 对比维度 | Redo Log | Binlog |
-|---------|---------|--------|
-| 产生层 | InnoDB 存储引擎层 | MySQL Server 层 |
-| 记录内容 | 物理日志：数据页的字节级修改 | 逻辑日志：SQL 语句或行数据变更 |
-| 写入时机 | 事务执行过程中持续写入（WAL） | 事务提交时一次性写入 |
-| 文件管理 | 固定大小，循环写入，自动覆盖 | 追加写入，可设置过期时间（expire_logs_days） |
-| 用途 | 崩溃恢复（Crash Recovery） | 主从复制、时间点恢复 |
-| 是否可关闭 | 否（InnoDB 必须启用） | 是（`--skip-log-bin` 可关闭） |
-| 是否包含未提交事务 | 可能包含 | 不包含（仅记录已提交事务） |
+<span class="nx">Step</span><span class="w"> </span><span class="mi">3</span><span class="p">:</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Undo</span><span class="w"> </span><span class="nx">Log</span><span class="err">（</span><span class="nx">记录旧值</span><span class="err">）</span>
+<span class="w">  </span><span class="err">┌─────────────────────────────────────────────────────────┐</span>
+<span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Undo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">Record</span><span class="p">:</span><span class="w">                                        </span><span class="err">│</span>
+<span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="nx">trx_id</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="k">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">UPDATE_UNDO</span><span class="w">                     </span><span class="err">│</span>
+<span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="nx">row</span><span class="p">:</span><span class="w"> </span><span class="nx">id</span><span class="p">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">=</span><span class="err">&#39;</span><span class="nx">Alice</span><span class="err">&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">age</span><span class="p">=</span><span class="mi">25</span><span class="w">  </span><span class="err">←</span><span class="w"> </span><span class="nx">修改前快照</span><span class="w">        </span><span class="err">│</span>
+<span class="w">  </span><span class="err">└─────────────────────────────────────────────────────────┘</span>
+<span class="w">  </span><span class="nx">将</span><span class="w"> </span><span class="nx">Undo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">Record</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Undo</span><span class="w"> </span><span class="nx">Page</span>
+<span class="w">  </span><span class="nx">同时为</span><span class="w"> </span><span class="nx">Undo</span><span class="w"> </span><span class="nx">Page</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="err">（</span><span class="nx">Redo</span><span class="w"> </span><span class="nx">保护</span><span class="w"> </span><span class="nx">Undo</span><span class="err">）</span>
 
-#### 4. 两阶段提交（Two-Phase Commit, 2PC）
+<span class="nx">Step</span><span class="w"> </span><span class="mi">4</span><span class="p">:</span><span class="w"> </span><span class="nx">在</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="nx">Pool</span><span class="w"> </span><span class="nx">中修改数据页</span>
+<span class="w">  </span><span class="nx">修改</span><span class="w"> </span><span class="nx">id</span><span class="p">=</span><span class="mi">1</span><span class="w"> </span><span class="nx">的数据行</span><span class="p">:</span><span class="w"> </span><span class="nx">age</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">28</span>
+<span class="w">  </span><span class="nx">该页标记为</span><span class="s">&quot;脏页&quot;</span><span class="err">（</span><span class="nx">Dirty</span><span class="w"> </span><span class="nx">Page</span><span class="err">）</span>
 
-**问题背景**：
-- Redo Log 和 Binlog 是独立写入的，如果写入 Redo Log 后系统崩溃，但 Binlog 未写入，会导致主从数据不一致
-- 两阶段提交确保 Redo Log 和 Binlog **要么都写入成功，要么都回滚**
+<span class="nx">Step</span><span class="w"> </span><span class="mi">5</span><span class="p">:</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="err">（</span><span class="nx">记录物理修改</span><span class="err">）</span>
+<span class="w">  </span><span class="err">┌─────────────────────────────────────────────────────────┐</span>
+<span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">Record</span><span class="p">:</span><span class="w">                                        </span><span class="err">│</span>
+<span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="k">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">MLOG_WRITE_STRING</span><span class="w">                             </span><span class="err">│</span>
+<span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="nx">space_id</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="nx">page_no</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nx">offset</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">246</span><span class="w">            </span><span class="err">│</span>
+<span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="nx">data</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">28</span><span class="err">（</span><span class="nx">新值</span><span class="err">）</span><span class="p">,</span><span class="w"> </span><span class="nx">lsn</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">18273645</span><span class="w">                    </span><span class="err">│</span>
+<span class="w">  </span><span class="err">└─────────────────────────────────────────────────────────┘</span>
+<span class="w">  </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Record</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">Buffer</span><span class="err">（</span><span class="nx">内存</span><span class="err">）</span>
 
-**两阶段提交流程（以 UPDATE 为例）**：
+<span class="nx">Step</span><span class="w"> </span><span class="mi">6</span><span class="p">:</span><span class="w"> </span><span class="nx">事务提交</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">两阶段提交开始</span>
 
-```text
-事务执行阶段：
-① 执行 UPDATE，修改 Buffer Pool 中的数据页
-② 写 Undo Log（记录旧值）
-③ 写 Redo Log（状态设为 prepare，即 Prepared Phase）
+<span class="w">  </span><span class="err">【</span><span class="nx">Phase</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="w"> </span><span class="nx">Prepare</span><span class="err">】</span>
+<span class="w">  </span><span class="nx">①</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">OS</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">fsync</span><span class="p">()</span><span class="w"> </span><span class="nx">刷盘</span><span class="err">（</span><span class="nx">标记</span><span class="w"> </span><span class="nx">prepare</span><span class="err">）</span>
+<span class="w">  </span><span class="nx">②</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">XID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">200</span>
 
-事务提交阶段（Prepare → Commit）：
-④ Redo Log Prepare：将 Redo Log 状态标记为 prepare（第一阶段）
-⑤ 写 Binlog：将 SQL/行变更写入 Binlog（第二阶段的关键步骤）
-⑥ Redo Log Commit：将 Redo Log 状态标记为 commit（第二阶段）
+<span class="w">  </span><span class="err">【</span><span class="nx">Phase</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span><span class="w"> </span><span class="nx">Commit</span><span class="err">】</span>
+<span class="w">  </span><span class="nx">③</span><span class="w"> </span><span class="nx">写入</span><span class="w"> </span><span class="nx">Binlog</span><span class="p">:</span>
+<span class="w">     </span><span class="err">┌─────────────────────────────────────────────────────┐</span>
+<span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="nx">Binlog</span><span class="w"> </span><span class="nx">Event</span><span class="w"> </span><span class="p">(</span><span class="nx">ROW</span><span class="p">):</span><span class="w">                                 </span><span class="err">│</span>
+<span class="w">     </span><span class="err">│</span><span class="w">   </span><span class="nx">BEFORE</span><span class="p">:</span><span class="w"> </span><span class="nx">id</span><span class="p">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">=</span><span class="err">&#39;</span><span class="nx">Alice</span><span class="err">&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">age</span><span class="p">=</span><span class="mi">25</span><span class="w">               </span><span class="err">│</span>
+<span class="w">     </span><span class="err">│</span><span class="w">   </span><span class="nx">AFTER</span><span class="p">:</span><span class="w">  </span><span class="nx">id</span><span class="p">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">=</span><span class="err">&#39;</span><span class="nx">Alice</span><span class="err">&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">age</span><span class="p">=</span><span class="mi">28</span><span class="w">                </span><span class="err">│</span>
+<span class="w">     </span><span class="err">│</span><span class="w">   </span><span class="nx">xid</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">200</span><span class="w">                                         </span><span class="err">│</span>
+<span class="w">     </span><span class="err">└─────────────────────────────────────────────────────┘</span>
+<span class="w">  </span><span class="nx">④</span><span class="w"> </span><span class="nx">Binlog</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">OS</span><span class="w"> </span><span class="nx">Buffer</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">fsync</span><span class="p">()</span><span class="w"> </span><span class="nx">刷盘</span>
+<span class="w">  </span><span class="nx">⑤</span><span class="w"> </span><span class="nx">Redo</span><span class="w"> </span><span class="nx">Log</span><span class="w"> </span><span class="nx">从</span><span class="w"> </span><span class="nx">prepare</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">commit</span><span class="w"> </span><span class="nx">状态</span>
 
-事务完成后：
-⑦ 后台线程将脏页刷入磁盘（独立于提交过程）
-```
+<span class="nx">Step</span><span class="w"> </span><span class="mi">7</span><span class="p">:</span><span class="w"> </span><span class="nx">返回客户端</span><span class="w"> </span><span class="nx">OK</span>
+<span class="w">  </span><span class="nx">事务提交完成</span><span class="err">，</span><span class="nx">Buffer</span><span class="w"> </span><span class="nx">Pool</span><span class="w"> </span><span class="nx">脏页待后续刷盘</span>
 
-**崩溃恢复时的一致性检查**：
+<span class="nx">Step</span><span class="w"> </span><span class="mi">8</span><span class="p">:</span><span class="w"> </span><span class="nx">后台</span><span class="w"> </span><span class="nx">Checkpoint</span>
+<span class="w">  </span><span class="nx">Buffer</span><span class="w"> </span><span class="nx">Pool</span><span class="w"> </span><span class="nx">脏页在之后择机刷盘</span><span class="err">（</span><span class="nx">由</span><span class="w"> </span><span class="nx">Checkpoint</span><span class="w"> </span><span class="nx">机制控制</span><span class="err">）</span>
+</code></pre></div>
 
-| 崩溃发生时机 | 恢复策略 |
-|-------------|---------|
-| 步骤④之前崩溃 | 事务回滚（Undo），相当于事务从未发生 |
-| 步骤④完成、步骤⑤未完成 | Redo Log 状态为 prepare，Binlog 无记录 → 回滚事务 |
-| 步骤⑤完成、步骤⑥未完成 | Redo Log 状态为 prepare，但 Binlog 有记录 → 提交事务（Redo Log 重做） |
-| 步骤⑥之后崩溃 | 直接恢复，事务已完成 |
+<p><strong>关键点</strong>：事务提交时只保证 Redo Log 和 Binlog 落盘，数据页（Buffer Pool 中的脏页）可以延迟写入。这就是 WAL 策略的核心——<strong>日志先行，数据后写</strong>。</p>
+<hr />
+<h3 id="_8">三、实践应用</h3>
+<h4 id="31">3.1 生产环境推荐配置</h4>
+<div class="highlight"><pre><span></span><code><span class="c1"># my.cnf — 日志相关生产配置</span>
 
-**关键结论**：以 Binlog 为准。只要 Binlog 写成功了，事务就必须提交；Binlog 没写成功，事务就必须回滚。
+<span class="c1"># Redo Log 配置</span>
+<span class="na">innodb_log_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">32M</span><span class="w">           </span><span class="c1"># Redo Log Buffer (默认 16M)</span>
+<span class="na">innodb_redo_log_capacity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">2G</span><span class="w">          </span><span class="c1"># Redo Log 总容量 (8.0.30+, 替代 log_file_size)</span>
+<span class="na">innodb_flush_log_at_trx_commit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1</span><span class="w">     </span><span class="c1"># 每次事务提交 fsync（最安全）</span>
 
-### 三、实践应用
+<span class="c1"># Binlog 配置</span>
+<span class="na">server_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">100</span><span class="w">                         </span><span class="c1"># 主从复制必须设置</span>
+<span class="na">log_bin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/data/mysql/mysql-bin</span><span class="w">         </span><span class="c1"># 启用 Binlog</span>
+<span class="na">binlog_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">ROW</span><span class="w">                     </span><span class="c1"># 推荐 ROW 格式（一致性最佳）</span>
+<span class="na">sync_binlog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1</span><span class="w">                         </span><span class="c1"># 每次事务提交 fsync</span>
+<span class="na">expire_logs_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">7</span><span class="w">                    </span><span class="c1"># Binlog 保留 7 天</span>
 
-#### 一条 UPDATE 语句在三种日志中的完整流转
+<span class="c1"># 双1配置（最安全的写入设置）</span>
+<span class="c1"># innodb_flush_log_at_trx_commit = 1 + sync_binlog = 1</span>
+<span class="c1"># 同时启用 = 最大数据安全，适合金融/交易系统</span>
+</code></pre></div>
 
-假设执行：`UPDATE user SET age = 30 WHERE id = 1;`，且 id=1 的原 age=25。
+<h4 id="32_1">3.2 监控与诊断常用命令</h4>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 查看 Redo Log 状态</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="n">ENGINE</span><span class="w"> </span><span class="n">INNODB</span><span class="w"> </span><span class="n">STATUS</span><span class="err">\</span><span class="k">G</span>
+<span class="c1">-- 关注: Log sequence number, Log flushed up to, Last checkpoint at</span>
 
-```text
-时间轴 ↓          操作                                日志写入
-──────────────────────────────────────────────────────────────────────
+<span class="c1">-- 查看 Binlog 列表</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="nb">BINARY</span><span class="w"> </span><span class="n">LOGS</span><span class="p">;</span>
 
-1. 解析器 → 执行器   找到 id=1 的记录
-2. Buffer Pool       检查 id=1 所在数据页是否在内存中
-                     不在则从磁盘读取到 Buffer Pool
-                     加锁（行锁 / Next-Key Lock）
+<span class="c1">-- 查看当前 Binlog 位置和 GTID</span>
+<span class="k">SHOW</span><span class="w"> </span><span class="n">MASTER</span><span class="w"> </span><span class="n">STATUS</span><span class="p">;</span>
 
-3. Undo Log          将旧值 age=25 写入 Undo Log        → 写入 Undo Tablespace
-                     (记录内容: table=user, id=1, 
-                      old_age=25, new_age=30)
+<span class="c1">-- 动态修改 Binlog 保留时间</span>
+<span class="k">SET</span><span class="w"> </span><span class="k">GLOBAL</span><span class="w"> </span><span class="n">binlog_expire_logs_seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">604800</span><span class="p">;</span><span class="w">  </span><span class="c1">-- 7天</span>
+</code></pre></div>
 
-4. Buffer Pool       将 Buffer Pool 中数据页的 age        → 修改内存页（脏页）
-                     修改为 30
+<h4 id="33-binlog">3.3 Binlog 实际恢复实战</h4>
+<div class="highlight"><pre><span></span><code><span class="c1"># 场景：凌晨 3:00 全量备份，上午 10:00 误删数据</span>
+<span class="c1"># 目标：恢复到 09:59 的状态</span>
 
-5. Redo Log (WAL)    将"数据页N偏移量X处改为30"           → 写入 Redo Log Buffer
-                     写入 Redo Log Buffer                （状态: prepare）
-                                                         然后在事务提交时刷盘
-                     
-6. 事务提交阶段
-   a) Redo Prepare   将 Redo Log 刷盘，状态 prepare       → ib_logfile0/1
-   b) 写 Binlog      记录 "UPDATE user SET age=30        → binlog.NNNNNN
-                      WHERE id=1" (ROW格式记录行变化)
-   c) Redo Commit    将 Redo Log 状态改为 commit         → ib_logfile0/1
-   
-7. 返回客户端         "Query OK, 1 row affected"
-   
-8. 后台 Checkpoint   将脏页从 Buffer Pool 刷入磁盘
-   (异步)            Redo Log 对应的位置可被覆盖
-```
+<span class="c1"># Step 1: 恢复全量备份</span>
+mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p<span class="w"> </span>&lt;<span class="w"> </span>/backup/full_backup_20260704_030000.sql
 
-**配置示例（my.cnf / my.ini）**：
-```ini
-[mysqld]
-# Redo Log 配置
-innodb_log_file_size = 512M
-innodb_log_files_in_group = 2
-innodb_flush_log_at_trx_commit = 1   ; 双一配置（严格持久）
+<span class="c1"># Step 2: 使用 mysqlbinlog 应用增量 Binlog</span>
+mysqlbinlog<span class="w"> </span>--stop-datetime<span class="o">=</span><span class="s2">&quot;2026-07-04 09:59:00&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/data/mysql/binlog/mysql-bin.000101<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/data/mysql/binlog/mysql-bin.000102<span class="w"> </span><span class="p">|</span><span class="w"> </span>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p
 
-# Binlog 配置
-log_bin = /var/log/mysql/mysql-bin.log
-binlog_format = ROW
-expire_logs_days = 7
-max_binlog_size = 1G
-sync_binlog = 1                       ; 双一配置（每次提交同步 Binlog）
+<span class="c1"># 或者恢复到指定位置</span>
+mysqlbinlog<span class="w"> </span>--stop-position<span class="o">=</span><span class="m">123456789</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>/data/mysql/binlog/mysql-bin.000101<span class="w"> </span><span class="p">|</span><span class="w"> </span>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p
+</code></pre></div>
 
-# Undo Log 配置
-innodb_undo_tablespaces = 2
-innodb_undo_directory = /var/lib/mysql/undo
-innodb_undo_log_truncate = ON
-innodb_max_undo_log_size = 1G
-```
-
-**双一配置（Double 1 Configuration）**：
-`innodb_flush_log_at_trx_commit = 1` + `sync_binlog = 1` 保证事务提交时 Redo Log 和 Binlog 都即时刷盘，最大程度保证数据不丢失，但也是性能瓶颈所在。生产环境通常必须开启，通过 SSD 和组提交（Group Commit）优化性能。
-
-### 四、深入思考
-
-#### Redo Log 与 Binlog 的协同：组提交（Group Commit）
-
-- MySQL 5.6+ 引入了 Binlog Group Commit（BGC），将多个事务的 Binlog 写入合并为一次 fsync 操作
-- 流程：多个事务在 Prepare 阶段各自写 Redo Log → 在 Flush 阶段合并写 Binlog → 在 Sync 阶段一次 fsync → 在 Commit 阶段逐个提交
-- 这大大减少了磁盘 fsync 次数，使双一配置下的吞吐量大幅提升
-
-#### Undo Log 的清理机制：Purge 线程
-
-- Undo Log 不能像 Redo Log 那样循环覆盖，因为 MVCC 需要保留旧版本
-- InnoDB 的 Purge 线程负责在以下条件满足时清理 Undo Log：
-  - 事务已提交
-  - 没有其他事务需要读取该旧版本（即所有活跃事务的 Read View 都不再需要该版本）
-- `innodb_purge_threads` 控制 Purge 线程数量（默认 4）
-- 如果 Undo Log 膨胀过快，可能导致 Undo Tablespace 爆满，出现 "History list length" 过高告警
-
-#### 常见面试追问
-
-**Q: 为什么说 Redo Log 是物理日志、Binlog 是逻辑日志？**
-A: Redo Log 记录"数据页第N个字节改成什么"，是页级别的物理修改，重放时不需要理解表结构或 SQL 语义。Binlog 记录 SQL 语句或行变更的逻辑描述，重放时需要执行引擎解析。
-
-**Q: 如果只用 Binlog 不用 Redo Log 能实现崩溃恢复吗？**
-A: 不能。Binlog 只记录已提交事务，且是逻辑日志。崩溃恢复需要 Redo Log 来恢复可能未完全刷入磁盘但已提交的数据页修改。此外，Redo Log 记录的是未提交事务的中间状态，用于 Crash Recovery 的 Aries 算法（Algorithms for Recovery and Isolation Exploiting Semantics）。
-
-**Q: MySQL 为什么设计两阶段提交这么复杂的机制？**
-A: 因为 Redo Log 和 Binlog 是两条独立的写入链路。如果没有两阶段提交，在写入第一个日志后崩溃，就会导致主库和从库（或基于 Binlog 恢复的数据）不一致。两阶段提交用最小的代价保证了两个日志的一致性。
-
-**Q: 什么是 Checkpoint？**
-A: Checkpoint 是 Redo Log 中的一个位置标记，表示该位置之前的所有脏页都已从 Buffer Pool 刷入磁盘。Checkpoint 之前的 Redo Log 可以被循环覆盖。如果 Checkpoint 太慢，Redo Log 写满后会阻塞所有写操作（`log file full`），这是生产环境的常见问题。
-
----
-
-## 🗺️ 回答思路
-
-### 答题逻辑框架（推荐 5 分钟答案）
-
-```
-0:00-0:30  总起：InnoDB 三大日志 + 两阶段提交 = ACID
-0:30-1:30  Undo Log：原子性（回滚）+ MVCC + Undo Tablespace
-1:30-2:30  Redo Log：持久性 + WAL + 循环写 + flush 策略
-2:30-3:00  Binlog：复制 + 恢复 + ROW/STATEMENT/MIXED
-3:00-4:00  两阶段提交 + UPDATE 语句流转图
-4:00-5:00  Checkpoint + 组提交 + 双一配置 + Purge 线程
-```
-
-### 重点得分点
-
-1. **WAL 策略** —— 这是 Redo Log 的核心设计思想，必须讲清楚"先写日志、再写数据"
-2. **Undo + Redo 的关系** —— 很多人只讲 Undo 用于回滚，忘了 MVCC 和"Redo 保证 Undo 持久化"
-3. **两阶段提交** —— 面试官最爱问，必须画图说明 Prepare → Commit 的流程
-4. **双一配置与组提交的权衡** —— 体现对性能和一致性的深入理解
-5. **Binlog 的三格式区别** —— ROW 为什么成为默认格式（安全性 &gt; 体积）
-
-### 常见误区
-
-| 误区 | 正确理解 |
-|------|---------|
-| Redo Log 记录 SQL 语句 | Redo Log 是物理日志，记录的是页级修改 |
-| Undo Log 只用于回滚 | Undo Log 还用于 MVCC 实现一致性非锁定读 |
-| Binlog 是 InnoDB 的功能 | Binlog 是 Server 层功能，与存储引擎无关 |
-| 两阶段提交是数据库独有的 | 分布式系统中也广泛使用（协调者 + 参与者） |
-| `innodb_flush_log_at_trx_commit=2` 不影响持久性 | 值为 2 时 OS 崩溃会导致丢失 1 秒数据 |
-
-### 过渡话术
-
-- **从 Undo 过渡到 Redo**："Undo Log 解决了原子性问题，但遇到崩溃时数据不能丢——这就引入了 Redo Log 的 WAL 机制..."
-- **从 Redo 过渡到 Binlog**："Redo Log 确保了单个实例的数据不丢失，但主从同步和数据恢复还需要另一种日志——Binlog..."
-- **从 Binlog 过渡到两阶段提交**："到这里我们有了 Redo Log 和 Binlog 两条日志链路，问题来了——如何保证它们的一致性？这就引出了两阶段提交..."
-
-### 加分回答（让面试官眼前一亮）
-
-- 提到 **LSN（Log Sequence Number）** 机制：Redo Log 中的每一笔记录都有唯一的 LSN 编号，用于跟踪写入和恢复进度
-- 提到 **Mini-Transaction（mtr）**：InnoDB 将一组不可分割的 Redo Log 写入操作打包为一个 mtr，保证原子写入
-- 提到 **Doublewrite Buffer**：解决 Redo Log 重做时可能遇到的 Partial Page Write（部分页写入）问题
-- 提到 **TokuDB / MyRocks** 等其他存储引擎的日志设计差异（如 RocksDB 使用 WAL + SST，类似但不同）
-
-
----
-
-&gt; 📋 **分类**: MySQL / 数据库
-&gt; 🏷️ **标签**: 
-&gt; 📊 **难度**: 中级
-&gt; 📅 **归档时间**: 2026-07-04 14:22:16</pre>
+<hr />
+<h3 id="_9">四、深入思考</h3>
+<h4 id="1-undo-log-57-ibdata1">思考 1：为什么 Undo Log 在 5.7 前存储在 ibdata1 是糟糕的设计？</h4>
+<ul>
+<li>系统表空间不支持 TRUNCATE，Undo 膨胀后无法缩小</li>
+<li>MySQL 5.6+ 开始支持独立 Undo Tablespace，5.7 正式推荐分离，8.0 支持自动截断（Truncate）</li>
+</ul>
+<h4 id="2redo-log-group-commit">思考 2：Redo Log 的 Group Commit 优化</h4>
+<ul>
+<li>多个事务同时提交时，可以将多个 Redo Log 刷盘操作合并为一次 fsync()，大幅提升吞吐量</li>
+<li>MySQL 5.6 引入 Binary Log Group Commit（BLGC），将两阶段提交的 fsync 次数从 2 次减少为 1 次</li>
+</ul>
+<h4 id="3redo-log">思考 3：Redo Log 容量规划原则</h4>
+<ul>
+<li>太小 → 频繁 Checkpoint，脏页刷新压力大，性能抖动</li>
+<li>太大 → 崩溃恢复时间变长</li>
+<li>典型推荐：OLTP 场景 1GB~4GB，批量写入场景 8GB+</li>
+</ul>
+<h4 id="4binlog">思考 4：Binlog 三种格式的工程权衡</h4>
+<ul>
+<li><strong>STATEMENT</strong>：MySQL 5.1 前默认值，常导致主从不一致</li>
+<li><strong>ROW</strong>：5.7.7+ 默认值，但大事务产生巨量日志</li>
+<li><strong>MIXED</strong>：8.0 已不推荐，社区普遍选择 ROW</li>
+<li><strong>优化方案</strong>：<code>binlog_row_image = MINIMAL</code> 减少 ROW 格式日志量</li>
+</ul>
+<h4 id="5">思考 5：两阶段提交是分布式系统的缩影</h4>
+<ul>
+<li>Redo Log 和 Binlog 本质上是"分布式事务"的两个参与者</li>
+<li>2PC 的协调者（Coordinator）是 MySQL Server 层</li>
+</ul>
+<hr />
+<h2 id="_10">🗺️ 回答思路</h2>
+<h3 id="46">答题逻辑框架（建议 4~6 分钟）</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>内容</th>
+<th>时间</th>
+<th>技巧</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>开场定向</strong></td>
+<td>一句话点题：三大日志 + 对应 ACID</td>
+<td>10s</td>
+<td>展示知识体系</td>
+</tr>
+<tr>
+<td><strong>Undo Log</strong></td>
+<td>原子性 + MVCC + 版本链 + Redo 保护</td>
+<td>40s</td>
+<td>重点提 MVCC 和 Redo 关系</td>
+</tr>
+<tr>
+<td><strong>Redo Log</strong></td>
+<td>持久性 + WAL + 三级缓冲 + Crash Recovery</td>
+<td>60s</td>
+<td>展示底层原理理解</td>
+</tr>
+<tr>
+<td><strong>Binlog</strong></td>
+<td>Server 层 + 3 种格式 + 主从复制</td>
+<td>40s</td>
+<td>对比 Redo Log</td>
+</tr>
+<tr>
+<td><strong>两阶段提交</strong></td>
+<td>Prepare → Binlog → Commit + 恢复判断</td>
+<td>60s</td>
+<td><strong>最有区分度的考点</strong></td>
+</tr>
+<tr>
+<td><strong>总结拔高</strong></td>
+<td>"三日志 + 2PC 构成完整事务保护体系"</td>
+<td>10s</td>
+<td>收束有力</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_11">重点得分点</h3>
+<ol>
+<li><strong>两阶段提交的 Prepare/Commit 流程</strong> — 面试官最想听的核心亮点</li>
+<li><strong>WAL 策略的"日志先行"本质</strong> — 体现对通用数据库设计原理的理解</li>
+<li><strong>Redo vs Binlog 的全维度对比</strong> — 展示知识纵深和结构化思维</li>
+<li><strong>innodb_flush_log_at_trx_commit 三个值与双1配置</strong> — 体现实践经验</li>
+<li><strong>崩溃恢复时利用 Binlog XID 判断事务是否提交</strong> — 展示对一致性保证的深度理解</li>
+</ol>
+<h3 id="_12">常见误区</h3>
+<ul>
+<li><strong>误区 1</strong>："Undo Log 是逻辑日志，Redo Log 是物理日志" — 正确，但需注意 Undo 的页本身由 Redo 保护</li>
+<li><strong>误区 2</strong>："Binlog 也是 InnoDB 的日志" — 错误，Binlog 是 Server 层日志</li>
+<li><strong>误区 3</strong>："崩溃恢复时全部回滚未提交" — 不准确，已提交的通过 Redo 恢复，未提交的通过 Undo 回滚</li>
+<li><strong>误区 4</strong>："sync_binlog=1 性能必定很差" — 通过 Group Commit 优化，实际影响可控</li>
+</ul>
+<h3 id="_13">过渡话术</h3>
+<ul>
+<li><strong>Undo → Redo</strong>："Undo Log 保护了事务回滚的能力，但它本身也需要持久化保护——这就是 Redo Log 的职责之一。"</li>
+<li><strong>Redo → 两阶段提交</strong>："Redo Log 属于 InnoDB 引擎层，而 Binlog 属于 Server 层——两个不同的日志系统如何保持一致性？这就引出了两阶段提交。"</li>
+<li><strong>总结过渡</strong>："当这三种日志协同工作，配合两阶段提交协议，MySQL InnoDB 就能同时保证事务的原子性、一致性和持久性。"</li>
+</ul>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0013')">
             ✅ Mark as Reviewed Today

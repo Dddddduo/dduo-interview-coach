@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>是否了解 Harness Engineering（驾驭工程）？请深入讲解其核心定义、与传统Prompt Engineer — Interview Coach</title>
+    <title>分库、分表分别的作用（The Roles and Purposes of Database Sharding and T — Interview Coach</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -149,225 +149,252 @@ body {
         <span class="sep">/</span>
         <span style="font-size:0.85rem;">q0015</span>
         <div class="q-meta">
-            <span class="q-meta-item q-meta-cat">🏗️ 系统设计</span>
-            <span class="q-meta-item q-meta-diff-hard">● 进阶</span>
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
             <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-04</span>
         </div>
     </div>
 </header>
 
 <div class="q-container">
-    <h1>是否了解 Harness Engineering（驾驭工程）？请深入讲解其核心定义、与传统Prompt Engineering的区别、10大维度、实际应用案例、以及与Agentic Workflow/AI Agents的关系。</h1>
-    <div class="tag-row"><span class="tag-item">Harness Engineering</span>
-<span class="tag-item">AI Engineering</span>
-<span class="tag-item">Agent</span>
-<span class="tag-item">Prompt Engineering</span>
-<span class="tag-item">系统设计</span></div>
-    <pre># 是否了解 Harness Engineering（驾驭工程）
-
-&gt; 📋 **分类**: 系统设计
-&gt; 🏷️ **标签**: `Harness Engineering` `AI Engineering` `Agent` `Prompt Engineering` `系统设计`
-&gt; 📊 **难度**: 进阶
-&gt; 📅 **归档时间**: 2026-07-04 14:20
-
----
-
-## 🧠 联想记忆法
-
-**记忆口诀**：「十缰绳策马，三骑手把关」—— 想象驾驭一辆由 AI 驱动的马车。
-
-**记忆原理**：「Harness」原意是马的缰绳或挽具。将 AI 想象为一匹动力强劲但需要引导的"骏马"，而 Harness Engineering 就是为这匹马配备的**十根缰绳**（10 大维度），以及**三位骑手**（3 个 Agent）各司其职。骑手 A 负责领路答题，骑手 B 负责检查路线是否正确，骑手 C 负责整理行囊。十根缰绳分别控制马的速度、方向、稳定性和安全性，确保马车（AI 系统）始终行驶在预设轨道上，不会脱缰失控。
-
-**关联知识**：如果你熟悉 CI/CD 流水线（Pipeline），Harness Engineering 可以理解为 CI/CD 思想在 AI 行为工程上的应用——用流水线、质量门控（Quality Gate）、自动化部署来"驯化" AI 输出。如果你熟悉 DevOps，其中的"基础设施即代码"（Infrastructure as Code）思想在这里映射为"AI 行为即工程"（AI Behavior as Engineering）。
-
----
-
-## 📖 深度解答
-
-### 一、核心概念（是什么）
-
-**Harness Engineering（驾驭工程）** 是一套以工程化手段构建和控制 AI 行为的方法论体系。其核心思想是：不依赖 LLM（大语言模型，Large Language Model）的"自觉"来保证输出质量，而是通过一套可编排、可门控、可追溯的工程架构，为 AI 行为构建"缰绳"（Harness），确保输出**可控、可追溯、可验证**。
-
-#### 与传统 Prompt Engineering（提示工程）的本质区别
-
-传统 Prompt Engineering 的核心假设是：通过精心设计的提示词（Prompt）来引导 LLM 输出期望结果。这种方法存在几个根本性缺陷：
-
-| 对比维度 | 传统 Prompt Engineering | Harness Engineering |
-|---------|----------------------|-------------------|
-| **质量控制** | 依赖模型自觉，无强制检查 | 专用审查 Agent + 15 项清单逐项检查 |
-| **失败处理** | 输出错误则静默失败 | 自动重答 + 审查反馈修正，最多 2 次 |
-| **知识沉淀** | 对话结束即丢失 | 强制归档到结构化题库 |
-| **流程控制** | 模型自主决策下一步 | 10 阶段硬编码编排，不可跳过 |
-| **可观测性** | 黑箱输出 | 每阶段可见中间产物 |
-| **复用性** | 重新输入相同 Prompt | MD5 去重保证幂等性 |
-
-传统 Prompt 工程是在"写一个聪明的 Prompt"，而 Harness Engineering 是在**构建一套 AI 行为的生产流水线**——就像工业革命中从手工作坊到流水线生产的跃迁。
-
-### 二、底层原理（为什么）
-
-#### 2.1 设计哲学：工程化驯服概率性
-
-LLM 本质上是概率模型（Probabilistic Model），其输出天然具有不确定性和不可重复性。Harness Engineering 的底层哲学是：**用确定性工程框架约束概率性模型行为**。这不是消除概率性——那是不可能的——而是通过多层约束将不确定性控制在可接受的范围内。
-
-具体而言，约束分为三类层级：
-
-- **设计时约束（Design-time Constraints）**：在系统设计阶段就确定的结构性约束，包括关注点分离（Separation of Concerns）、Skill 封装（Skill Encapsulation）、多 Agent 协作契约。这些约束在代码编写时就已固化。
-
-- **运行时约束（Runtime Constraints）**：在系统执行阶段强制执行的流程约束，包括确定性编排（Deterministic Orchestration）、质量门控（Quality Gate）、幂等性（Idempotency）保证。这些约束保证每次执行都遵循既定路径。
-
-- **交付时约束（Delivery-time Constraints）**：在结果输出阶段保证数据完整性的约束，包括强制持久化（Forced Persistence）、自动部署（Auto-deployment）、失败可恢复（Failure Recovery）、可观测性（Observability）。
-
-#### 2.2 机械论 vs 有机论
-
-Harness Engineering 采用了一种独特的"机械论+有机论"混合哲学：
-
-- **机械论部分**：流程编排、质量门控、持久化——这些是确定的、可预测的、可测试的，像钟表机械一样精确。
-- **有机论部分**：Agent 的答题能力、审查判断——这些是利用 LLM 的智能涌现能力，像生物一样灵活。
-
-关键洞见在于：**不是让 LLM 既负责思考又负责执行，而是让 LLM 只负责最擅长的"思考"部分，执行部分交给确定性代码**。这类似于人脑与身体的关系——大脑（LLM）负责决策和创造，而神经系统和肌肉（工程框架）负责将决策转化为精准的动作。
-
-#### 2.3 质量内建（Build Quality In）
-
-传统开发流程中，质量是"检查"出来的——先生产，后检验，不合格则返工。Harness Engineering 将质量门控嵌入流程的每一个关键节点，但不只是"检查"，更重要的是提供反馈闭环（Feedback Loop）。当质量审查 FAIL 时，系统不仅仅是标记错误，而是将审查意见作为 Prompt 的一部分传递给答题 Agent，形成"答题→审查→反馈→修正"的闭环。这与控制理论（Control Theory）中的负反馈回路（Negative Feedback Loop）原理一致：通过持续的误差检测和修正来逼近目标状态。
-
-### 三、实践应用（怎么用）
-
-#### 3.1 实际案例：/面经助手 的 3 Agent x 10 阶段流水线
-
-以 Interview Coach 项目中的 `/面经助手` 为例，Harness Engineering 的实践体现为完整的 3 Agent × 10 阶段流水线：
-
-**三个 Agent 的职责分工：**
-
-| Agent | 模型 | 职责 | 输入 | 输出 |
-|-------|------|------|------|------|
-| interview-answerer | Opus | 深度答题 | 一道面试题 | 记忆法 + 原理拆解 + 答题思路 |
-| quality-reviewer | Sonnet | 质量审查 | 原题 + 答案 | PASS/FAIL + 15项检查结果 |
-| doc-assembler | Sonnet | 文档组装 | N 道题答案 | 完整 Markdown 文档 |
-
-**10 阶段的执行流程：**
-
-```
-阶段 1: 题目解析          用户输入 → 按编号规则拆分 → 识别类型（技术/行为/系统设计）
-阶段 2: 并行深度答题      N 个 answerer Agent 并行启动，每道题独立
-阶段 3: 质量审查          15 项清单逐项检查，每道题独立审查
-阶段 4: 重答循环          审查 FAIL 则携带反馈重答，最多 2 次
-阶段 5: 文档组装          所有通过答案 → 生成可点击目录的 Markdown
-阶段 6: 输出落盘          强制 Write 到 outputs/ 目录
-阶段 7: 题库归档          question_manager.py add × N，自动分类 + 去重
-阶段 8: 站点生成          generate_site.py → MD 转 HTML + data.json
-阶段 9: Git 部署          git add + commit + push → GitHub Pages
-阶段 10: 结果报告         统计通过数、重试数、归档路径、URL
-```
-
-#### 3.2 幂等性的实现
-
-```python
-# question_manager.py 中的 MD5 去重逻辑
-import hashlib
-
-def is_duplicate(question_text):
-    question_hash = hashlib.md5(question_text.encode()).hexdigest()
-    index = load_index()
-    for entry in index["questions"]:
-        if entry.get("md5") == question_hash:
-            return True
-    return False
-```
-
-同一道题即使多次输入，系统只会归档一次。`generate_site.py` 也是增量生成——如果 MD 文件未变化，则跳过 HTML 重建。
-
-#### 3.3 失败可恢复的分级降级策略
-
-```
-Agent 超时/无响应    → 自动重试 1 次          → 该题延迟
-审查 FAIL            → 重答最多 2 次           → 标记"需人工审核"
-question_manager 失败 → 打印警告，继续          → 该题未归档
-generate_site 失败   → 打印警告，继续          → 网页端暂不显示
-Git push 失败        → 打印警告，告知用户手动推送 → 文档存本地
-```
-
-关键原则：**一个阶段的失败不阻塞后续阶段**，但必须在报告中如实反映。
-
-### 四、深入思考（注意事项）
-
-#### 4.1 与 Agentic Workflow（智能体工作流）的关系
-
-Harness Engineering 与 Agentic Workflow 有交集但并不等同。
-
-- **Agentic Workflow** 强调 Agent 自主决策的灵活性——Agent 可以自己决定调用什么工具、按什么顺序执行。例如 LangChain 的 Agent Executor、AutoGPT 等，Agent 拥有较大的自主权。
-- **Harness Engineering** 则强调**确定性编排**——流程由工程代码硬编码，Agent 不可自主跳过或调换顺序。
-
-两者的关系可以理解为：**Agentic Workflow 是"放权"模式，Harness Engineering 是"收权"模式**。在实际系统中，可以采用混合策略：在 Harness Engineering 的确定框架内部，允许 Agent 在特定阶段（如答题阶段）发挥自主性。
-
-#### 4.2 与 AI Agents 概念的关系
-
-AI Agents（AI 智能体）通常指具有感知、推理、行动能力的自主系统。Harness Engineering 中的"Agent"概念更窄——它是**一个有明确职责边界、输入输出契约的工程组件**，而不是一个追求通用自主性的"智能体"。也可以说，Harness Engineering 借鉴了 AI Agents 中的"智能分工"思想，但用工程手段限制了每个 Agent 的自主范围，避免其越界行为破坏系统稳定性。
-
-#### 4.3 适用场景与局限性
-
-**适用场景：**
-- 需要稳定、可重复输出的 AI 生产系统
-- 多步骤、多角色的复杂 AI 工作流
-- 对输出质量有严格要求的场景（如面试备考、文档生成、代码审查）
-- 需要知识沉淀和可追溯性的长期运行系统
-
-**局限性：**
-- 过度工程化（Over-engineering）风险——对于简单的一次性对话任务，Harness Engineering 的 10 阶段流水线显得过重
-- 灵活性牺牲——确定性编排意味着难以应对未预见的流程变化
-- Agent 间通信成本——多 Agent 协作意味着多次 LLM 调用，Token 消耗增加
-
-#### 4.4 面试中可能的追问
-
-- "你认为 Harness Engineering 最大的设计挑战是什么？" → 回答：如何在确定性和灵活性之间取得平衡。过度确定则僵化，过度灵活则失控。
-- "如果质量审查持续 FAIL，如何处理？" → 回答：设置重试上限（本项目 2 次），仍 FAIL 则标记"需人工审核"，不阻塞整体流程，保证系统的可用性（Availability）高于单次任务的完美性。
-- "Harness Engineering 与传统软件工程的三层架构（表现层/业务层/数据层）有何异同？" → 回答：思想相通，但 Harness Engineering 的核心差异在于引入了 LLM 作为"不可靠组件"，需要额外的质量门控和确定性编排来补偿其不可靠性。
-
----
-
-## 🗺️ 回答思路
-
-### 答题逻辑框架
-
-在面试中回答"是否了解 Harness Engineering"时，建议采用以下结构：
-
-```
-总起（15 秒）→ 核心定义（30 秒）→ 对比 Prompt 工程（30 秒）
-→ 10 大维度分层讲解（2 分钟）→ 实际案例（1 分钟）
-→ 概念关系辨析（30 秒）→ 总结升华（15 秒）
-```
-
-**总起句示例**：「Harness Engineering 是我在实际项目中深度实践的一套 AI 行为工程方法论。它的核心是用工程化的确定性约束来驾驭 LLM 的概率性输出。」
-
-**过渡到 10 大维度**：「这 10 个维度可以分成三类来理解——设计时约束、运行时保障、交付时保证，每类对应不同的阶段和目标。」
-
-**过渡到案例**：「以我参与的面经助手系统为例，这套方法论如何落地？3 个 Agent 各司其职，10 个阶段完整串联……」
-
-**总结升华**：「归根结底，Harness Engineering 是对 AI 系统工程化的一个探索——它承认 LLM 的强大，但不盲信 LLM 的可靠，而是用工程的力量构建信任。」
-
-### 重点得分点
-
-1. **点出本质区别**：不是"写 Prompt"，而是"建流水线"——这是让面试官眼前一亮的关键洞察
-2. **10 维度分类法**：用"设计时/运行时/交付时"三分类来组织回答，体现结构化思维
-3. **具体案例支撑**：有真实项目经验的描述远胜于抽象理论——准备好 1-2 个具体数字（如"15 项审查清单"、"2 次重试上限"）
-4. **概念边界清晰**：能说清楚与 Agentic Workflow、AI Agents 等热门概念的关系，体现对 AI 工程领域全景的理解
-5. **坦诚局限性**：主动提及适用场景和局限性，展示辩证思考能力
-
-### 常见误区
-
-- **误区一**：把 Harness Engineering 等同于"写系统 Prompt"。纠正：系统 Prompt 只是其中一小部分，核心是工程架构而非提示词技巧。
-- **误区二**：认为多 Agent = Harness Engineering。纠正：多 Agent 只是 10 个维度之一，缺少确定性编排和质量门控就不算完整的驾驭工程。
-- **误区三**：认为 Harness Engineering 适用于所有场景。纠正：对简单对话任务过度工程化，反而增加复杂度和成本。
-
-### 时间分配建议
-
-| 部分 | 时间 | 内容重点 |
-|------|------|---------|
-| 总起 + 核心定义 | 30 秒 | 一句话定义 + 与传统 Prompt 工程的关键区别 |
-| 10 大维度 | 2 分钟 | 用"三类约束"框架组织，每个维度 10-15 秒 |
-| 实际案例 | 1 分钟 | 3 Agent × 10 阶段，讲清职责分工 |
-| 概念关系辨析 | 30 秒 | Harness vs Agentic Workflow vs AI Agents |
-| 局限性 + 升华 | 30 秒 | 坦诚适用场景限制 + 总结工程哲学 |
-| **总计** | **约 4.5 分钟** | — |</pre>
+    <h1>分库、分表分别的作用（The Roles and Purposes of Database Sharding and Table Partitioning）</h1>
+    <div class="tag-row"><span class="tag-item">分库分表</span>
+<span class="tag-item">Sharding</span>
+<span class="tag-item">数据库架构</span>
+<span class="tag-item">分布式</span>
+<span class="tag-item">B+树</span>
+<span class="tag-item">索引优化</span></div>
+    <h1 id="the-roles-and-purposes-of-database-sharding-and-table-partitioning">分库、分表分别的作用（The Roles and Purposes of Database Sharding and Table Partitioning）</h1>
+<hr />
+<h3 id="_1">🧠 联想记忆法</h3>
+<p><strong>记忆口诀/联想</strong>: <strong>"表大拆小是分表，库多分流是分库"</strong> —— 辅以场景联想：一家快递公司（数据库），一件巨型包裹（大表）搬不动，就拆成多个小包裹（分表）；包裹太多一个网点处理不过来，就多开几个网点分流（分库）。口诀中的"大"对应数据量过大，"小"对应 B+ 树高度降低；"多"对应连接数瓶颈，"流"对应流量分散。</p>
+<p><strong>记忆原理</strong>: 这个口诀利用了"大-小 / 多-流"的<strong>对比对仗结构</strong>，在认知心理学中称为"双通道编码"——语义通道记住"拆"与"分流"的动作差异，视觉通道想象包裹与网点的画面。面试时只要回忆"大/多"两个问题触发词，就能自然推导出分表和分库各自解决的核心矛盾。</p>
+<p><strong>关联知识</strong>: <br />
+- 与<strong>操作系统虚拟内存</strong>的分页（Paging）机制类比：分表类似将大进程拆成页面（减少单次载入量），分库类似增加物理内存条（增加并行处理能力）。<br />
+- 与<strong>计算机体系结构</strong>的 Cache 分层类比：分表是优化局部性（Locality），分库是增加带宽（Bandwidth）。<br />
+- 与<strong>微服务拆分</strong>（Microservices Decomposition）思想同源：垂直拆分功能，水平拆分数据。</p>
+<hr />
+<h3 id="_2">📖 深度解答</h3>
+<h4 id="1-core-concepts">1. 核心概念（Core Concepts）</h4>
+<p><strong>分表（Table Partitioning / Table Splitting）</strong>，是指在同一个数据库实例（Database Instance）内，将一张数据量巨大的逻辑表按照某种规则拆分为多个物理子表。每个子表拥有独立的存储空间，但对外表现为同一张逻辑表。分表解决的核心问题是<strong>单表数据量过大（Massive Single-Table Data Volume）</strong>。</p>
+<p>分表的作用机制：<br />
+- 降低 B+ 树索引高度（Index Height），减少磁盘 I/O 次数<br />
+- 减少索引维护成本，降低写入时的页分裂（Page Split）概率<br />
+- 提升增删改查（CRUD）操作的并发性能<br />
+- 便于数据归档（Archiving）和历史数据分离</p>
+<p><strong>分库（Database Sharding）</strong>，是指将数据分布到多个独立的数据库实例中，每个实例运行在不同的物理服务器或容器上。分库解决的核心问题是<strong>单库性能瓶颈（Single-Database Performance Bottleneck）</strong>，包括连接数瓶颈、磁盘 I/O（Input/Output Operations Per Second, IOPS）瓶颈、CPU 瓶颈和内存竞争。</p>
+<p>分库的作用机制：<br />
+- 突破单一数据库的连接数上限（MySQL <code>max_connections</code> 默认 151）<br />
+- 分散磁盘 I/O 压力，多个实例并行处理请求<br />
+- 利用多核 CPU 并行计算能力<br />
+- 隔离故障域（Fault Domain），一个库宕机不影响其他库</p>
+<p><strong>分库分表（Sharding）</strong>，是分库与分表的组合方案，将数据分布到多个数据库的多个表中。这是大规模分布式数据库系统的标准架构模式。</p>
+<p>三者的递进关系可以概括为一条决策链：</p>
+<div class="highlight"><pre><span></span><code>单表数据量大 → 先分表
+单表分完后仍然不够（QPS 过高）→ 再分库
+分库后单库数据量仍然大 → 分库 + 分表组合
+</code></pre></div>
+
+<hr />
+<h4 id="2-underlying-principles">2. 底层原理（Underlying Principles）</h4>
+<h5 id="21">2.1 单表瓶颈的量化分析</h5>
+<p><strong>B+ 树索引深度与数据量</strong></p>
+<p>MySQL InnoDB 存储引擎使用 B+ 树（B+ Tree）作为索引结构。B+ 树的一个关键参数是<strong>扇出（Fan-out）</strong>，即每个非叶子节点可以存储的键值数量。</p>
+<p>以 InnoDB 的默认页大小 16KB 为例：<br />
+- 假设索引键为 BigInt（8 字节），加上指针（6 字节），每个键值对约 14 字节<br />
+- 每个叶子节点可存储约 16KB / 14B ≈ 1170 个键值对<br />
+- 如果一行数据约 1KB，每个叶子节点可存储约 16 行数据</p>
+<p>当表数据量为 N 行时，B+ 树深度计算如下：</p>
+<div class="highlight"><pre><span></span><code>深度为 1（根节点=叶子）：最多 16 行
+深度为 2（根→叶子）：最多 1170 × 16 ≈ 18,720 行（约 1.8 万）
+深度为 3（根→中间→叶子）：最多 1170 × 1170 × 16 ≈ 21,902,400 行（约 2190 万）
+深度为 4：最多 1170³ × 16 ≈ 256 亿行
+</code></pre></div>
+
+<p>关键结论：<br />
+- <strong>深度为 3 时</strong>，B+ 树可支撑约 2000 万行数据，每次查询只需 3 次磁盘 I/O<br />
+- <strong>当数据量超过 2000 万行</strong>，B+ 树深度可能上升到 4，查询 I/O 从 3 次增加到 4 次，性能下降约 33%<br />
+- <strong>分表后</strong>，每个子表的数据量减少，B+ 树深度维持在 3 或更浅，I/O 次数保持低位</p>
+<p><strong>单库连接数上限</strong></p>
+<p>MySQL 的 <code>max_connections</code> 默认值为 151。假设每个应用服务实例维持 10 个连接池（Connection Pool）连接，那么 15 个应用实例就能占满整个数据库的连接池。当连接数达到上限时，新的请求只能排队等待（Connection Wait），导致应用层面的请求超时和雪崩效应（Cascading Failure）。</p>
+<p><strong>单一 Buffer Pool 的锁竞争（Lock Contention）</strong></p>
+<p>InnoDB 的 Buffer Pool 是全局共享的，多个线程同时访问时会产生锁竞争。当数据量增大时，Buffer Pool 的命中率（Hit Ratio）下降，磁盘 I/O 增加，进一步加剧锁竞争——形成<strong>性能下降的正反馈循环</strong>。</p>
+<h5 id="22">2.2 分库的底层支撑架构</h5>
+<p>分库的实现依赖于数据库中间件（Database Middleware），目前主流的架构方案有两种：</p>
+<p><strong>代理层架构（Proxy Architecture）</strong>：</p>
+<div class="highlight"><pre><span></span><code>应用 → 数据库代理（Proxy） → 数据库实例 1
+                          → 数据库实例 2
+                          → 数据库实例 N
+</code></pre></div>
+
+<p>代表产品：MyCat、Vitess、ShardingSphere-Proxy<br />
+- 应用无需修改代码，只需连接代理<br />
+- 代理层负责 SQL 解析、路由（Routing）、结果聚合<br />
+- 缺点是引入网络跳数（Network Hop），增加延迟</p>
+<p><strong>驱动层架构（JDBC Architecture）</strong>：</p>
+<div class="highlight"><pre><span></span><code>应用（内嵌 ShardingSphere-JDBC） → 数据库实例 1
+                               → 数据库实例 2
+                               → 数据库实例 N
+</code></pre></div>
+
+<p>代表产品：ShardingSphere-JDBC、TSharding<br />
+- 应用直接连接数据库，无额外网络开销<br />
+- SQL 解析和路由在应用层完成<br />
+- 缺点是侵入性强，需要引入特定依赖</p>
+<p><strong>数据路由（Routing）原理</strong>：</p>
+<p>路由规则决定了 SQL 请求应该被分发到哪个数据库实例和哪个表。常见的路由策略包括：</p>
+<ul>
+<li><strong>哈希取模（Hash Mod）</strong>：<code>shard_id = hash(shard_key) % shard_count</code></li>
+<li><strong>一致性哈希（Consistent Hashing）</strong>：最小化扩容时的数据迁移量</li>
+<li><strong>范围分片（Range Sharding）</strong>：按时间区间或 ID 范围划分</li>
+</ul>
+<h5 id="23">2.3 递进关系与扩展思路</h5>
+<p>分表是<strong>纵向扩展（Vertical Scaling）</strong> 思路的体现——在单个数据库实例内做精细化拆分，减少单表的数据承载量。分库是<strong>横向扩展（Horizontal Scaling）</strong> 思路的体现——增加计算节点的数量。两者的结合（分库分表）则是同时从两个维度优化。</p>
+<hr />
+<h4 id="3-practical-applications">3. 实践应用（Practical Applications）</h4>
+<h5 id="31">3.1 分表的典型场景</h5>
+<ul>
+<li>单表行数超过 <strong>500 万行</strong>或数据文件超过 <strong>2GB</strong>，且写操作持续增长</li>
+<li>需要按时间范围做数据归档（如日志表按月分表）</li>
+</ul>
+<h5 id="32">3.2 分库的典型场景</h5>
+<ul>
+<li>单库 QPS（Queries Per Second）持续超过 <strong>5000</strong></li>
+<li>连接数接近 MySQL <code>max_connections</code> 上限</li>
+<li>磁盘 I/O 利用率持续超过 70%</li>
+</ul>
+<h5 id="33">3.3 实际架构案例：电商订单系统</h5>
+<p>一个大型电商平台的订单表（orders）最终采用 32 库 × 64 表的分片方案：</p>
+<div class="highlight"><pre><span></span><code>分片键（Sharding Key）：user_id（用户 ID）
+路由规则：
+  database_index = hash(user_id) % 32
+  table_index = floor(hash(user_id) / 32) % 64
+</code></pre></div>
+
+<h5 id="34-shardingsphere">3.4 ShardingSphere 配置示例</h5>
+<div class="highlight"><pre><span></span><code><span class="c1"># config-sharding.yaml</span>
+<span class="nt">dataSources</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ds0</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jdbc:mysql://db0.example.com:3306/order_db_0</span>
+<span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">root</span>
+<span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">  </span><span class="nt">ds1</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jdbc:mysql://db1.example.com:3306/order_db_1</span>
+<span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">root</span>
+<span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+
+<span class="nt">rules</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="kt">!SHARDING</span>
+<span class="w">    </span><span class="nt">tables</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">t_order</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">actualDataNodes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds${0..1}.t_order_${0..1}</span>
+<span class="w">        </span><span class="nt">databaseStrategy</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">standard</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">shardingColumn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_id</span>
+<span class="w">            </span><span class="nt">shardingAlgorithmName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database_inline</span>
+<span class="w">        </span><span class="nt">tableStrategy</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">standard</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">shardingColumn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_id</span>
+<span class="w">            </span><span class="nt">shardingAlgorithmName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table_inline</span>
+<span class="w">    </span><span class="nt">shardingAlgorithms</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">database_inline</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INLINE</span>
+<span class="w">        </span><span class="nt">props</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">algorithm-expression</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ds${user_id % 2}</span>
+<span class="w">      </span><span class="nt">table_inline</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INLINE</span>
+<span class="w">        </span><span class="nt">props</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">algorithm-expression</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">t_order_${user_id % 2}</span>
+</code></pre></div>
+
+<h5 id="35-dual-write-migration">3.5 数据迁移方案：双写迁移法（Dual-Write Migration）</h5>
+<ol>
+<li><strong>全量同步</strong>：历史数据通过 <code>mysqldump</code> 导出，按分片规则导入目标库</li>
+<li><strong>增量同步</strong>：使用 Canal 监听 Binlog，实时同步增量数据</li>
+<li><strong>双写阶段</strong>：应用层同时写入旧库和新库，比对数据一致性</li>
+<li><strong>切换阶段</strong>：读流量逐步切换到新库</li>
+<li><strong>下线阶段</strong>：确认新库稳定后，下线旧库</li>
+</ol>
+<hr />
+<h4 id="4-deep-dive">4. 深入思考（Deep Dive）</h4>
+<h5 id="41">4.1 分库带来的分布式问题</h5>
+<p><strong>分布式事务（Distributed Transaction）</strong>：<br />
+- XA 协议（2PC）：强一致性，但性能差<br />
+- Seata AT 模式：自动补偿，适合大多数业务场景<br />
+- TCC（Try-Confirm-Cancel）：业务侵入性强，但性能好<br />
+- SAGA 模式：最终一致性（Eventual Consistency）</p>
+<p><strong>跨库 JOIN 的解决方案</strong>：<br />
+- 数据冗余（Data Redundancy）：在需要 JOIN 的表所在的每个分片中冗余存储关联数据<br />
+- 应用层聚合（Application-Level Aggregation）：分多次查询，在应用内存中做关联<br />
+- 全局表（Global Table）/ 广播表（Broadcast Table）：在每个分片中复制一份</p>
+<p><strong>分布式 ID（Distributed ID Generation）</strong>：<br />
+- 雪花算法（Snowflake Algorithm）：64 位 Long 型 ID<br />
+- Leaf（美团）：基于 Snowflake 和 Segment 模式<br />
+- UIDGenerator（百度）：基于 Snowflake 优化</p>
+<h5 id="42-data-skew">4.2 数据倾斜（Data Skew）与扩容方案</h5>
+<ul>
+<li>选择高基数字段（High-Cardinality Column）作为分片键</li>
+<li>一致性哈希（Consistent Hashing）vs Range 分片对比</li>
+</ul>
+<h5 id="43">4.3 数据库中间件选型对比</h5>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>ShardingSphere</th>
+<th>MyCat</th>
+<th>Vitess</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>架构</td>
+<td>JDBC + Proxy 双模式</td>
+<td>仅 Proxy</td>
+<td>Proxy（基于 etcd）</td>
+</tr>
+<tr>
+<td>分布式事务</td>
+<td>Seata、XA、TCC</td>
+<td>有限支持</td>
+<td>Google Percolator</td>
+</tr>
+<tr>
+<td>GitHub Stars</td>
+<td>19k+</td>
+<td>11k+</td>
+<td>18k+</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="_3">🗺️ 回答思路</h3>
+<p><strong>答题逻辑框架</strong>: 按"先讲问题 → 再讲方案 → 最后讲代价"的三段式结构。</p>
+<p><strong>重点得分点</strong>:<br />
+1. 分清楚"分表解决数据量问题"和"分库解决连接数/IO 问题"<br />
+2. 用 B+ 树 fan-out 计算说明为什么 500 万行是一个阈值<br />
+3. 提到分布式问题（事务、JOIN、ID）说明有实战经验<br />
+4. 对比 Proxy 与 JDBC 两种架构，体现架构视野</p>
+<p><strong>常见误区</strong>:<br />
+- "分库就是把表变大"——分库和分表解决的瓶颈不同<br />
+- 忽略分库带来的网络延迟<br />
+- 不提分片键选择——面试官一定会追问</p>
+<p><strong>时间分配建议</strong>:<br />
+- 0:00-0:30 开场（30 秒）<br />
+- 0:30-2:00 瓶颈分析（90 秒）<br />
+- 2:00-3:30 分表深度（90 秒）<br />
+- 3:30-5:00 分库深度（90 秒）<br />
+- 5:00-7:00 分布式代价（120 秒）</p>
+<p><strong>过渡话术</strong>:<br />
+- 从问题到分表：<em>"既然单表数据量过大会导致 B+ 树深度上升，那么分表就是一个很自然的解决方案——它在同一数据库内将大表拆小。"</em><br />
+- 从分表到分库：<em>"但当 QPS 达到单库极限，即使表拆得再小，单库的链接数和 I/O 能力仍然是瓶颈。这时就需要分库——从增加计算节点的角度解决问题。"</em></p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: MySQL / 数据库<br />
+🏷️ <strong>标签</strong>: <code>分库分表</code> <code>Sharding</code> <code>数据库架构</code> <code>分布式</code> <code>B+树</code> <code>索引优化</code><br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-04 16:45:00</p>
+</blockquote>
     <div class="review-actions">
         <button class="btn-review" id="review-btn" onclick="toggleReview('q0015')">
             ✅ Mark as Reviewed Today
