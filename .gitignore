@@ -12,10 +12,6 @@ Thumbs.db
 .claude/*.local.md
 .claude/settings.local.json
 
-# Outputs (keep directory, ignore generated files)
-outputs/*
-!outputs/.gitkeep
-
 # Python
 __pycache__/
 *.pyc
