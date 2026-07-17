@@ -6,7 +6,7 @@
 set -e
 
 # ---- 硬编码 GitHub 凭证 ----
-GITHUB_TOKEN="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"
+GITHUB_TOKEN="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"
 GITHUB_USER="Dddddduo"
 GITHUB_REPO="dduo-interview-coach"
 GIT_USER_NAME="zhudaoyang"

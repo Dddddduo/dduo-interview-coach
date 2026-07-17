@@ -1,8 +1,8 @@
 {
   "effortLevel": "high",
   "env": {
-    "GITHUB_TOKEN": "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",
-    "GIT_REMOTE_URL": "https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git"
+    "GITHUB_TOKEN": "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",
+    "GIT_REMOTE_URL": "https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git"
   },
   "permissions": {
     "allow": [

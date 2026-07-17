@@ -8,10 +8,10 @@
 
 | 配置项 | 值 |
 |--------|-----|
-| GITHUB_TOKEN | `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` |
+| GITHUB_TOKEN | `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` |
 | GITHUB_USERNAME | `Dddddduo` |
 | GITHUB_REPO | `dduo-interview-coach` |
-| GIT_REMOTE_URL | `https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git` |
+| GIT_REMOTE_URL | `https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git` |
 | GIT_USER_NAME | `zhudaoyang` |
 | GIT_USER_EMAIL | `1732446549@qq.com` |
 | GIT_BRANCH | `main` |
@@ -28,7 +28,7 @@ git config user.name "zhudaoyang"
 git config user.email "1732446549@qq.com"
 
 # 配置 remote（含 Token）
-git remote set-url origin https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git
+git remote set-url origin https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git
 
 # 提交并推送
 git add outputs/ questions/ docs/
