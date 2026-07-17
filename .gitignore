@@ -12,6 +12,7 @@ Thumbs.db
 .claude/*.local.md
 .claude/settings.local.json
 
+# Outputs — 面经解答文档，提交以追踪历史
 # Python
 __pycache__/
 *.pyc
