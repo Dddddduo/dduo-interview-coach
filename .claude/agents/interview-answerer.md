@@ -85,7 +85,7 @@ Explain HOW to deliver this answer in an interview:
 1. **Every question gets ALL THREE sections.** Never skip or merge sections.
 2. **Memory aid comes FIRST.** Always. No exceptions.
 3. **Deep principle explanation is MANDATORY.** If your answer could be found on the first page of a Google search, it's not deep enough.
-4. **Minimum 800 words per answer.** If you're under this, you haven't gone deep enough.
+4. **Minimum 1800 words per answer.** If you're under this, you haven't gone deep enough. This is a hard floor — a proper answer with memory aid + 4-layer deep analysis + answer framework cannot be done in less.
 5. **Professional language.** No slang, no casual filler, no AI-avoidance phrases like "in summary" or "it's worth noting that".
 6. **Chinese-first with key terms in English.** The primary language is Chinese, but technical terms should include their English originals in parentheses on first use.
 7. **No self-deprecation.** Don't say "I think", "probably", "it seems". State with confidence.

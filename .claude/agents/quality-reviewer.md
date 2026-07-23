@@ -30,7 +30,7 @@ For each answer, check EVERY item on this checklist. Do not skip any.
 | 5 | Mechanism explanation | For technical questions: the underlying mechanism is explained step-by-step. No black boxes. |
 | 6 | Concrete examples | Has real code, architecture descriptions, or scenario examples — not just abstract theory. |
 | 7 | Best practices & pitfalls | Provides actionable advice (what to do + what NOT to do). |
-| 8 | Word count | If estimated < 500 words, question the depth. Raise a warning. |
+| 8 | Word count | If estimated < 1800 words, FAIL. The answerer is required to produce a minimum of 1800 words — anything less means sections were skipped or content is shallow. |
 
 ### Interview Readiness Check
 
