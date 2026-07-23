@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-17T20:43:55",
-    "total_questions": 37
+    "last_updated": "2026-07-23T10:21:19",
+    "total_questions": 110
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 6
+      "count": 79
     },
     "python": {
       "name": "Python",
@@ -694,6 +694,956 @@
       "created": "2026-07-17 20:43:55",
       "source": "用户输入",
       "hash": "177b93f3"
+    },
+    {
+      "id": "q0042",
+      "question": "CountDownLatch和Semaphore区别，配合使用",
+      "category": "java",
+      "tags": [
+        "JUC 并发 CountDownLatch Semaphore"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/CountDownLatch和Semaphore区别配合使用.md",
+      "created": "2026-07-23 10:19:47",
+      "source": "用户输入",
+      "hash": "9191a954"
+    },
+    {
+      "id": "q0043",
+      "question": "乐观锁，sql 语句手写乐观锁",
+      "category": "java",
+      "tags": [
+        "乐观锁 并发控制 版本号 CAS"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/乐观锁sql-语句手写乐观锁.md",
+      "created": "2026-07-23 10:19:48",
+      "source": "用户输入",
+      "hash": "c997d464"
+    },
+    {
+      "id": "q0044",
+      "question": "责任链模式是怎样的？特征是什么？",
+      "category": "java",
+      "tags": [
+        "责任链 设计模式 行为型 Filter Netty"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/责任链模式是怎样的特征是什么.md",
+      "created": "2026-07-23 10:19:49",
+      "source": "用户输入",
+      "hash": "9dd46783"
+    },
+    {
+      "id": "q0045",
+      "question": "设计模式代码示例",
+      "category": "java",
+      "tags": [
+        "设计模式 GoF 单例 工厂 策略 观察者 代理"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/设计模式代码示例.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "55d9093b"
+    },
+    {
+      "id": "q0046",
+      "question": "单例模式，它的好处是什么？",
+      "category": "java",
+      "tags": [
+        "单例模式 饿汉式 懒汉式 DCL"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/单例模式它的好处是什么.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "ba1d3406"
+    },
+    {
+      "id": "q0047",
+      "question": "单例模式有两种加载方式",
+      "category": "java",
+      "tags": [
+        "单例模式 懒加载 饿汉式 线程安全"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/单例模式有两种加载方式.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "07921cef"
+    },
+    {
+      "id": "q0048",
+      "question": "你还了解其他的设计模式吗？",
+      "category": "java",
+      "tags": [
+        "建造者模式 模板方法 迭代器 设计模式"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/你还了解其他的设计模式吗.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "aa7ba71f"
+    },
+    {
+      "id": "q0049",
+      "question": "Agent 提效平台使用场景",
+      "category": "java",
+      "tags": [
+        "AI Agent 提效平台 自动化 RAG MCP"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/Agent-提效平台使用场景.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "8dd5649e"
+    },
+    {
+      "id": "q0050",
+      "question": "讲一下你了解的排序算法",
+      "category": "java",
+      "tags": [
+        "排序算法 快排 归并 堆排 时间复杂度"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/讲一下你了解的排序算法.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "0b62c3b8"
+    },
+    {
+      "id": "q0051",
+      "question": "什么叫做稳定的排序算法",
+      "category": "java",
+      "tags": [
+        "稳定排序 冒泡 归并 选择"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/什么叫做稳定的排序算法.md",
+      "created": "2026-07-23 10:19:58",
+      "source": "用户输入",
+      "hash": "10733989"
+    },
+    {
+      "id": "q0052",
+      "question": "选择排序了解吗？",
+      "category": "java",
+      "tags": [
+        "选择排序 排序算法"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/选择排序了解吗.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "3623ed96"
+    },
+    {
+      "id": "q0053",
+      "question": "100万数据中找前十位",
+      "category": "java",
+      "tags": [
+        "Top K 堆排序 优先队列 海量数据"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/100万数据中找前十位.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "9cb8af11"
+    },
+    {
+      "id": "q0054",
+      "question": "快速选择的时间复杂度",
+      "category": "java",
+      "tags": [
+        "快速选择 Quickselect 时间复杂度 Top K"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/快速选择的时间复杂度.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "715ad4bb"
+    },
+    {
+      "id": "q0055",
+      "question": "Dijkstra算法解决什么问题？",
+      "category": "java",
+      "tags": [
+        "Dijkstra 最短路径 图算法 贪心"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/Dijkstra算法解决什么问题.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "fea62c34"
+    },
+    {
+      "id": "q0056",
+      "question": "进程和线程有什么区别？",
+      "category": "java",
+      "tags": [
+        "进程 线程 并发 操作系统"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/进程和线程有什么区别.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "b8a0a3c8"
+    },
+    {
+      "id": "q0057",
+      "question": "用户态线程和内核线程有什么区别？",
+      "category": "java",
+      "tags": [
+        "用户态线程 内核线程 协程 并发"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/用户态线程和内核线程有什么区别.md",
+      "created": "2026-07-23 10:20:05",
+      "source": "用户输入",
+      "hash": "41546a50"
+    },
+    {
+      "id": "q0058",
+      "question": "打开文件的过程",
+      "category": "java",
+      "tags": [
+        "文件系统 VFS 系统调用 IO"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/打开文件的过程.md",
+      "created": "2026-07-23 10:20:11",
+      "source": "用户输入",
+      "hash": "f1d2c47f"
+    },
+    {
+      "id": "q0059",
+      "question": "进程有几个状态？怎么切换？",
+      "category": "java",
+      "tags": [
+        "进程状态 调度 操作系统"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/进程有几个状态怎么切换.md",
+      "created": "2026-07-23 10:20:11",
+      "source": "用户输入",
+      "hash": "2c67fadd"
+    },
+    {
+      "id": "q0060",
+      "question": "从运行到阻塞的条件",
+      "category": "java",
+      "tags": [
+        "进程调度 阻塞 上下文切换"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/从运行到阻塞的条件.md",
+      "created": "2026-07-23 10:20:11",
+      "source": "用户输入",
+      "hash": "3c2f4f29"
+    },
+    {
+      "id": "q0061",
+      "question": "进程通信方式有哪些？",
+      "category": "java",
+      "tags": [
+        "IPC 进程通信 管道 共享内存 消息队列"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/进程通信方式有哪些.md",
+      "created": "2026-07-23 10:20:12",
+      "source": "用户输入",
+      "hash": "33b0caa2"
+    },
+    {
+      "id": "q0062",
+      "question": "哪个通信方式最快？",
+      "category": "java",
+      "tags": [
+        "IPC 共享内存 性能 零拷贝"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/哪个通信方式最快.md",
+      "created": "2026-07-23 10:20:12",
+      "source": "用户输入",
+      "hash": "1d9b06ab"
+    },
+    {
+      "id": "q0063",
+      "question": "讲一下进程调度的算法",
+      "category": "java",
+      "tags": [
+        "调度算法 FCFS SJF 时间片轮转 MLFQ"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/讲一下进程调度的算法.md",
+      "created": "2026-07-23 10:20:18",
+      "source": "用户输入",
+      "hash": "7ff90ec3"
+    },
+    {
+      "id": "q0064",
+      "question": "FCFS有什么缺点？",
+      "category": "java",
+      "tags": [
+        "FCFS 调度算法 护航效应"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/FCFS有什么缺点.md",
+      "created": "2026-07-23 10:20:18",
+      "source": "用户输入",
+      "hash": "95542e89"
+    },
+    {
+      "id": "q0065",
+      "question": "优先级调度算法讲一下",
+      "category": "java",
+      "tags": [
+        "优先级调度 饥饿 老化 操作系统"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/优先级调度算法讲一下.md",
+      "created": "2026-07-23 10:20:18",
+      "source": "用户输入",
+      "hash": "c36cdada"
+    },
+    {
+      "id": "q0066",
+      "question": "TCP四次挥手的过程",
+      "category": "java",
+      "tags": [
+        "TCP 四次挥手 TIME_WAIT CLOSE_WAIT"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/TCP四次挥手的过程.md",
+      "created": "2026-07-23 10:20:18",
+      "source": "用户输入",
+      "hash": "4d6cade6"
+    },
+    {
+      "id": "q0067",
+      "question": "TIME_WAIT可以调吗？",
+      "category": "java",
+      "tags": [
+        "TIME_WAIT TCP 调优 端口耗尽"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/TIME_WAIT可以调吗.md",
+      "created": "2026-07-23 10:20:18",
+      "source": "用户输入",
+      "hash": "e8532f7d"
+    },
+    {
+      "id": "q0068",
+      "question": "高并发频繁TCP握手挥手问题",
+      "category": "java",
+      "tags": [
+        "TCP 高并发 连接池 TIME_WAIT 长连接"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/高并发频繁TCP握手挥手问题.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "70132ef6"
+    },
+    {
+      "id": "q0069",
+      "question": "什么叫做长连接？",
+      "category": "java",
+      "tags": [
+        "长连接 Keep-Alive TCP HTTP2"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/什么叫做长连接.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "d7c6a236"
+    },
+    {
+      "id": "q0070",
+      "question": "HTTP状态码有哪些？",
+      "category": "java",
+      "tags": [
+        "HTTP 状态码 RESTful 网络协议"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/HTTP状态码有哪些.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "8682ee0d"
+    },
+    {
+      "id": "q0071",
+      "question": "HTTP和HTTPS有什么区别？",
+      "category": "java",
+      "tags": [
+        "HTTP HTTPS SSL TLS 网络安全"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/HTTP和HTTPS有什么区别.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "76a51463"
+    },
+    {
+      "id": "q0072",
+      "question": "HTTPS用到的加密算法",
+      "category": "java",
+      "tags": [
+        "HTTPS 加密 对称加密 非对称加密 AES TLS"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/HTTPS用到的加密算法.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "77925b45"
+    },
+    {
+      "id": "q0073",
+      "question": "非对称加密和对称加密区别",
+      "category": "java",
+      "tags": [
+        "加密 对称 非对称 RSA AES HTTPS"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/非对称加密和对称加密区别.md",
+      "created": "2026-07-23 10:20:24",
+      "source": "用户输入",
+      "hash": "a2c88c06"
+    },
+    {
+      "id": "q0074",
+      "question": "TCP粘包及解决方式",
+      "category": "java",
+      "tags": [
+        "TCP 粘包 半包 Netty 网络编程"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/TCP粘包及解决方式.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "f3e0a02e"
+    },
+    {
+      "id": "q0075",
+      "question": "Sequence Number和粘包",
+      "category": "java",
+      "tags": [
+        "TCP 序列号 粘包 可靠传输"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/Sequence-Number和粘包.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "4040231b"
+    },
+    {
+      "id": "q0076",
+      "question": "MySQL有哪几种引擎？",
+      "category": "java",
+      "tags": [
+        "MySQL 存储引擎 InnoDB MyISAM"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/MySQL有哪几种引擎.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "d9d4cc27"
+    },
+    {
+      "id": "q0077",
+      "question": "数据库的隔离级别有哪几种？",
+      "category": "java",
+      "tags": [
+        "数据库 隔离级别 ACID 事务 MVCC"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/数据库的隔离级别有哪几种.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "f9606129"
+    },
+    {
+      "id": "q0078",
+      "question": "为什么默认是可重复读？",
+      "category": "java",
+      "tags": [
+        "可重复读 RR 隔离级别 MySQL binlog"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/为什么默认是可重复读.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "3df19bb5"
+    },
+    {
+      "id": "q0079",
+      "question": "MVCC是什么？解决什么问题？",
+      "category": "java",
+      "tags": [
+        "MVCC 多版本并发控制 Undo Log 快照读"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/MVCC是什么解决什么问题.md",
+      "created": "2026-07-23 10:20:32",
+      "source": "用户输入",
+      "hash": "dde7b4f7"
+    },
+    {
+      "id": "q0080",
+      "question": "MySQL的锁有哪些？",
+      "category": "java",
+      "tags": [
+        "MySQL 锁 行锁 间隙锁 临键锁 意向锁"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/MySQL的锁有哪些.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "9cd5a99d"
+    },
+    {
+      "id": "q0081",
+      "question": "临键锁是什么？",
+      "category": "java",
+      "tags": [
+        "临键锁 Next-Key Lock 间隙锁 幻读"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/临键锁是什么.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "5b80030d"
+    },
+    {
+      "id": "q0082",
+      "question": "MySQL索引结构是怎样的？",
+      "category": "java",
+      "tags": [
+        "B+树 索引 InnoDB 聚簇索引"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/MySQL索引结构是怎样的.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "aa0e8aaf"
+    },
+    {
+      "id": "q0083",
+      "question": "主键索引是聚簇还是非聚簇？",
+      "category": "java",
+      "tags": [
+        "聚簇索引 主键索引 InnoDB"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/主键索引是聚簇还是非聚簇.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "fa61cfcf"
+    },
+    {
+      "id": "q0084",
+      "question": "什么是非聚簇索引？",
+      "category": "java",
+      "tags": [
+        "非聚簇索引 二级索引 回表 覆盖索引"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么是非聚簇索引.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "807aab4e"
+    },
+    {
+      "id": "q0085",
+      "question": "怎么判断SQL是否用到了索引？",
+      "category": "java",
+      "tags": [
+        "EXPLAIN 索引 执行计划 SQL优化"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/怎么判断SQL是否用到了索引.md",
+      "created": "2026-07-23 10:20:40",
+      "source": "用户输入",
+      "hash": "b99d2c9f"
+    },
+    {
+      "id": "q0086",
+      "question": "你了解最左索引匹配",
+      "category": "java",
+      "tags": [
+        "最左前缀 联合索引 索引匹配 MySQL"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/你了解最左索引匹配.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "84316849"
+    },
+    {
+      "id": "q0087",
+      "question": "LeetCode 编辑距离",
+      "category": "java",
+      "tags": [
+        "LeetCode 编辑距离 动态规划 DP"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/LeetCode-编辑距离.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "ebf91d62"
+    },
+    {
+      "id": "q0088",
+      "question": "LeetCode 接雨水",
+      "category": "java",
+      "tags": [
+        "LeetCode 接雨水 双指针 单调栈"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/LeetCode-接雨水.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "de6c7718"
+    },
+    {
+      "id": "q0089",
+      "question": "铁路票务/秒杀系统高并发设计",
+      "category": "java",
+      "tags": [
+        "高并发 秒杀 票务 系统设计 Redis"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/铁路票务秒杀系统高并发设计.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "fc820394"
+    },
+    {
+      "id": "q0090",
+      "question": "如何抗住MySQL高并发读",
+      "category": "java",
+      "tags": [
+        "高并发读 缓存 读写分离 分库分表"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/如何抗住MySQL高并发读.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "e3349399"
+    },
+    {
+      "id": "q0091",
+      "question": "高并发写如何设计",
+      "category": "java",
+      "tags": [
+        "高并发写 消息队列 分库分表 WAL"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/高并发写如何设计.md",
+      "created": "2026-07-23 10:20:48",
+      "source": "用户输入",
+      "hash": "acff9cac"
+    },
+    {
+      "id": "q0092",
+      "question": "怎么保证票不会卖多？",
+      "category": "java",
+      "tags": [
+        "防超卖 乐观锁 Redis Lua 库存"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/怎么保证票不会卖多.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "f761fe0d"
+    },
+    {
+      "id": "q0093",
+      "question": "怎么保证数据库和缓存一致性？",
+      "category": "java",
+      "tags": [
+        "缓存一致性 延迟双删 Redis 数据库 Cache Aside"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/怎么保证数据库和缓存一致性.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "efcd85f5"
+    },
+    {
+      "id": "q0094",
+      "question": "如何保证订单号不重复？",
+      "category": "java",
+      "tags": [
+        "订单号 分布式ID 雪花算法 唯一ID"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/如何保证订单号不重复.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "b4bf8cf9"
+    },
+    {
+      "id": "q0095",
+      "question": "卖票系统怎么防止黄牛？",
+      "category": "java",
+      "tags": [
+        "防黄牛 黑名单 风控 Bloom Filter 安全"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/卖票系统怎么防止黄牛.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "cb9c5d6f"
+    },
+    {
+      "id": "q0096",
+      "question": "一条SQL语句的执行流程",
+      "category": "java",
+      "tags": [
+        "SQL执行流程 分析器 优化器 执行器 MySQL架构"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/一条SQL语句的执行流程.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "a25cd9d9"
+    },
+    {
+      "id": "q0097",
+      "question": "MySQL慢查询解决思路",
+      "category": "java",
+      "tags": [
+        "慢查询 EXPLAIN SQL优化 数据库调优"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/MySQL慢查询解决思路.md",
+      "created": "2026-07-23 10:20:56",
+      "source": "用户输入",
+      "hash": "6b08ea2f"
+    },
+    {
+      "id": "q0098",
+      "question": "怎么优化慢SQL",
+      "category": "java",
+      "tags": [
+        "SQL优化 索引 慢查询 数据库调优"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/怎么优化慢SQL.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "4bd43ccb"
+    },
+    {
+      "id": "q0099",
+      "question": "除了加索引还有什么优化方案？",
+      "category": "java",
+      "tags": [
+        "SQL优化 缓存 读写分离 数据归档 分库分表"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/除了加索引还有什么优化方案.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "f0c8b110"
+    },
+    {
+      "id": "q0100",
+      "question": "如何分表？按什么维度？",
+      "category": "java",
+      "tags": [
+        "分库分表 水平拆分 垂直拆分 ShardingSphere"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/如何分表按什么维度.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "7e04374b"
+    },
+    {
+      "id": "q0101",
+      "question": "还有什么优化SQL的思路？",
+      "category": "java",
+      "tags": [
+        "SQL优化 索引提示 批处理 反范式 分区裁剪"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/还有什么优化SQL的思路.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "2ad8f457"
+    },
+    {
+      "id": "q0102",
+      "question": "联合索引最左匹配原则",
+      "category": "java",
+      "tags": [
+        "最左匹配 联合索引 范围查询 MySQL"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/联合索引最左匹配原则.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "9f0654cc"
+    },
+    {
+      "id": "q0103",
+      "question": "select * 会导致索引失效吗？",
+      "category": "java",
+      "tags": [
+        "SELECT星 覆盖索引 回表 索引失效"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/select-会导致索引失效吗.md",
+      "created": "2026-07-23 10:21:04",
+      "source": "用户输入",
+      "hash": "b52e33ed"
+    },
+    {
+      "id": "q0104",
+      "question": "索引失效原因",
+      "category": "java",
+      "tags": [
+        "索引失效 左模糊 隐式转换 OR 函数"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/索引失效原因.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "71779f1a"
+    },
+    {
+      "id": "q0105",
+      "question": "条件查询可以用到索引吗？",
+      "category": "java",
+      "tags": [
+        "条件查询 索引 范围查询 索引匹配"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/条件查询可以用到索引吗.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "1556fe1d"
+    },
+    {
+      "id": "q0106",
+      "question": "A or B 的判断条件会用到索引吗？",
+      "category": "java",
+      "tags": [
+        "OR条件 索引合并 Index Merge UNION"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/A-or-B-的判断条件会用到索引吗.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "8971f505"
+    },
+    {
+      "id": "q0107",
+      "question": "IN的判断条件会用到索引吗？",
+      "category": "java",
+      "tags": [
+        "IN条件 索引 二分查找 MySQL优化"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/IN的判断条件会用到索引吗.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "2d3e7bf3"
+    },
+    {
+      "id": "q0108",
+      "question": "队列的使用场景",
+      "category": "java",
+      "tags": [
+        "消息队列 MQ 解耦 削峰 异步"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/队列的使用场景.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "88827745"
+    },
+    {
+      "id": "q0109",
+      "question": "队列的类型和场景",
+      "category": "java",
+      "tags": [
+        "队列 Kafka RocketMQ RabbitMQ 消息队列"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/队列的类型和场景.md",
+      "created": "2026-07-23 10:21:11",
+      "source": "用户输入",
+      "hash": "9544a444"
+    },
+    {
+      "id": "q0110",
+      "question": "LeetCode 岛屿数量",
+      "category": "java",
+      "tags": [
+        "LeetCode 岛屿 DFS BFS 并查集"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/LeetCode-岛屿数量.md",
+      "created": "2026-07-23 10:21:19",
+      "source": "用户输入",
+      "hash": "4533395c"
+    },
+    {
+      "id": "q0111",
+      "question": "MCP Client和Server交互机制",
+      "category": "java",
+      "tags": [
+        "MCP AI Agent 工具调用 JSON-RPC"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/MCP-Client和Server交互机制.md",
+      "created": "2026-07-23 10:21:19",
+      "source": "用户输入",
+      "hash": "839c3acb"
+    },
+    {
+      "id": "q0112",
+      "question": "Spring AI的了解",
+      "category": "java",
+      "tags": [
+        "Spring AI ChatClient Tool Calling RAG LLM",
+        "Spring"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/Spring-AI的了解.md",
+      "created": "2026-07-23 10:21:19",
+      "source": "用户输入",
+      "hash": "de6c3bd4"
+    },
+    {
+      "id": "q0113",
+      "question": "RAG的分类和全链路能力",
+      "category": "java",
+      "tags": [
+        "RAG 检索增强生成 Embedding 向量数据库"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/RAG的分类和全链路能力.md",
+      "created": "2026-07-23 10:21:19",
+      "source": "用户输入",
+      "hash": "2c742772"
+    },
+    {
+      "id": "q0114",
+      "question": "RAG检索不准确的原因",
+      "category": "java",
+      "tags": [
+        "RAG 检索质量 分块 Embedding 重排序"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/RAG检索不准确的原因.md",
+      "created": "2026-07-23 10:21:19",
+      "source": "用户输入",
+      "hash": "90219ba0"
     }
   ]
 }
