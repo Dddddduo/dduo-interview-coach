@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消耗token过快怎么排查？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0131</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🏗️ 系统设计</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-07-24</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>消耗token过快怎么排查？</h1>
+    <div class="tag-row"><span class="tag-item">profiling</span>
+<span class="tag-item">consumption</span>
+<span class="tag-item">token</span></div>
+    <h1 id="token">消耗token过快怎么排查？</h1>
+<h1 id="_1">面经深度解答文档</h1>
+<blockquote>
+<p><strong>生成时间</strong>: 2026-07-24 09:31<br />
+<strong>题目数量</strong>: 25 道<br />
+<strong>生成工具</strong>: Interview Coach Agent (Harness Engineering)</p>
+</blockquote>
+<hr />
+<h2 id="_2">目录</h2>
+<ul>
+<li><a href="#第1题agent-中的-workflowplanner-和策略模型分别解决什么问题">第1题：Agent 中的 Workflow、Planner 和策略模型分别解决什么问题？</a></li>
+<li><a href="#第2题多轮-agent-的记忆全部放进上下文会出现什么问题应该如何设计分层记忆">第2题：多轮 Agent 的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？</a></li>
+<li><a href="#第3题mcp-的-hostclientserver-如何协作协议层为什么不能自动解决安全问题">第3题：MCP 的 Host、Client、Server 如何协作？协议层为什么不能自动解决安全问题？</a></li>
+<li><a href="#第4题如何为一个会调用外部工具的-agent-建立可复现评测">第4题：如何为一个会调用外部工具的 Agent 建立可复现评测？</a></li>
+<li><a href="#第5题react-agent-为什么容易陷入循环如何在不误杀正常重试的情况下终止循环">第5题：ReAct Agent 为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？</a></li>
+<li><a href="#第6题agent-怎样抵御工具返回内容中的间接提示注入">第6题：Agent 怎样抵御工具返回内容中的间接提示注入？</a></li>
+<li><a href="#第7题什么是-rag和直接让大模型回答有什么区别">第7题：什么是 RAG，和直接让大模型回答有什么区别？</a></li>
+<li><a href="#第8题agent-和普通工作流有什么区别">第8题：Agent 和普通工作流有什么区别？</a></li>
+<li><a href="#第9题项目中挑战最大的是什么">第9题：项目中挑战最大的是什么？</a></li>
+<li><a href="#第10题出现幻觉怎么处理">第10题：出现幻觉怎么处理？</a></li>
+<li><a href="#第11题提示词具体是怎么做">第11题：提示词具体是怎么做？</a></li>
+<li><a href="#第12题还有其他提示词吗">第12题：还有其他提示词吗？</a></li>
+<li><a href="#第13题agent的短期长期记忆是怎么实现的">第13题：Agent的短期长期记忆是怎么实现的？</a></li>
+<li><a href="#第14题如果让你设计一个agent要考虑哪些模块">第14题：如果让你设计一个Agent要考虑哪些模块？</a></li>
+<li><a href="#第15题如果遇到api超时和报错怎么解决">第15题：如果遇到api超时和报错怎么解决？</a></li>
+<li><a href="#第16题有没有考虑用大模型自己排除api超时和报错">第16题：有没有考虑用大模型自己排除api超时和报错？</a></li>
+<li><a href="#第17题消耗token过快怎么排查">第17题：消耗token过快怎么排查？</a></li>
+<li><a href="#第18题讲一下java线程池">第18题：讲一下java线程池？</a></li>
+<li><a href="#第19题如果你重新设计一个线程池会怎么设计">第19题：如果你重新设计一个线程池会怎么设计？</a></li>
+<li><a href="#第20题怎么把class文件加载到jvm中">第20题：怎么把class文件加载到jvm中？</a></li>
+<li><a href="#第21题mysql的undologredologbinlog区别和场景">第21题：mysql的undolog，redolog，binlog区别和场景？</a></li>
+<li><a href="#第22题什么是两阶段提交">第22题：什么是两阶段提交？</a></li>
+<li><a href="#第23题多线程写一个死锁">第23题：多线程写一个死锁</a></li>
+<li><a href="#第24题随便写一个单例模式">第24题：随便写一个单例模式</a></li>
+<li><a href="#第25题算法合并两个有序数组">第25题：算法：合并两个有序数组</a></li>
+</ul>
+<hr />
+<h2 id="1agent-workflowplanner">第1题：Agent 中的 Workflow、Planner 和策略模型分别解决什么问题？</h2>
+<h3 id="_3">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "做菜三步——Workflow 是菜谱顺序，Planner 是临场调整，策略模型是火候判断"</p>
+<p><strong>记忆原理</strong>: 用厨房做菜类比——菜谱规定了步骤顺序（Workflow），但油温不够时你会先处理其他配菜（Planner），最后根据食材状态决定大火爆炒还是小火慢炖（策略模型）。三个层次层层递进，从固定流程到动态规划到决策判断。</p>
+<p><strong>关联知识</strong>: 如果你熟悉软件开发的分层架构（Controller → Service → DAO），可以类比理解：Workflow 是 Controller（编排），Planner 是 Service（逻辑），策略模型是 DAO 的查询优化器（决策）。</p>
+<h3 id="_4">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>Agent 架构中，Workflow（工作流）、Planner（规划器）和策略模型（Policy Model）是三个不同抽象层级的行为控制机制，分别解决"做什么、按什么顺序做"、"怎么做、走哪条路"、"选什么方式、用什么力度"的问题。</p>
+<ul>
+<li><strong>Workflow（工作流）</strong>：预定义的、结构化的执行步骤序列。它将 Agent 的行为分解为可编排的阶段，每个阶段有明确的输入、处理和输出。典型如 LangGraph 中的 StateGraph、AutoGen 中的对话流程。</li>
+<li><strong>Planner（规划器）</strong>：动态生成执行计划的组件。Workflow 是固定的，而 Planner 根据当前任务和目标，实时拆解子目标、决定子任务顺序。典型如 ReAct 中的 thought-action-observation 循环、Plan-and-Solve 中的两步规划法。</li>
+<li><strong>策略模型（Policy Model）</strong>：在特定状态下选择最优动作的决策模型。Planner 做"规划"（分解为子任务），策略模型做"决策"（在当前状态选哪个动作）。典型如 RL-based agent 中的 policy network、LLM-based agent 中的 few-shot prompting 策略。</li>
+</ul>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>这三个组件解决的是不同粒度的控制问题，按抽象程度从高到低排列：</p>
+<p><strong>Workflow 解决"流程确定性"问题</strong>。在复杂 Agent 系统中，很多步骤的顺序是确定的：先收集信息、再分析、再决策、再执行。Workflow 通过有向图（DAG）或状态机来建模这些步骤，确保 Agent 不会跳过关键环节。其本质是一种编译时确定的控制流，牺牲灵活性换取可靠性。</p>
+<p><strong>Planner 解决"任务分解与资源分配"问题</strong>。当任务过于复杂时，Agent 需要将其拆解为可执行的子任务。Planner 的核心机制是 hierarchical task decomposition（层次化任务分解），类似人类面对复杂问题时的"分治"策略。它生成一个有向无环图（DAG）或树形结构，描述子任务的依赖关系。</p>
+<p><strong>策略模型解决"局部最优决策"问题</strong>。给定当前状态（state），Agent 需要选择收益最大的动作（action）。策略模型的核心是 decision theory（决策理论），在不确定环境中最大化期望回报。对于 LLM Agent，策略模型通常是通过 in-context learning（上下文学习）或 reinforcement learning（强化学习）训练的。</p>
+<p>三者关系：Workflow 定义宏观框架，Planner 在框架内生成任务路径，策略模型在路径的每个节点做出具体动作选择。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>以构建一个代码审查 Agent 为例：</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Workflow 层：定义固定流程</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CodeReviewWorkflow</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pr_url</span><span class="p">):</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_diff</span><span class="p">(</span><span class="n">pr_url</span><span class="p">)</span>
+        <span class="n">issues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_analyze</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+        <span class="n">review</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_review</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">issues</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_comment</span><span class="p">(</span><span class="n">pr_url</span><span class="p">,</span> <span class="n">review</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">review</span>
+
+<span class="c1"># Planner 层：当代码量过大时动态分片</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CodeReviewPlanner</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diff</span><span class="p">):</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_diff</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_lines</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_into_batches</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">diff</span><span class="p">]</span>
+
+<span class="c1"># 策略模型层：在每个阶段选择最优策略</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReviewPolicy</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;python&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;pylint + mypy&quot;</span>
+        <span class="k">elif</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;javascript&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;eslint + prettier&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;general static analysis&quot;</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li><strong>Workflow 过死 vs Planner 过活</strong>：Workflow 太固定无法应对异常，Planner 太自由可能导致无限循环。实际工程中常采用"固定骨架+灵活节点"的混合模式。</li>
+<li><strong>策略模型的计算开销</strong>：在每个决策点都调用策略模型（尤其是 LLM）会带来巨大的 token 成本和延迟。需要引入 caching、batching、以及规则兜底。</li>
+<li><strong>常见面试追问</strong>："能举个例子说明什么时候需要 Planner 而不只是 Workflow 吗？"——当任务不确定性强时（如"帮我写一份市场调研报告"），Planner 动态决定搜索哪些信息；而固定 Workflow 适合确定任务（如"每天9点抓取数据生成报表"）。</li>
+</ul>
+<h3 id="_5">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: 分层定义 → 分别解决什么问题 → 三者关系 → 实际案例 → 注意事项</p>
+<p><strong>重点得分点</strong>: 1. 能把三个概念清晰区分并说明粒度不同 2. 能用类比或实际案例说明 3. 能指出现实中如何结合使用</p>
+<p><strong>常见误区</strong>: ❌ 把 Planner 和策略模型混为一谈 ❌ 只背定义不理解三者如何协作</p>
+<p><strong>时间分配建议</strong>: 定义 30s → 各自解决的问题 90s → 三者关系 30s → 案例 60s → 注意事项 30s（总计 4 分钟）</p>
+<hr />
+<h2 id="2-agent">第2题：多轮 Agent 的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？</h2>
+<h3 id="_6">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "全塞进窗口→窗口撑爆→分层存储像图书馆：借阅区（短期）、书架（长期）、仓库（持久）"</p>
+<p><strong>记忆原理</strong>: 想象一个图书馆——你不可能把看过的所有书都堆在桌面上（上下文窗口），只能放当前正在读的几本（短期记忆）。读完后放回书架（长期记忆），特别重要的归档到仓库（持久存储）。图书馆员（Agent）需要的时候再去取。</p>
+<p><strong>关联知识</strong>: 计算机体系结构中的缓存分层（L1/L2/L3 Cache → RAM → Disk），每一层容量更大但速度更慢。Agent 的记忆分层设计与之间构。</p>
+<h3 id="_7">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>多轮 Agent 的记忆（Memory）是指 Agent 在多次交互中维持和利用历史信息的能力。如果将所有历史记忆全部放入大语言模型的上下文窗口（Context Window），会导致一系列严重问题。</p>
+<p>分层记忆（Hierarchical Memory）是将记忆按照重要性、时效性、访问频率等维度分层存储和检索的架构设计，通常分为三层：短期记忆（Short-term Memory）、长期记忆（Long-term Memory）和持久存储（Persistent Storage）。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p><strong>全部放进上下文的四个核心问题：</strong></p>
+<ol>
+<li><strong>上下文窗口溢出（Context Window Overflow）</strong>：LLM 有固定的 token 限制（如 Claude 3 的 200K、GPT-4 的 128K）。多轮对话积累的 token 必然超过限制。</li>
+<li><strong>注意力衰减（Attention Degradation）</strong>：Transformer 的 self-attention 机制的计算复杂度是 O(n²)，窗口越大推理速度越慢。更关键的是，长上下文中的早期信息在 attention 分数中会被淹没——这叫 lost-in-the-middle 现象（中间丢失问题）。</li>
+<li><strong>Token 成本爆炸</strong>：每次请求都将全部历史传入，token 消耗线性增长。</li>
+<li><strong>信号噪声比下降（Signal-to-Noise Ratio Degradation）</strong>：大量无关的历史信息会稀释关键信号的比重。</li>
+</ol>
+<p><strong>分层记忆的设计：</strong></p>
+<div class="highlight"><pre><span></span><code>短期记忆 (Working Memory) → 当前对话上下文（滑动窗口）
+中期记忆 (Summary Memory) → 压缩的对话摘要
+长期记忆 (Episodic Memory) → 向量数据库中的重要信息
+持久存储 (Semantic Memory) → 关系型数据库中的用户配置
+</code></pre></div>
+
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">HierarchicalMemory</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">short_term</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">medium_term</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">long_term</span> <span class="o">=</span> <span class="n">VectorStore</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">persistent</span> <span class="o">=</span> <span class="n">SQLiteStore</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_interaction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_msg</span><span class="p">,</span> <span class="n">agent_msg</span><span class="p">,</span> <span class="n">importance_score</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">short_term</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">importance_score</span> <span class="o">&gt;</span> <span class="mf">0.8</span><span class="p">:</span>
+            <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">agent_msg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">long_term</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">agent_msg</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">retrieve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">short_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_short_term</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">long_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">long_term</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">short_results</span> <span class="o">+</span> <span class="n">long_results</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li><strong>记忆回滚与一致性</strong>：当 Agent 错误地记住某些信息（幻觉固化），需要提供"遗忘"机制</li>
+<li><strong>隐私与安全</strong>：用户数据在多轮后仍然存在于持久存储中，需要设计数据保留策略</li>
+<li><strong>面试追问</strong>："如果用户中途修改了需求，分层记忆如何正确更新而非保留旧信息？"——需要引入置信度衰减机制</li>
+</ul>
+<h3 id="_8">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: 指出问题（4个问题）→ 引出分层记忆方案 → 三层架构详解 → 代码实现</p>
+<p><strong>重点得分点</strong>: 1. 必须提到 lost-in-the-middle 现象 2. 用具体数字说明成本问题 3. 给出缓存层级类比</p>
+<p><strong>时间分配建议</strong>: 问题分析 60s → 分层设计 90s → 代码演示 60s → 注意事项 30s（总计 4 分钟）</p>
+<hr />
+<h2 id="3mcp-hostclientserver">第3题：MCP 的 Host、Client、Server 如何协作？协议层为什么不能自动解决安全问题？</h2>
+<h3 id="_9">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "Host 订餐、Client 点菜、Server 做菜——但菜单（协议）不能保证食材安全无毒"</p>
+<p><strong>记忆原理</strong>: 用餐厅场景映射 MCP 架构：Host 是顾客（决定要吃什么），Client 是服务员（负责下单传菜），Server 是厨房（实际制作）。协议层（菜单格式）规定了菜品如何描述、如何传送，但是无法保证厨房用的食材没有毒——安全问题超出协议范围。</p>
+<p><strong>关联知识</strong>: 类比 HTTP/HTTPS——HTTP 协议定义了请求响应的格式（相当于 MCP 协议层），但 HTTPS（在协议之外加了一层 TLS）才能提供安全保证。安全永远是协议之上的问题。</p>
+<h3 id="_10">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>MCP（Model Context Protocol）是一种开放标准协议，用于在 AI 应用（尤其是 LLM Agent）与外部工具/数据源之间建立安全、标准化的通信。三个核心角色：</p>
+<ul>
+<li><strong>Host</strong>：AI 应用的前端或编排层（如 Claude Desktop），负责管理会话状态和权限策略</li>
+<li><strong>Client</strong>：在 Host 内运行，负责与 MCP Server 建立连接、发送请求、接收响应</li>
+<li><strong>Server</strong>：对外暴露工具（Tools）、资源（Resources）和提示（Prompts）的后端服务</li>
+</ul>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p><strong>协议层不能自动解决安全问题的本质原因：</strong></p>
+<p>安全问题是<strong>语义层面</strong>的，而协议层是<strong>语法层面</strong>的：<br />
+1. 协议定义"如何通信"，不定义"通信内容是否安全"<br />
+2. 权限决策需要业务上下文——同一个操作在不同上下文中安全性不同<br />
+3. 间接注入攻击（Indirect Prompt Injection）：工具返回内容可能包含恶意指令，协议层只负责传输字符串<br />
+4. 审计和问责需要额外的日志系统和追溯机制</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Host 层：权限策略</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">SecurityPolicy</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">canExecute</span><span class="p">(</span><span class="nx">toolName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="o">:</span><span class="w"> </span><span class="kt">any</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="o">:</span><span class="w"> </span><span class="kt">User</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">toolName</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;execute_command&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">args</span><span class="p">.</span><span class="nx">command</span><span class="p">.</span><span class="nx">startsWith</span><span class="p">(</span><span class="s2">&quot;rm &quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">role</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li><strong>传输层安全 vs 应用层安全</strong>：MCP 可以通过 TLS 加密通信，但不等于应用层安全</li>
+<li><strong>Server 端的安全责任</strong>：Server 必须自己实现认证和授权</li>
+<li><strong>最小权限原则（Principle of Least Privilege）</strong>：Host 应为不同场景配置不同权限级别的 Client</li>
+</ul>
+<h3 id="_11">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: MCP 是什么 → 三个角色如何协作 → 为什么协议层不安全 → 实践中怎么做安全</p>
+<p><strong>重点得分点</strong>: 1. 清晰区分"语法层面安全 vs 语义层面安全" 2. 用具体的攻击场景说明 3. 展示工程化的安全实践</p>
+<p><strong>时间分配建议</strong>: MCP 简介 30s → 协作流程 90s → 安全问题分析 60s → 安全实践 60s（总计 4 分钟）</p>
+<hr />
+<h2 id="4-agent">第4题：如何为一个会调用外部工具的 Agent 建立可复现评测？</h2>
+<h3 id="_12">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "TURTLE 法则——T 测试用例池、U 统一沙箱、R 记录回放、T 时序冻结、L 结果比对、E 环境快照"</p>
+<p><strong>记忆原理</strong>: 乌龟（TURTLE）很慢——评测工具型 Agent 的核心难点就是"慢"（需要真实调用外部工具）。乌龟壳的六边形对应六个关键步骤。</p>
+<p><strong>关联知识</strong>: 对比传统软件测试中的 Mock 和 Stub 模式。Web 开发的 API 测试中会用录制回放（VCR）技术。</p>
+<h3 id="_13">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>可复现评测（Reproducible Evaluation）是指对于一个 Agent 系统，给定相同的输入和初始条件，能够产生相同（或可预期）的输出。</p>
+<p>核心挑战：<br />
+- 环境不确定性（Environment Non-determinism）：外部 API 状态变化<br />
+- 工具响应不可控：搜索引擎结果随时间变化<br />
+- 链式依赖的传播：非确定性沿调用链放大</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>核心机制是"控制不确定性"——对不确定性点做"封印"（Sealing）：</p>
+<table>
+<thead>
+<tr>
+<th>不确定性来源</th>
+<th>封印方法</th>
+<th>原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLM 输出随机性</td>
+<td>设 temperature=0，固定 seed</td>
+<td>贪心解码</td>
+</tr>
+<tr>
+<td>外部 API 响应</td>
+<td>VCR 录制回放</td>
+<td>用预录响应替代真实调用</td>
+</tr>
+<tr>
+<td>环境状态</td>
+<td>Docker 容器快照</td>
+<td>同镜像启动</td>
+</tr>
+<tr>
+<td>时间相关逻辑</td>
+<td>Mock 时间戳</td>
+<td>冻结系统时间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ReproducibleEval</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_suite</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="n">test_suite</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ToolRecorder</span><span class="p">(</span><span class="n">recordings</span><span class="p">)</span> <span class="k">as</span> <span class="n">recorder</span><span class="p">:</span>
+                <span class="n">agent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_agent</span><span class="p">(</span><span class="n">recorder</span><span class="p">)</span>
+                <span class="n">session</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+                <span class="n">tool_calls</span> <span class="o">=</span> <span class="n">recorder</span><span class="o">.</span><span class="n">get_call_sequence</span><span class="p">()</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">case</span><span class="o">.</span><span class="n">expected</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>录制时效性：API 更新后录制可能失效，需要定期刷新</li>
+<li>评测指标设计：允许多路径的评估指标（fuzzy matching）比严格匹配更实用</li>
+</ul>
+<h3 id="_14">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: 挑战（非确定性）→ 核心封印策略 → 具体实现 → 维护和扩展</p>
+<p><strong>重点得分点</strong>: 1. 明确指出"非确定性"是核心难点 2. 展示 VCR 录制回放的具体实现 3. 讨论多路径评估问题</p>
+<p><strong>时间分配建议</strong>: 挑战分析 30s → 核心策略 60s → 代码实现 90s → 维护事项 60s（总计 4 分钟）</p>
+<hr />
+<h2 id="5react-agent">第5题：ReAct Agent 为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？</h2>
+<h3 id="_15">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "死胡同 vs 绕远路——循环是死胡同（重复同一个模式），重试是绕远路（换一条路走）"</p>
+<p><strong>记忆原理</strong>: 在迷宫里——ReAct 的"思考→行动→观察"循环就像在十字路口不断做同样的选择。循环是你每次走都回到同一个死胡同，重试是你换条路走。</p>
+<p><strong>关联知识</strong>: 编程中的死循环 vs 长时间运行的循环——死循环是状态不变量不被满足且没有 progress。</p>
+<h3 id="_16">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>ReAct（Reasoning + Acting）的三种循环类型：<br />
+- <strong>死循环（Infinite Loop）</strong>：反复执行相同的行动序列<br />
+- <strong>振荡循环（Oscillation Loop）</strong>：在 A→B→A→B 之间来回切换</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>三层原因：<br />
+1. <strong>信息不足（Information Deficiency）</strong>：Observation 缺少关键信息<br />
+2. <strong>信念固着（Belief Fixation）</strong>：LLM 形成错误信念后忽略矛盾 Observation<br />
+3. <strong>缺失终止信号（Missing Termination Signal）</strong>：松散的条件导致 Agent 高估或低估完成度</p>
+<p><strong>区分循环与正常重试：</strong></p>
+<table>
+<thead>
+<tr>
+<th>特征</th>
+<th>死循环</th>
+<th>正常重试</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>行动序列</td>
+<td>完全重复</td>
+<td>不同</td>
+</tr>
+<tr>
+<td>信息增益</td>
+<td>零</td>
+<td>正</td>
+</tr>
+<tr>
+<td>状态变化</td>
+<td>无</td>
+<td>推进</td>
+</tr>
+<tr>
+<td>工具参数</td>
+<td>完全相同</td>
+<td>改进</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AntiLoopGuard</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thought</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+        <span class="c1"># 检查1：绝对上限</span>
+        <span class="c1"># 检查2：同一动作重复次数</span>
+        <span class="c1"># 检查3：信息增益检测</span>
+        <span class="c1"># 检查4：振荡检测（A→B→A→B 模式）</span>
+        <span class="o">...</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>误杀正常重试的代价——在信息检索场景中重试是必要行为</li>
+<li>渐进式干预——先降级（给提示）再强制终止</li>
+</ul>
+<h3 id="_17">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: ReAct 循环原因（三层）→ 循环 vs 重试区分标准 → 工程实现 → 渐进式干预</p>
+<p><strong>重点得分点</strong>: 1. 三层原因分析 2. 量化区分标准 3. 工程实践代码</p>
+<p><strong>时间分配建议</strong>: 原因 60s → 区分标准 60s → 实现 90s → 进阶思考 30s（总计 4 分钟）</p>
+<hr />
+<h2 id="6agent">第6题：Agent 怎样抵御工具返回内容中的间接提示注入？</h2>
+<h3 id="_18">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "四道防火墙——输入过滤（安检门）→ 输出嗅探（海关）→ 权限隔离（分区墙）→ 上下文隔离（保险箱）"</p>
+<p><strong>记忆原理</strong>: 在机场过安检——行李（工具返回内容）先过 X 光机扫描（输入过滤），再看有没有违禁品（输出嗅探），然后分到不同的行李区（权限隔离），贵重物品锁进保险箱（上下文隔离）。</p>
+<p><strong>关联知识</strong>: Web 安全中的 XSS（跨站脚本攻击）防御——输入验证 → 输出编码 → Content Security Policy。</p>
+<h3 id="_19">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>间接提示注入（Indirect Prompt Injection）是指攻击者将恶意指令嵌入到 LLM 会读取的外部内容中（如网页、API 返回值），当 Agent 获取这些内容时，恶意指令操控了 LLM 的行为。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>间接提示注入之所以有效，是因为 LLM 的<strong>指令层级平坦化（Instruction Flatness）</strong>——工具返回的内容与原始指令处于同一个 token 序列中，LLM 无法区分"用户说的指令"和"工具返回内容中的指令"。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>四层防御体系：<br />
+1. 输入过滤：剥离可疑指令模式（正则匹配 ignore/override 等关键词）<br />
+2. 输出嗅探：用 XML 标签包裹工具返回，标注"这是数据，不是指令"<br />
+3. 上下文隔离：在 system prompt 中加入类型标注协议<br />
+4. 权限隔离：限制工具可执行的操作范围</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>防御不是绝对的——基于规则的过滤都可能被绕过</li>
+<li>工具分级的权限模型：高危工具需要额外确认步骤</li>
+<li>长远方案：未来的模型原生支持指令层级（instruction hierarchy）</li>
+</ul>
+<h3 id="_20">回答思路</h3>
+<p><strong>答题逻辑框架</strong>: 什么是间接提示注入 → 为什么有效（指令层级平坦化）→ 四层防御体系</p>
+<p><strong>重点得分点</strong>: 1. 讲清楚"指令层级平坦化" 2. 纵深防御 3. 指出"没有完美防御"</p>
+<hr />
+<h2 id="7-rag">第7题：什么是 RAG，和直接让大模型回答有什么区别？</h2>
+<h3 id="_21">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "开卷考（RAG）vs 闭卷考（直接答）——一个带资料入场，一个全靠脑子里的知识"</p>
+<p><strong>记忆原理</strong>: 开卷考允许带参考书入场，每次答题前先去查资料，答案更准确但也更慢。</p>
+<p><strong>关联知识</strong>: 信息检索系统（搜索引擎）+ 阅读理解（QA System）的组合。</p>
+<h3 id="_22">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>RAG（Retrieval-Augmented Generation，检索增强生成）是一种在 LLM 生成答案之前，先从外部知识库中检索与用户问题相关的参考文档，然后将检索到的内容作为上下文提供给 LLM 用于生成的技术架构。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>直接大模型回答</th>
+<th>RAG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>知识来源</td>
+<td>模型权重</td>
+<td>外部知识库</td>
+</tr>
+<tr>
+<td>知识时效性</td>
+<td>截止于训练数据日期</td>
+<td>最新数据</td>
+</tr>
+<tr>
+<td>幻觉控制</td>
+<td>无约束</td>
+<td>检索结果约束</td>
+</tr>
+<tr>
+<td>可验证性</td>
+<td>不可验证</td>
+<td>可验证</td>
+</tr>
+<tr>
+<td>领域适配</td>
+<td>需要微调</td>
+<td>只需更换知识库</td>
+</tr>
+</tbody>
+</table>
+<p>RAG 解决了三个致命问题：<strong>知识固化</strong>、<strong>幻觉</strong>、<strong>领域知识不足</strong>。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RAGSystem</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">llm_client</span><span class="p">):</span>
+        <span class="n">contexts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;基于以下参考资料回答问题：</span><span class="se">\n</span><span class="si">{</span><span class="n">contexts</span><span class="si">}</span><span class="se">\n</span><span class="s2">问题：</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">llm_client</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>RAG 的瓶颈不在 LLM，在检索系统（Retrieval Quality）</li>
+<li>RAG 与 Fine-tuning 互补而非替代</li>
+</ul>
+<hr />
+<h2 id="8agent">第8题：Agent 和普通工作流有什么区别？</h2>
+<h3 id="_23">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "机器人（Agent）vs 传送带（Workflow）——一个自己决定怎么做，一个按固定流程走"</p>
+<p><strong>记忆原理</strong>: 流水线的传送带按固定速度送零件（确定性），机器人有眼睛和大脑自己决定怎么处理（自主性）。</p>
+<p><strong>关联知识</strong>: 命令式编程 vs 声明式编程。自动化（Automation）vs 自主化（Autonomy）。</p>
+<h3 id="_24">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>普通工作流（Workflow）是<strong>确定性执行模型</strong>：任务的每个步骤、顺序、分支条件都是预定义的。</p>
+<p>Agent 是<strong>自主性执行模型</strong>：给定目标，Agent 自主决定需要哪些工具、按什么顺序调用、如何处理中间结果。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>Andrew Ng 的 Agentic Design Patterns 四个核心模式：<br />
+1. <strong>Reflection（反思）</strong>：Agent 检查自己的输出并改进<br />
+2. <strong>Tool Use（工具使用）</strong>：动态决定用哪个工具<br />
+3. <strong>Planning（规划）</strong>：将复杂任务分解并动态排序<br />
+4. <strong>Multi-agent Collaboration（多 Agent 协作）</strong></p>
+<p>最根本区别：<strong>不确定性容忍度</strong>——Workflow 路径是预先画的，Agent 路径是走出来的。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>Workflow 适合已知的重复任务（如 ETL 每日报表），Agent 适合不可预测的开放任务（如客服机器人）。</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>成本差异巨大：Agent 每轮循环 10-100 倍以上的成本</li>
+<li>混合模式：用 Workflow 搭骨架，用 Agent 填充关键节点</li>
+</ul>
+<hr />
+<h2 id="9">第9题：项目中挑战最大的是什么？</h2>
+<h3 id="_25">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "STAR 讲挑战——S 场景选高质量、T 目标可量化、A 行动有技术含量、R 结果用数据说话"</p>
+<p><strong>记忆原理</strong>: 行为题不考"你遇到了什么困难"，考"你如何应对困难"。</p>
+<h3 id="_26">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>行为面试题（Behavioral Question），考察候选人实际解决问题的能力。用 STAR 法则（Situation, Task, Action, Result）组织。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>面试官考察的是：技术判断力、归因方式、解决问题模式、复盘习惯。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>STAR 模板以 Agent 项目为例：<br />
+- <strong>S（场景）</strong>：构建能调用多种外部工具的 AI Agent<br />
+- <strong>T（任务）</strong>：30% 情况下 Agent 陷入无限循环<br />
+- <strong>A（行动）</strong>：三层循环检测算法（精确匹配 → 模糊匹配 → 语义相似度）<br />
+- <strong>R（结果）</strong>：循环率从 30% 降至 3%，Token 消耗降低 40%</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>不要选"太简单"的挑战，不要选"无法归因为自身"的挑战</li>
+<li>一定要有量化结果</li>
+</ul>
+<hr />
+<h2 id="10">第10题：出现幻觉怎么处理？</h2>
+<h3 id="_27">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "HARD-CORE 七步法——Hallucination 检测、Alignment 对齐、Retrieval 检索、Data 数据、Calibration 校准、Output 约束、Review 审查、Evaluation 评估"</p>
+<h3 id="_28">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>幻觉（Hallucination）是 LLM 生成的内容在事实上不正确但语言流畅可信的现象。三类：忠实性幻觉、事实性幻觉、输入不一致幻觉。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>四个根源：<br />
+1. <strong>统计学习本质</strong>：模型只知道 token 概率分布，没有真值表<br />
+2. <strong>训练数据偏差</strong>：常见错误信息被学习<br />
+3. <strong>解码策略</strong>：Temperature &gt; 0 的随机性<br />
+4. <strong>上下文忽视</strong>：Lost-in-the-middle</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>七层防御：<br />
+1. RAG 前置检索<br />
+2. 约束式生成 prompt<br />
+3. 事实验证（第二个 LLM）<br />
+4. 输出校验<br />
+5. 不确定性声明<br />
+6. 触发词检测<br />
+7. 输出格式约束</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>幻觉不是 bug，是 feature——完全消除幻觉 = 完全消除创造力</li>
+<li>RLHF 治标不治本，关键区分"需要事实准确的任务"和"允许创意的任务"</li>
+</ul>
+<hr />
+<h2 id="11">第11题：提示词具体是怎么做？</h2>
+<h3 id="_29">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "CRISPE 六步法——Context（背景）→ Role（角色）→ Intent（意图）→ Structure（结构）→ Precision（精确）→ Example（示例）"</p>
+<h3 id="_30">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>提示词工程（Prompt Engineering）是设计、优化和迭代 LLM 输入的过程，目的是引导模型产生预期的、高质量的输出。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>四个关键原理：Priming（启动效应）、格式锚定（Format Anchoring）、负空间约束（Negative Space）、少样本锚定（Few-shot Anchoring）</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>六类提示词模板：<br />
+1. 角色/系统提示（Role System Prompt）<br />
+2. 分类任务提示（Classification）<br />
+3. 代码生成提示（Code Generation）<br />
+4. Agent 工具调用提示（Tool Use）<br />
+5. 思维链提示（Chain-of-Thought）<br />
+6. 结构化输出约束（Structured Output）</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>提示词不是银弹，提升有限</li>
+<li>模型迁移问题：GPT-4 优化 prompt 到 Claude 可能效果差</li>
+<li>版本化（Versioning）：修改 prompt 需要用 eval 做回归测试</li>
+</ul>
+<hr />
+<h2 id="12">第12题：还有其他提示词吗？</h2>
+<h3 id="_31">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "七种武器——系统提示词、少样本提示词、思维链、反思提示、对抗提示、格式化提示、融合提示"</p>
+<h3 id="_32">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>提示词模式（Prompt Patterns）是经过验证的、可复用的提示词结构模板，每个模式解决特定的问题。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>LLM 的三个核心弱点：缺乏结构化推理 → 需要 CoT；输出不稳定 → 需要格式约束和少样本；容易幻觉 → 需要事实验证和反思。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>七大模式：系统提示词、少样本提示词、思维链、反思提示、对抗提示、格式化提示、融合提示。可在不同场景组合使用。</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>不是模式越多越好，过多约束可能相互矛盾</li>
+<li>模式选择要考虑成本权衡</li>
+</ul>
+<hr />
+<h2 id="13agent">第13题：Agent的短期长期记忆是怎么实现的？</h2>
+<h3 id="_33">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "人类大脑映射——短期=工作台面、中期=笔记本、长期=书架、永久=图书馆"</p>
+<h3 id="_34">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>Agent 的记忆是指 Agent 在多轮交互或跨会话中保持、检索和利用历史信息的能力。分四个层次：上下文记忆、对话摘要、向量记忆、结构化记忆。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>LLM 本身是"无状态推理引擎"，每次调用独立进行。分层记忆的动机是：将信息按照使用频率和重要性分配到不同存储介质中。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AgentMemorySystem</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[用户信息] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">kv_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;user_profile&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[对话摘要] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[相关历史] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieve_similar</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[最近对话] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">format_context_buffer</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>记忆的编辑和遗忘机制：需要支持"忘记"操作</li>
+<li>记忆检索质量取决于 embedding 模型</li>
+<li>记忆膨胀问题：需要去重、合并、老化机制</li>
+</ul>
+<hr />
+<h2 id="14agent">第14题：如果让你设计一个Agent要考虑哪些模块？</h2>
+<h3 id="_35">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "TOWER 八层架构——Task 任务理解、Orchestrate 编排、Workflow 工作流、Execute 执行、Retrieve 记忆检索"</p>
+<h3 id="_36">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>设计生产级 Agent 涉及多个模块的协同：理解任务 → 规划方案 → 执行计划 → 监控结果 → 记忆学习 → 与人交互。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>模块化设计的动机：关注点分离、可维护性、可测试性、可扩展性。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>八大模块：<br />
+1. 任务理解（Task Understanding）<br />
+2. 规划器（Planner）<br />
+3. 工作流引擎（Workflow Engine）<br />
+4. 工具执行器（Tool Executor）<br />
+5. 记忆系统（Memory System）<br />
+6. 监控与日志（Monitoring）<br />
+7. 安全守卫（Safety Guard）<br />
+8. 反馈学习（Feedback Learning）</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>模块的"轻"与"重"：不是所有场景都需要全部 8 个模块</li>
+<li>工具执行器（外部 API 延迟）和记忆系统（检索耗时）最容易成为瓶颈</li>
+</ul>
+<hr />
+<h2 id="15api">第15题：如果遇到api超时和报错怎么解决？</h2>
+<h3 id="_37">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "R3 法则——Recognize 识别、Retry 重试、Resilience 韧性"</p>
+<h3 id="_38">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>API 错误处理需要从调用层、流控层和架构层三个层次系统性地解决。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>错误分类：超时（可重试）、429 限流（等待后重试）、4xx 客户端错误（不可重试）、5xx 服务端错误（可重试）。</p>
+<p>退避策略：Fixed Backoff、Exponential Backoff、Exponential + Jitter、Decorrelated Jitter。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ResilientAPIClient</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">circuit_breaker</span><span class="o">.</span><span class="n">allow_request</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">ServiceUnavailableError</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
+                <span class="n">wait</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backoff</span><span class="p">(</span><span class="n">attempt</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">wait</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>熔断器（Circuit Breaker）的必要性：防止持续调用已宕机的服务</li>
+<li>Agent 需要理解 API 错误并调整策略，不只是重试</li>
+</ul>
+<hr />
+<h2 id="16api">第16题：有没有考虑用大模型自己排除api超时和报错？</h2>
+<h3 id="_39">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "Human 定规则、LLM 做决策——让医生（规则）看病（LLM）是浪费，让病人（LLM）自己诊断是危险"</p>
+<h3 id="_40">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>可以部分使用但不能完全依赖。需要区分哪些场景适合 LLM 处理，哪些必须用确定性规则。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>不适合完全用 LLM 处理的四个原因：<br />
+1. 延迟和成本问题——API 已超时，LLM 处理雪上加霜<br />
+2. LLM 不可靠地处理"数字判断"——重试涉及精确时间计算<br />
+3. 确定性需求——错误处理需要有确定的行为<br />
+4. 循环风险——LLM 可能永远说"再试一次"</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>混合架构：规则层做确定性的重试逻辑，LLM 做"策略升级"——规则层无能为力时才升级给 LLM。</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>"LLM 处理错误"不是全有或全无：规则做执行，LLM 做决策</li>
+<li>逃逸窗口（Escape Hatch）：任何 LLM 参与的决策都必须有兜底</li>
+</ul>
+<hr />
+<h2 id="17token">第17题：消耗token过快怎么排查？</h2>
+<h3 id="_41">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "TOKEN 五步排查法——T 追踪、O 观察、K 知识、E 效率、N 净值"</p>
+<h3 id="_42">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>Token 消耗过快是 Agent 投产后的常见问题。排查需要系统化方法论。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>四个放大器：上下文膨胀、循环、不必要的工具调用、冗余系统提示。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TokenConsumptionProfiler</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_anomalies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># 检测连续多次调用同一个工具（可能循环）</span>
+        <span class="c1"># 检测输入上下文异常增长</span>
+        <span class="o">...</span>
+</code></pre></div>
+
+<p>生产环境排查清单：<br />
+[ ] 每条工具调用的结果是否被完整保留？<br />
+[ ] 是否做了 context window management？<br />
+[ ] 是否有不必要的 tool calls？<br />
+[ ] system prompt 是否过长？<br />
+[ ] output tokens 限制是否设置？<br />
+[ ] 是否开启了 caching？<br />
+[ ] 是否陷入了循环？</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>中间丢失（Lost in the Middle）导致 Agent 反复查询已获得的信息，增加 token 消耗——恶性循环。</p>
+<hr />
+<h2 id="18java">第18题：讲一下java线程池？</h2>
+<h3 id="_43">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "ThreadPool = 银行柜台——核心线程（固定窗口）、最大线程（临时加窗口）、任务队列（等待区）、拒绝策略（关门）"</p>
+<h3 id="_44">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>Java 线程池（ThreadPoolExecutor）位于 <code>java.util.concurrent</code> 包，管理一组工作线程，复用线程执行任务，避免频繁创建销毁的开销。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>七个核心参数：corePoolSize、maximumPoolSize、keepAliveTime、TimeUnit、workQueue、threadFactory、RejectedExecutionHandler。</p>
+<p>工作流程：</p>
+<div class="highlight"><pre><span></span><code>运行线程 &lt; corePoolSize → 创建新线程
+运行线程 &gt;= corePoolSize → 任务入队
+队列满 → 运行线程 &lt; maxPoolSize → 创建新线程
+队列满且运行线程 &gt;= maxPoolSize → 执行拒绝策略
+</code></pre></div>
+
+<p>四种拒绝策略：AbortPolicy（默认）、CallerRunsPolicy（背压）、DiscardPolicy、DiscardOldestPolicy。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+<span class="w">    </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">60L</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">,</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">1000</span><span class="p">),</span><span class="w">  </span><span class="c1">// 有界队列</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">ThreadPoolExecutor</span><span class="p">.</span><span class="na">CallerRunsPolicy</span><span class="p">()</span>
+<span class="p">);</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>CPU 密集型：N_threads = N_cpu + 1</li>
+<li>IO 密集型：N_threads = N_cpu * (1 + W/C)</li>
+<li>禁止使用 Executors.newFixedThreadPool（无界队列 OOM 风险）</li>
+</ul>
+<hr />
+<h2 id="19">第19题：如果你重新设计一个线程池会怎么设计？</h2>
+<h3 id="_45">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "原版 + 四大改进——动态调参 + 监控告警 + 任务血缘 + 负载感知"</p>
+<h3 id="_46">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>在原版 ThreadPoolExecutor 基础上进化，增加四个现在才有的基础设施能力。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>原版假设参数在构造时最优（现实：业务流量动态变化）、任务相互独立（现实：有依赖）、系统负载稳定（现实：时刻变化）。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>四大改进：<br />
+1. 动态决策引擎：基于运行时指标（CPU、队列深度、P99 延迟）自动调整参数<br />
+2. 可观测性：用 Micrometer/OpenTelemetry 暴露指标<br />
+3. 任务血缘追踪：记录任务间的父子依赖关系，检测循环依赖<br />
+4. 负载感知调度：基于 CPU/内存利用率做背压控制</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>不要过度设计：80% 的应用用原版 + 有界队列就足够</li>
+<li>动态调整需要 hysteresis（迟滞）机制防止震荡</li>
+</ul>
+<hr />
+<h2 id="20classjvm">第20题：怎么把class文件加载到jvm中？</h2>
+<h3 id="_47">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "三步上篮——Loading（加载）、Linking（连接）、Initialization（初始化）"</p>
+<h3 id="_48">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>类加载（Class Loading）是将 <code>.class</code> 文件的二进制数据读入内存，经过验证、准备、解析后，在方法区生成对应的 <code>Class</code> 对象的过程。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>七个阶段：加载 → 验证 → 准备 → 解析 → 初始化 → 使用 → 卸载。</p>
+<p>双亲委派模型（Parent Delegation Model）：</p>
+<div class="highlight"><pre><span></span><code>Bootstrap ClassLoader → Extension ClassLoader → Application ClassLoader → 自定义
+</code></pre></div>
+
+<p>先委派给父加载器，父加载器无法加载时才自己尝试——保证核心 API 安全。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">MyClassLoader</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">ClassLoader</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">protected</span><span class="w"> </span><span class="n">Class</span><span class="o">&lt;?&gt;</span><span class="w"> </span><span class="nf">findClass</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">classBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">readClassFile</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">defineClass</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">classBytes</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">classBytes</span><span class="p">.</span><span class="na">length</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<ul>
+<li>双亲委派的破坏：Tomcat 为每个 Web 应用独立加载</li>
+<li>两个不同 ClassLoader 加载的同一个类——在 JVM 中不是同一个类</li>
+</ul>
+<hr />
+<h2 id="21mysqlundologredologbinlog">第21题：mysql的undolog，redolog，binlog区别和场景？</h2>
+<h3 id="_49">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "三个日志三种角色——Undo 后悔药（回滚）、Redo 记账本（恢复）、Binlog 日记本（备份+同步）"</p>
+<h3 id="_50">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<ul>
+<li><strong>Undo Log（回滚日志）</strong>：记录修改前旧值，用于回滚和 MVCC</li>
+<li><strong>Redo Log（重做日志）</strong>：记录数据页物理修改，用于 Crash Recovery</li>
+<li><strong>Binlog（二进制日志）</strong>：记录逻辑变更，用于主从复制和 PITR</li>
+</ul>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Undo Log</th>
+<th>Redo Log</th>
+<th>Binlog</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>层级</td>
+<td>InnoDB 引擎层</td>
+<td>InnoDB 引擎层</td>
+<td>MySQL Server 层</td>
+</tr>
+<tr>
+<td>日志类型</td>
+<td>逻辑日志（逆向操作）</td>
+<td>物理日志（页修改）</td>
+<td>逻辑日志（SQL/行）</td>
+</tr>
+<tr>
+<td>作用</td>
+<td>回滚 + MVCC</td>
+<td>Crash Recovery</td>
+<td>复制 + PITR</td>
+</tr>
+<tr>
+<td>生命周期</td>
+<td>事务结束可清理</td>
+<td>循环写入</td>
+<td>追加写入</td>
+</tr>
+</tbody>
+</table>
+<p>一条 UPDATE 的完整日志流程：Undo 记录旧值 → Buffer Pool 修改 → Redo Log Buffer 写入 → Binlog Cache 写入 → 两阶段提交（Redo prepare → Binlog write → Redo commit）。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>配置建议：<code>innodb_flush_log_at_trx_commit=1</code>（最安全）、<code>binlog_format=ROW</code>、<code>sync_binlog=1</code>。</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>两阶段提交保证 Redo Log 和 Binlog 的一致性——崩溃恢复时，Binlog 有记录则重做，无记录则回滚。</p>
+<hr />
+<h2 id="22">第22题：什么是两阶段提交？</h2>
+<h3 id="_51">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "两阶段 = 表决 + 执行——先问大家能不能（Prepare），再统一说开始（Commit）"</p>
+<h3 id="_52">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>两阶段提交（Two-Phase Commit, 2PC）是一种分布式事务协议，确保多个节点要么全部提交要么全部回滚。</p>
+<p>两个角色：协调者（Coordinator/TM）和参与者（Participants/RM）。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>第一阶段（Prepare）：协调者问所有参与者"能提交吗？"——参与者写日志、锁资源、回复 yes/no。<br />
+第二阶段（Commit/Abort）：都 yes 则 commit，任一 no 则 abort。</p>
+<p>MySQL 中的应用：Redo Log prepare → Binlog write → Redo Log commit。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">prepare</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">txId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">RM</span><span class="w"> </span><span class="n">rm</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">participants</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">boolean</span><span class="w"> </span><span class="n">ready</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rm</span><span class="p">.</span><span class="na">prepare</span><span class="p">(</span><span class="n">txId</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ready</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>2PC 三大问题：同步阻塞、单点故障、脑裂风险。替代方案：TCC、Saga、Seata AT、消息队列最终一致性。</p>
+<hr />
+<h2 id="23">第23题：多线程写一个死锁</h2>
+<h3 id="_53">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "死锁四条件——互斥 + 持有等待 + 不可剥夺 + 循环等待——写死锁就是构造一个循环依赖"</p>
+<h3 id="_54">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>死锁（Deadlock）是多个线程互相等待对方持有的资源，导致所有线程无法继续执行的状态。</p>
+<p>四个必要条件：互斥、持有并等待、不可剥夺、循环等待。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>最常见模式：交叉锁（线程 A 拿锁 1 等锁 2，线程 B 拿锁 2 等锁 1）。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 死锁代码</span>
+<span class="n">Thread</span><span class="w"> </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">resourceA</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w">  </span><span class="c1">// 确保死锁发生</span>
+<span class="w">        </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">resourceB</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">});</span>
+<span class="n">Thread</span><span class="w"> </span><span class="n">t2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">resourceB</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+<span class="w">        </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">resourceA</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">});</span>
+
+<span class="c1">// 防止死锁：固定锁顺序</span>
+<span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">first</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">second</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>生产环境定位：jstack 查看 BLOCKED 线程链、ThreadMXBean.findDeadlockedThreads()、Arthas。</p>
+<hr />
+<h2 id="24">第24题：随便写一个单例模式</h2>
+<h3 id="_55">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "饿汉（类加载就创建） vs 懒汉（需要时才创建）——用双重检查锁定的懒汉最完美"</p>
+<h3 id="_56">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>单例模式（Singleton Pattern）确保一个类在整个 JVM 生命周期中只有一个实例。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>需要解决：单一实例、线程安全、延迟加载。</p>
+<p><strong>3. 实践应用（怎么用）</strong></p>
+<p>四种写法：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 1. 饿汉式（最简单）</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SingletonEager</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">SingletonEager</span><span class="w"> </span><span class="n">INSTANCE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SingletonEager</span><span class="p">();</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="nf">SingletonEager</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">SingletonEager</span><span class="w"> </span><span class="nf">getInstance</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">INSTANCE</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 2. 双重检查锁定（推荐面试）</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SingletonDCL</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">volatile</span><span class="w"> </span><span class="n">SingletonDCL</span><span class="w"> </span><span class="n">instance</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="nf">SingletonDCL</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">SingletonDCL</span><span class="w"> </span><span class="nf">getInstance</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">instance</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">SingletonDCL</span><span class="p">.</span><span class="na">class</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">instance</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SingletonDCL</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">instance</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 3. 静态内部类（推荐生产）</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SingletonHolder</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="nf">SingletonHolder</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Holder</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">SingletonHolder</span><span class="w"> </span><span class="n">INSTANCE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SingletonHolder</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">SingletonHolder</span><span class="w"> </span><span class="nf">getInstance</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Holder</span><span class="p">.</span><span class="na">INSTANCE</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 4. 枚举（最安全，防反射/序列化）</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">enum</span><span class="w"> </span><span class="n">SingletonEnum</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">INSTANCE</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>volatile 防止 new Singleton() 指令重排序。Spring 单例是"容器级"，不是"JVM 级"。</p>
+<hr />
+<h2 id="25">第25题：算法：合并两个有序数组</h2>
+<h3 id="_57">联想记忆法</h3>
+<p><strong>记忆口诀</strong>: "双指针从后往前——不用额外空间，大的插到末尾"</p>
+<h3 id="_58">深度解答</h3>
+<p><strong>1. 核心概念（是什么）</strong></p>
+<p>给定两个升序数组 nums1（长度 m+n，前 m 个有效）和 nums2（长度 n），原地合并到 nums1 中。</p>
+<p><strong>2. 底层原理（为什么）</strong></p>
+<p>从后往前双指针：p1=m-1、p2=n-1、p=m+n-1。比较 nums1[p1] 和 nums2[p2]，大的放到 nums1[p]。</p>
+<p><strong>3. 实践应用（怎么写）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">nums1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">nums2</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">nums1</span><span class="o">[</span><span class="n">k</span><span class="o">--]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">--]</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">nums1</span><span class="o">[</span><span class="n">k</span><span class="o">--]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">--]</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>复杂度：O(m+n) 时间，O(1) 空间。</p>
+<p><strong>4. 深入思考（注意事项）</strong></p>
+<p>从后往前利用了末尾空位，实现了原地合并。边界条件：p1 &lt; 0 时只需将 nums2 剩余元素填入。</p>
+<hr />
+<h2 id="_59">文档信息</h2>
+<ul>
+<li>本文档由 Interview Coach Agent 自动生成</li>
+<li>采用 Harness Engineering 架构：多 Agent 协作 + 质量门控 + 自动部署</li>
+<li>每道题包含：联想记忆法 → 深度解答 → 回答思路</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 系统设计<br />
+🏷️ <strong>标签</strong>: <code>profiling</code> <code>consumption</code> <code>token</code><br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-07-24 09:33:50</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0131')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0131')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

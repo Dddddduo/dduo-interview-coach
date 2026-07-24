@@ -1,16 +1,16 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-23T10:21:19",
-    "total_questions": 110
+    "last_updated": "2026-07-24T09:33:50",
+    "total_questions": 135
   },
-  "total": 110,
+  "total": 135,
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 79
+      "count": 84
     },
     "python": {
       "name": "Python",
@@ -28,7 +28,7 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 10
+      "count": 12
     },
     "redis": {
       "name": "Redis / 缓存",
@@ -64,13 +64,13 @@
       "name": "行为面试",
       "icon": "🎯",
       "description": "项目经历、团队协作、职业规划",
-      "count": 3
+      "count": 4
     },
     "system-design": {
       "name": "系统设计",
       "icon": "🏗️",
       "description": "架构设计、高并发、高可用",
-      "count": 0
+      "count": 17
     },
     "frontend": {
       "name": "前端开发",
@@ -87,7 +87,7 @@
   },
   "cat_stats": {
     "mysql": {
-      "count": 10
+      "count": 12
     },
     "os": {
       "count": 4
@@ -96,10 +96,10 @@
       "count": 5
     },
     "behavioral": {
-      "count": 3
+      "count": 4
     },
     "java": {
-      "count": 79
+      "count": 84
     },
     "devops": {
       "count": 1
@@ -112,9 +112,16 @@
     },
     "network": {
       "count": 1
+    },
+    "system-design": {
+      "count": 17
     }
   },
   "top_tags": [
+    {
+      "tag": "agent",
+      "count": 8
+    },
     {
       "tag": "分布式",
       "count": 5
@@ -190,13 +197,10 @@
     {
       "tag": "行为面试",
       "count": 2
-    },
-    {
-      "tag": "JVM",
-      "count": 2
     }
   ],
   "dates": [
+    "2026-07-24",
     "2026-07-23",
     "2026-07-17",
     "2026-07-04"
@@ -1753,6 +1757,394 @@
         "source": "用户输入",
         "hash": "90219ba0"
       }
+    ],
+    "2026-07-24": [
+      {
+        "id": "q0115",
+        "question": "Agent中的Workflow、Planner和策略模型分别解决什么问题？",
+        "category": "system-design",
+        "tags": [
+          "policy",
+          "workflow",
+          "planner",
+          "agent"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/Agent中的WorkflowPlanner和策略模型分别解决什么问题.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "3d5d800e"
+      },
+      {
+        "id": "q0116",
+        "question": "多轮Agent的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？",
+        "category": "system-design",
+        "tags": [
+          "hierarchical",
+          "memory",
+          "context",
+          "agent"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/多轮Agent的记忆全部放进上下文会出现什么问题应该如何设计分层记忆.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "ca69cbf3"
+      },
+      {
+        "id": "q0117",
+        "question": "MCP的Host、Client、Server如何协作？协议层为什么不能自动解决安全问题？",
+        "category": "system-design",
+        "tags": [
+          "mcp",
+          "protocol",
+          "security"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/MCP的HostClientServer如何协作协议层为什么不能自动解决安全问题.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "8d0785fe"
+      },
+      {
+        "id": "q0118",
+        "question": "如何为一个会调用外部工具的Agent建立可复现评测？",
+        "category": "system-design",
+        "tags": [
+          "evaluation",
+          "reproducible",
+          "agent"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/如何为一个会调用外部工具的Agent建立可复现评测.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "d1630d22"
+      },
+      {
+        "id": "q0119",
+        "question": "ReAct Agent为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？",
+        "category": "system-design",
+        "tags": [
+          "detection",
+          "react",
+          "loop",
+          "agent"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/ReAct-Agent为什么容易陷入循环如何在不误杀正常重试的情况下终止循环.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "2f858054"
+      },
+      {
+        "id": "q0120",
+        "question": "Agent怎样抵御工具返回内容中的间接提示注入？",
+        "category": "system-design",
+        "tags": [
+          "injection",
+          "defense",
+          "agent",
+          "security"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/Agent怎样抵御工具返回内容中的间接提示注入.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "6d7d324b"
+      },
+      {
+        "id": "q0121",
+        "question": "什么是RAG，和直接让大模型回答有什么区别？",
+        "category": "system-design",
+        "tags": [
+          "generation",
+          "retrieval",
+          "rag"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/什么是RAG和直接让大模型回答有什么区别.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "dbc17eda"
+      },
+      {
+        "id": "q0122",
+        "question": "Agent和普通工作流有什么区别？",
+        "category": "system-design",
+        "tags": [
+          "agent",
+          "workflow",
+          "difference"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/Agent和普通工作流有什么区别.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "abe991cd"
+      },
+      {
+        "id": "q0123",
+        "question": "项目中挑战最大的是什么？",
+        "category": "behavioral",
+        "tags": [
+          "project",
+          "star",
+          "challenge"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/behavioral/项目中挑战最大的是什么.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "c6a89ad1"
+      },
+      {
+        "id": "q0124",
+        "question": "出现幻觉怎么处理？",
+        "category": "system-design",
+        "tags": [
+          "hallucination",
+          "llm",
+          "mitigation"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/出现幻觉怎么处理.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "b757eadd"
+      },
+      {
+        "id": "q0125",
+        "question": "提示词具体是怎么做？",
+        "category": "system-design",
+        "tags": [
+          "engineering",
+          "prompt",
+          "template"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/提示词具体是怎么做.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "6b9933b4"
+      },
+      {
+        "id": "q0126",
+        "question": "还有其他提示词吗？",
+        "category": "system-design",
+        "tags": [
+          "patterns",
+          "types",
+          "prompt"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/还有其他提示词吗.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "cbe6ed74"
+      },
+      {
+        "id": "q0127",
+        "question": "Agent的短期长期记忆是怎么实现的？",
+        "category": "system-design",
+        "tags": [
+          "term",
+          "long",
+          "memory",
+          "short",
+          "agent"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/Agent的短期长期记忆是怎么实现的.md",
+        "created": "2026-07-24 09:33:49",
+        "source": "校招面试",
+        "hash": "3fbaf645"
+      },
+      {
+        "id": "q0128",
+        "question": "如果让你设计一个Agent要考虑哪些模块？",
+        "category": "system-design",
+        "tags": [
+          "modules",
+          "agent",
+          "design",
+          "architecture"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/system-design/如果让你设计一个Agent要考虑哪些模块.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "5db1db5b"
+      },
+      {
+        "id": "q0129",
+        "question": "如果遇到api超时和报错怎么解决？",
+        "category": "system-design",
+        "tags": [
+          "error",
+          "api",
+          "retry",
+          "resilience"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/如果遇到api超时和报错怎么解决.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "75f45bdd"
+      },
+      {
+        "id": "q0130",
+        "question": "有没有考虑用大模型自己排除api超时和报错？",
+        "category": "system-design",
+        "tags": [
+          "hybrid",
+          "llm",
+          "handling",
+          "error"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/有没有考虑用大模型自己排除api超时和报错.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "69c371db"
+      },
+      {
+        "id": "q0131",
+        "question": "消耗token过快怎么排查？",
+        "category": "system-design",
+        "tags": [
+          "profiling",
+          "consumption",
+          "token"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/system-design/消耗token过快怎么排查.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "1747be6c"
+      },
+      {
+        "id": "q0132",
+        "question": "讲一下java线程池？",
+        "category": "java",
+        "tags": [
+          "executor",
+          "concurrent",
+          "threadpool"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/java/讲一下java线程池.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "d943f48d"
+      },
+      {
+        "id": "q0133",
+        "question": "如果你重新设计一个线程池会怎么设计？",
+        "category": "java",
+        "tags": [
+          "threadpool",
+          "redesign",
+          "adaptive"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/java/如果你重新设计一个线程池会怎么设计.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "71be0b50"
+      },
+      {
+        "id": "q0134",
+        "question": "怎么把class文件加载到jvm中？",
+        "category": "java",
+        "tags": [
+          "jvm",
+          "delegation",
+          "classloading"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/java/怎么把class文件加载到jvm中.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "83e91397"
+      },
+      {
+        "id": "q0135",
+        "question": "mysql的undolog，redolog，binlog区别和场景？",
+        "category": "mysql",
+        "tags": [
+          "log",
+          "undo",
+          "binlog",
+          "redo"
+        ],
+        "difficulty": "hard",
+        "file": "questions/database/mysql/mysql的undologredologbinlog区别和场景.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "d55664d9"
+      },
+      {
+        "id": "q0136",
+        "question": "什么是两阶段提交？",
+        "category": "mysql",
+        "tags": [
+          "transaction",
+          "phase",
+          "two",
+          "commit"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/mysql/什么是两阶段提交.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "54f25c95"
+      },
+      {
+        "id": "q0137",
+        "question": "多线程写一个死锁",
+        "category": "java",
+        "tags": [
+          "deadlock",
+          "multithreading"
+        ],
+        "difficulty": "medium",
+        "file": "questions/database/java/多线程写一个死锁.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "70ca1697"
+      },
+      {
+        "id": "q0138",
+        "question": "随便写一个单例模式",
+        "category": "java",
+        "tags": [
+          "pattern",
+          "singleton"
+        ],
+        "difficulty": "easy",
+        "file": "questions/database/java/随便写一个单例模式.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "8e33914e"
+      },
+      {
+        "id": "q0139",
+        "question": "算法：合并两个有序数组",
+        "category": "system-design",
+        "tags": [
+          "algorithm",
+          "array",
+          "pointers",
+          "merge",
+          "算法"
+        ],
+        "difficulty": "easy",
+        "file": "questions/database/system-design/算法合并两个有序数组.md",
+        "created": "2026-07-24 09:33:50",
+        "source": "校招面试",
+        "hash": "83f8dad2"
+      }
     ]
   },
   "questions": [
@@ -3301,6 +3693,392 @@
       "created": "2026-07-23 10:21:19",
       "source": "用户输入",
       "hash": "90219ba0"
+    },
+    {
+      "id": "q0115",
+      "question": "Agent中的Workflow、Planner和策略模型分别解决什么问题？",
+      "category": "system-design",
+      "tags": [
+        "policy",
+        "workflow",
+        "planner",
+        "agent"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/Agent中的WorkflowPlanner和策略模型分别解决什么问题.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "3d5d800e"
+    },
+    {
+      "id": "q0116",
+      "question": "多轮Agent的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？",
+      "category": "system-design",
+      "tags": [
+        "hierarchical",
+        "memory",
+        "context",
+        "agent"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/多轮Agent的记忆全部放进上下文会出现什么问题应该如何设计分层记忆.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "ca69cbf3"
+    },
+    {
+      "id": "q0117",
+      "question": "MCP的Host、Client、Server如何协作？协议层为什么不能自动解决安全问题？",
+      "category": "system-design",
+      "tags": [
+        "mcp",
+        "protocol",
+        "security"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/MCP的HostClientServer如何协作协议层为什么不能自动解决安全问题.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "8d0785fe"
+    },
+    {
+      "id": "q0118",
+      "question": "如何为一个会调用外部工具的Agent建立可复现评测？",
+      "category": "system-design",
+      "tags": [
+        "evaluation",
+        "reproducible",
+        "agent"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/如何为一个会调用外部工具的Agent建立可复现评测.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "d1630d22"
+    },
+    {
+      "id": "q0119",
+      "question": "ReAct Agent为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？",
+      "category": "system-design",
+      "tags": [
+        "detection",
+        "react",
+        "loop",
+        "agent"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/ReAct-Agent为什么容易陷入循环如何在不误杀正常重试的情况下终止循环.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "2f858054"
+    },
+    {
+      "id": "q0120",
+      "question": "Agent怎样抵御工具返回内容中的间接提示注入？",
+      "category": "system-design",
+      "tags": [
+        "injection",
+        "defense",
+        "agent",
+        "security"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/Agent怎样抵御工具返回内容中的间接提示注入.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "6d7d324b"
+    },
+    {
+      "id": "q0121",
+      "question": "什么是RAG，和直接让大模型回答有什么区别？",
+      "category": "system-design",
+      "tags": [
+        "generation",
+        "retrieval",
+        "rag"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/什么是RAG和直接让大模型回答有什么区别.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "dbc17eda"
+    },
+    {
+      "id": "q0122",
+      "question": "Agent和普通工作流有什么区别？",
+      "category": "system-design",
+      "tags": [
+        "agent",
+        "workflow",
+        "difference"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/Agent和普通工作流有什么区别.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "abe991cd"
+    },
+    {
+      "id": "q0123",
+      "question": "项目中挑战最大的是什么？",
+      "category": "behavioral",
+      "tags": [
+        "project",
+        "star",
+        "challenge"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/behavioral/项目中挑战最大的是什么.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "c6a89ad1"
+    },
+    {
+      "id": "q0124",
+      "question": "出现幻觉怎么处理？",
+      "category": "system-design",
+      "tags": [
+        "hallucination",
+        "llm",
+        "mitigation"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/出现幻觉怎么处理.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "b757eadd"
+    },
+    {
+      "id": "q0125",
+      "question": "提示词具体是怎么做？",
+      "category": "system-design",
+      "tags": [
+        "engineering",
+        "prompt",
+        "template"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/提示词具体是怎么做.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "6b9933b4"
+    },
+    {
+      "id": "q0126",
+      "question": "还有其他提示词吗？",
+      "category": "system-design",
+      "tags": [
+        "patterns",
+        "types",
+        "prompt"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/还有其他提示词吗.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "cbe6ed74"
+    },
+    {
+      "id": "q0127",
+      "question": "Agent的短期长期记忆是怎么实现的？",
+      "category": "system-design",
+      "tags": [
+        "term",
+        "long",
+        "memory",
+        "short",
+        "agent"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/Agent的短期长期记忆是怎么实现的.md",
+      "created": "2026-07-24 09:33:49",
+      "source": "校招面试",
+      "hash": "3fbaf645"
+    },
+    {
+      "id": "q0128",
+      "question": "如果让你设计一个Agent要考虑哪些模块？",
+      "category": "system-design",
+      "tags": [
+        "modules",
+        "agent",
+        "design",
+        "architecture"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/system-design/如果让你设计一个Agent要考虑哪些模块.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "5db1db5b"
+    },
+    {
+      "id": "q0129",
+      "question": "如果遇到api超时和报错怎么解决？",
+      "category": "system-design",
+      "tags": [
+        "error",
+        "api",
+        "retry",
+        "resilience"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/如果遇到api超时和报错怎么解决.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "75f45bdd"
+    },
+    {
+      "id": "q0130",
+      "question": "有没有考虑用大模型自己排除api超时和报错？",
+      "category": "system-design",
+      "tags": [
+        "hybrid",
+        "llm",
+        "handling",
+        "error"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/有没有考虑用大模型自己排除api超时和报错.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "69c371db"
+    },
+    {
+      "id": "q0131",
+      "question": "消耗token过快怎么排查？",
+      "category": "system-design",
+      "tags": [
+        "profiling",
+        "consumption",
+        "token"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/system-design/消耗token过快怎么排查.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "1747be6c"
+    },
+    {
+      "id": "q0132",
+      "question": "讲一下java线程池？",
+      "category": "java",
+      "tags": [
+        "executor",
+        "concurrent",
+        "threadpool"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/讲一下java线程池.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "d943f48d"
+    },
+    {
+      "id": "q0133",
+      "question": "如果你重新设计一个线程池会怎么设计？",
+      "category": "java",
+      "tags": [
+        "threadpool",
+        "redesign",
+        "adaptive"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/java/如果你重新设计一个线程池会怎么设计.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "71be0b50"
+    },
+    {
+      "id": "q0134",
+      "question": "怎么把class文件加载到jvm中？",
+      "category": "java",
+      "tags": [
+        "jvm",
+        "delegation",
+        "classloading"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/怎么把class文件加载到jvm中.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "83e91397"
+    },
+    {
+      "id": "q0135",
+      "question": "mysql的undolog，redolog，binlog区别和场景？",
+      "category": "mysql",
+      "tags": [
+        "log",
+        "undo",
+        "binlog",
+        "redo"
+      ],
+      "difficulty": "hard",
+      "file": "questions/database/mysql/mysql的undologredologbinlog区别和场景.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "d55664d9"
+    },
+    {
+      "id": "q0136",
+      "question": "什么是两阶段提交？",
+      "category": "mysql",
+      "tags": [
+        "transaction",
+        "phase",
+        "two",
+        "commit"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/什么是两阶段提交.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "54f25c95"
+    },
+    {
+      "id": "q0137",
+      "question": "多线程写一个死锁",
+      "category": "java",
+      "tags": [
+        "deadlock",
+        "multithreading"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/多线程写一个死锁.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "70ca1697"
+    },
+    {
+      "id": "q0138",
+      "question": "随便写一个单例模式",
+      "category": "java",
+      "tags": [
+        "pattern",
+        "singleton"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/java/随便写一个单例模式.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "8e33914e"
+    },
+    {
+      "id": "q0139",
+      "question": "算法：合并两个有序数组",
+      "category": "system-design",
+      "tags": [
+        "algorithm",
+        "array",
+        "pointers",
+        "merge",
+        "算法"
+      ],
+      "difficulty": "easy",
+      "file": "questions/database/system-design/算法合并两个有序数组.md",
+      "created": "2026-07-24 09:33:50",
+      "source": "校招面试",
+      "hash": "83f8dad2"
     }
   ]
 }

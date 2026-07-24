@@ -1,0 +1,1179 @@
+---
+id: q0135
+question: "mysql的undolog，redolog，binlog区别和场景？"
+category: mysql
+tags: ["log", "undo", "binlog", "redo"]
+difficulty: hard
+created: 2026-07-24 09:33:50
+source: 校招面试
+---
+
+# mysql的undolog，redolog，binlog区别和场景？
+
+# 面经深度解答文档
+
+> **生成时间**: 2026-07-24 09:31
+> **题目数量**: 25 道
+> **生成工具**: Interview Coach Agent (Harness Engineering)
+
+---
+
+## 目录
+
+- [第1题：Agent 中的 Workflow、Planner 和策略模型分别解决什么问题？](#第1题agent-中的-workflowplanner-和策略模型分别解决什么问题)
+- [第2题：多轮 Agent 的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？](#第2题多轮-agent-的记忆全部放进上下文会出现什么问题应该如何设计分层记忆)
+- [第3题：MCP 的 Host、Client、Server 如何协作？协议层为什么不能自动解决安全问题？](#第3题mcp-的-hostclientserver-如何协作协议层为什么不能自动解决安全问题)
+- [第4题：如何为一个会调用外部工具的 Agent 建立可复现评测？](#第4题如何为一个会调用外部工具的-agent-建立可复现评测)
+- [第5题：ReAct Agent 为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？](#第5题react-agent-为什么容易陷入循环如何在不误杀正常重试的情况下终止循环)
+- [第6题：Agent 怎样抵御工具返回内容中的间接提示注入？](#第6题agent-怎样抵御工具返回内容中的间接提示注入)
+- [第7题：什么是 RAG，和直接让大模型回答有什么区别？](#第7题什么是-rag和直接让大模型回答有什么区别)
+- [第8题：Agent 和普通工作流有什么区别？](#第8题agent-和普通工作流有什么区别)
+- [第9题：项目中挑战最大的是什么？](#第9题项目中挑战最大的是什么)
+- [第10题：出现幻觉怎么处理？](#第10题出现幻觉怎么处理)
+- [第11题：提示词具体是怎么做？](#第11题提示词具体是怎么做)
+- [第12题：还有其他提示词吗？](#第12题还有其他提示词吗)
+- [第13题：Agent的短期长期记忆是怎么实现的？](#第13题agent的短期长期记忆是怎么实现的)
+- [第14题：如果让你设计一个Agent要考虑哪些模块？](#第14题如果让你设计一个agent要考虑哪些模块)
+- [第15题：如果遇到api超时和报错怎么解决？](#第15题如果遇到api超时和报错怎么解决)
+- [第16题：有没有考虑用大模型自己排除api超时和报错？](#第16题有没有考虑用大模型自己排除api超时和报错)
+- [第17题：消耗token过快怎么排查？](#第17题消耗token过快怎么排查)
+- [第18题：讲一下java线程池？](#第18题讲一下java线程池)
+- [第19题：如果你重新设计一个线程池会怎么设计？](#第19题如果你重新设计一个线程池会怎么设计)
+- [第20题：怎么把class文件加载到jvm中？](#第20题怎么把class文件加载到jvm中)
+- [第21题：mysql的undolog，redolog，binlog区别和场景？](#第21题mysql的undologredologbinlog区别和场景)
+- [第22题：什么是两阶段提交？](#第22题什么是两阶段提交)
+- [第23题：多线程写一个死锁](#第23题多线程写一个死锁)
+- [第24题：随便写一个单例模式](#第24题随便写一个单例模式)
+- [第25题：算法：合并两个有序数组](#第25题算法合并两个有序数组)
+
+---
+
+## 第1题：Agent 中的 Workflow、Planner 和策略模型分别解决什么问题？
+
+### 联想记忆法
+
+**记忆口诀**: "做菜三步——Workflow 是菜谱顺序，Planner 是临场调整，策略模型是火候判断"
+
+**记忆原理**: 用厨房做菜类比——菜谱规定了步骤顺序（Workflow），但油温不够时你会先处理其他配菜（Planner），最后根据食材状态决定大火爆炒还是小火慢炖（策略模型）。三个层次层层递进，从固定流程到动态规划到决策判断。
+
+**关联知识**: 如果你熟悉软件开发的分层架构（Controller → Service → DAO），可以类比理解：Workflow 是 Controller（编排），Planner 是 Service（逻辑），策略模型是 DAO 的查询优化器（决策）。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+Agent 架构中，Workflow（工作流）、Planner（规划器）和策略模型（Policy Model）是三个不同抽象层级的行为控制机制，分别解决"做什么、按什么顺序做"、"怎么做、走哪条路"、"选什么方式、用什么力度"的问题。
+
+- **Workflow（工作流）**：预定义的、结构化的执行步骤序列。它将 Agent 的行为分解为可编排的阶段，每个阶段有明确的输入、处理和输出。典型如 LangGraph 中的 StateGraph、AutoGen 中的对话流程。
+- **Planner（规划器）**：动态生成执行计划的组件。Workflow 是固定的，而 Planner 根据当前任务和目标，实时拆解子目标、决定子任务顺序。典型如 ReAct 中的 thought-action-observation 循环、Plan-and-Solve 中的两步规划法。
+- **策略模型（Policy Model）**：在特定状态下选择最优动作的决策模型。Planner 做"规划"（分解为子任务），策略模型做"决策"（在当前状态选哪个动作）。典型如 RL-based agent 中的 policy network、LLM-based agent 中的 few-shot prompting 策略。
+
+**2. 底层原理（为什么）**
+
+这三个组件解决的是不同粒度的控制问题，按抽象程度从高到低排列：
+
+**Workflow 解决"流程确定性"问题**。在复杂 Agent 系统中，很多步骤的顺序是确定的：先收集信息、再分析、再决策、再执行。Workflow 通过有向图（DAG）或状态机来建模这些步骤，确保 Agent 不会跳过关键环节。其本质是一种编译时确定的控制流，牺牲灵活性换取可靠性。
+
+**Planner 解决"任务分解与资源分配"问题**。当任务过于复杂时，Agent 需要将其拆解为可执行的子任务。Planner 的核心机制是 hierarchical task decomposition（层次化任务分解），类似人类面对复杂问题时的"分治"策略。它生成一个有向无环图（DAG）或树形结构，描述子任务的依赖关系。
+
+**策略模型解决"局部最优决策"问题**。给定当前状态（state），Agent 需要选择收益最大的动作（action）。策略模型的核心是 decision theory（决策理论），在不确定环境中最大化期望回报。对于 LLM Agent，策略模型通常是通过 in-context learning（上下文学习）或 reinforcement learning（强化学习）训练的。
+
+三者关系：Workflow 定义宏观框架，Planner 在框架内生成任务路径，策略模型在路径的每个节点做出具体动作选择。
+
+**3. 实践应用（怎么用）**
+
+以构建一个代码审查 Agent 为例：
+
+```python
+# Workflow 层：定义固定流程
+class CodeReviewWorkflow:
+    def run(self, pr_url):
+        diff = self.fetch_diff(pr_url)
+        issues = self.static_analyze(diff)
+        review = self.generate_review(diff, issues)
+        self.post_comment(pr_url, review)
+        return review
+
+# Planner 层：当代码量过大时动态分片
+class CodeReviewPlanner:
+    def plan(self, diff):
+        files = self.parse_diff(diff)
+        if self.total_lines(diff) > 1000:
+            return self.split_into_batches(files)
+        return [diff]
+
+# 策略模型层：在每个阶段选择最优策略
+class ReviewPolicy:
+    def select_strategy(self, file_type):
+        if file_type == "python":
+            return "pylint + mypy"
+        elif file_type == "javascript":
+            return "eslint + prettier"
+        else:
+            return "general static analysis"
+```
+
+**4. 深入思考（注意事项）**
+
+- **Workflow 过死 vs Planner 过活**：Workflow 太固定无法应对异常，Planner 太自由可能导致无限循环。实际工程中常采用"固定骨架+灵活节点"的混合模式。
+- **策略模型的计算开销**：在每个决策点都调用策略模型（尤其是 LLM）会带来巨大的 token 成本和延迟。需要引入 caching、batching、以及规则兜底。
+- **常见面试追问**："能举个例子说明什么时候需要 Planner 而不只是 Workflow 吗？"——当任务不确定性强时（如"帮我写一份市场调研报告"），Planner 动态决定搜索哪些信息；而固定 Workflow 适合确定任务（如"每天9点抓取数据生成报表"）。
+
+### 回答思路
+
+**答题逻辑框架**: 分层定义 → 分别解决什么问题 → 三者关系 → 实际案例 → 注意事项
+
+**重点得分点**: 1. 能把三个概念清晰区分并说明粒度不同 2. 能用类比或实际案例说明 3. 能指出现实中如何结合使用
+
+**常见误区**: ❌ 把 Planner 和策略模型混为一谈 ❌ 只背定义不理解三者如何协作
+
+**时间分配建议**: 定义 30s → 各自解决的问题 90s → 三者关系 30s → 案例 60s → 注意事项 30s（总计 4 分钟）
+
+---
+
+## 第2题：多轮 Agent 的记忆全部放进上下文会出现什么问题？应该如何设计分层记忆？
+
+### 联想记忆法
+
+**记忆口诀**: "全塞进窗口→窗口撑爆→分层存储像图书馆：借阅区（短期）、书架（长期）、仓库（持久）"
+
+**记忆原理**: 想象一个图书馆——你不可能把看过的所有书都堆在桌面上（上下文窗口），只能放当前正在读的几本（短期记忆）。读完后放回书架（长期记忆），特别重要的归档到仓库（持久存储）。图书馆员（Agent）需要的时候再去取。
+
+**关联知识**: 计算机体系结构中的缓存分层（L1/L2/L3 Cache → RAM → Disk），每一层容量更大但速度更慢。Agent 的记忆分层设计与之间构。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+多轮 Agent 的记忆（Memory）是指 Agent 在多次交互中维持和利用历史信息的能力。如果将所有历史记忆全部放入大语言模型的上下文窗口（Context Window），会导致一系列严重问题。
+
+分层记忆（Hierarchical Memory）是将记忆按照重要性、时效性、访问频率等维度分层存储和检索的架构设计，通常分为三层：短期记忆（Short-term Memory）、长期记忆（Long-term Memory）和持久存储（Persistent Storage）。
+
+**2. 底层原理（为什么）**
+
+**全部放进上下文的四个核心问题：**
+
+1. **上下文窗口溢出（Context Window Overflow）**：LLM 有固定的 token 限制（如 Claude 3 的 200K、GPT-4 的 128K）。多轮对话积累的 token 必然超过限制。
+2. **注意力衰减（Attention Degradation）**：Transformer 的 self-attention 机制的计算复杂度是 O(n²)，窗口越大推理速度越慢。更关键的是，长上下文中的早期信息在 attention 分数中会被淹没——这叫 lost-in-the-middle 现象（中间丢失问题）。
+3. **Token 成本爆炸**：每次请求都将全部历史传入，token 消耗线性增长。
+4. **信号噪声比下降（Signal-to-Noise Ratio Degradation）**：大量无关的历史信息会稀释关键信号的比重。
+
+**分层记忆的设计：**
+
+```
+短期记忆 (Working Memory) → 当前对话上下文（滑动窗口）
+中期记忆 (Summary Memory) → 压缩的对话摘要
+长期记忆 (Episodic Memory) → 向量数据库中的重要信息
+持久存储 (Semantic Memory) → 关系型数据库中的用户配置
+```
+
+**3. 实践应用（怎么用）**
+
+```python
+class HierarchicalMemory:
+    def __init__(self):
+        self.short_term = deque(maxlen=10)
+        self.medium_term = []
+        self.long_term = VectorStore()
+        self.persistent = SQLiteStore()
+
+    def add_interaction(self, user_msg, agent_msg, importance_score):
+        self.short_term.append(...)
+        if importance_score > 0.8:
+            embedding = self.embed(agent_msg)
+            self.long_term.store(embedding, agent_msg)
+
+    def retrieve(self, query, top_k=5):
+        short_results = self.search_short_term(query)
+        long_results = self.long_term.search(query, top_k)
+        return short_results + long_results
+```
+
+**4. 深入思考（注意事项）**
+
+- **记忆回滚与一致性**：当 Agent 错误地记住某些信息（幻觉固化），需要提供"遗忘"机制
+- **隐私与安全**：用户数据在多轮后仍然存在于持久存储中，需要设计数据保留策略
+- **面试追问**："如果用户中途修改了需求，分层记忆如何正确更新而非保留旧信息？"——需要引入置信度衰减机制
+
+### 回答思路
+
+**答题逻辑框架**: 指出问题（4个问题）→ 引出分层记忆方案 → 三层架构详解 → 代码实现
+
+**重点得分点**: 1. 必须提到 lost-in-the-middle 现象 2. 用具体数字说明成本问题 3. 给出缓存层级类比
+
+**时间分配建议**: 问题分析 60s → 分层设计 90s → 代码演示 60s → 注意事项 30s（总计 4 分钟）
+
+---
+
+## 第3题：MCP 的 Host、Client、Server 如何协作？协议层为什么不能自动解决安全问题？
+
+### 联想记忆法
+
+**记忆口诀**: "Host 订餐、Client 点菜、Server 做菜——但菜单（协议）不能保证食材安全无毒"
+
+**记忆原理**: 用餐厅场景映射 MCP 架构：Host 是顾客（决定要吃什么），Client 是服务员（负责下单传菜），Server 是厨房（实际制作）。协议层（菜单格式）规定了菜品如何描述、如何传送，但是无法保证厨房用的食材没有毒——安全问题超出协议范围。
+
+**关联知识**: 类比 HTTP/HTTPS——HTTP 协议定义了请求响应的格式（相当于 MCP 协议层），但 HTTPS（在协议之外加了一层 TLS）才能提供安全保证。安全永远是协议之上的问题。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+MCP（Model Context Protocol）是一种开放标准协议，用于在 AI 应用（尤其是 LLM Agent）与外部工具/数据源之间建立安全、标准化的通信。三个核心角色：
+
+- **Host**：AI 应用的前端或编排层（如 Claude Desktop），负责管理会话状态和权限策略
+- **Client**：在 Host 内运行，负责与 MCP Server 建立连接、发送请求、接收响应
+- **Server**：对外暴露工具（Tools）、资源（Resources）和提示（Prompts）的后端服务
+
+**2. 底层原理（为什么）**
+
+**协议层不能自动解决安全问题的本质原因：**
+
+安全问题是**语义层面**的，而协议层是**语法层面**的：
+1. 协议定义"如何通信"，不定义"通信内容是否安全"
+2. 权限决策需要业务上下文——同一个操作在不同上下文中安全性不同
+3. 间接注入攻击（Indirect Prompt Injection）：工具返回内容可能包含恶意指令，协议层只负责传输字符串
+4. 审计和问责需要额外的日志系统和追溯机制
+
+**3. 实践应用（怎么用）**
+
+```typescript
+// Host 层：权限策略
+class SecurityPolicy {
+  canExecute(toolName: string, args: any, user: User): boolean {
+    if (toolName === "execute_command" && args.command.startsWith("rm ")) {
+      return user.role === "admin";
+    }
+    return true;
+  }
+}
+```
+
+**4. 深入思考（注意事项）**
+
+- **传输层安全 vs 应用层安全**：MCP 可以通过 TLS 加密通信，但不等于应用层安全
+- **Server 端的安全责任**：Server 必须自己实现认证和授权
+- **最小权限原则（Principle of Least Privilege）**：Host 应为不同场景配置不同权限级别的 Client
+
+### 回答思路
+
+**答题逻辑框架**: MCP 是什么 → 三个角色如何协作 → 为什么协议层不安全 → 实践中怎么做安全
+
+**重点得分点**: 1. 清晰区分"语法层面安全 vs 语义层面安全" 2. 用具体的攻击场景说明 3. 展示工程化的安全实践
+
+**时间分配建议**: MCP 简介 30s → 协作流程 90s → 安全问题分析 60s → 安全实践 60s（总计 4 分钟）
+
+---
+
+## 第4题：如何为一个会调用外部工具的 Agent 建立可复现评测？
+
+### 联想记忆法
+
+**记忆口诀**: "TURTLE 法则——T 测试用例池、U 统一沙箱、R 记录回放、T 时序冻结、L 结果比对、E 环境快照"
+
+**记忆原理**: 乌龟（TURTLE）很慢——评测工具型 Agent 的核心难点就是"慢"（需要真实调用外部工具）。乌龟壳的六边形对应六个关键步骤。
+
+**关联知识**: 对比传统软件测试中的 Mock 和 Stub 模式。Web 开发的 API 测试中会用录制回放（VCR）技术。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+可复现评测（Reproducible Evaluation）是指对于一个 Agent 系统，给定相同的输入和初始条件，能够产生相同（或可预期）的输出。
+
+核心挑战：
+- 环境不确定性（Environment Non-determinism）：外部 API 状态变化
+- 工具响应不可控：搜索引擎结果随时间变化
+- 链式依赖的传播：非确定性沿调用链放大
+
+**2. 底层原理（为什么）**
+
+核心机制是"控制不确定性"——对不确定性点做"封印"（Sealing）：
+
+| 不确定性来源 | 封印方法 | 原理 |
+|-------------|---------|------|
+| LLM 输出随机性 | 设 temperature=0，固定 seed | 贪心解码 |
+| 外部 API 响应 | VCR 录制回放 | 用预录响应替代真实调用 |
+| 环境状态 | Docker 容器快照 | 同镜像启动 |
+| 时间相关逻辑 | Mock 时间戳 | 冻结系统时间 |
+
+**3. 实践应用（怎么用）**
+
+```python
+class ReproducibleEval:
+    def run(self, test_suite):
+        for case in test_suite:
+            with ToolRecorder(recordings) as recorder:
+                agent = self.build_agent(recorder)
+                session = agent.run(case.input)
+                tool_calls = recorder.get_call_sequence()
+            score = self.score(session, case.expected)
+```
+
+**4. 深入思考（注意事项）**
+
+- 录制时效性：API 更新后录制可能失效，需要定期刷新
+- 评测指标设计：允许多路径的评估指标（fuzzy matching）比严格匹配更实用
+
+### 回答思路
+
+**答题逻辑框架**: 挑战（非确定性）→ 核心封印策略 → 具体实现 → 维护和扩展
+
+**重点得分点**: 1. 明确指出"非确定性"是核心难点 2. 展示 VCR 录制回放的具体实现 3. 讨论多路径评估问题
+
+**时间分配建议**: 挑战分析 30s → 核心策略 60s → 代码实现 90s → 维护事项 60s（总计 4 分钟）
+
+---
+
+## 第5题：ReAct Agent 为什么容易陷入循环？如何在不误杀正常重试的情况下终止循环？
+
+### 联想记忆法
+
+**记忆口诀**: "死胡同 vs 绕远路——循环是死胡同（重复同一个模式），重试是绕远路（换一条路走）"
+
+**记忆原理**: 在迷宫里——ReAct 的"思考→行动→观察"循环就像在十字路口不断做同样的选择。循环是你每次走都回到同一个死胡同，重试是你换条路走。
+
+**关联知识**: 编程中的死循环 vs 长时间运行的循环——死循环是状态不变量不被满足且没有 progress。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+ReAct（Reasoning + Acting）的三种循环类型：
+- **死循环（Infinite Loop）**：反复执行相同的行动序列
+- **振荡循环（Oscillation Loop）**：在 A→B→A→B 之间来回切换
+
+**2. 底层原理（为什么）**
+
+三层原因：
+1. **信息不足（Information Deficiency）**：Observation 缺少关键信息
+2. **信念固着（Belief Fixation）**：LLM 形成错误信念后忽略矛盾 Observation
+3. **缺失终止信号（Missing Termination Signal）**：松散的条件导致 Agent 高估或低估完成度
+
+**区分循环与正常重试：**
+
+| 特征 | 死循环 | 正常重试 |
+|------|--------|---------|
+| 行动序列 | 完全重复 | 不同 |
+| 信息增益 | 零 | 正 |
+| 状态变化 | 无 | 推进 |
+| 工具参数 | 完全相同 | 改进 |
+
+**3. 实践应用（怎么用）**
+
+```python
+class AntiLoopGuard:
+    def check(self, thought, action):
+        # 检查1：绝对上限
+        # 检查2：同一动作重复次数
+        # 检查3：信息增益检测
+        # 检查4：振荡检测（A→B→A→B 模式）
+        ...
+```
+
+**4. 深入思考（注意事项）**
+
+- 误杀正常重试的代价——在信息检索场景中重试是必要行为
+- 渐进式干预——先降级（给提示）再强制终止
+
+### 回答思路
+
+**答题逻辑框架**: ReAct 循环原因（三层）→ 循环 vs 重试区分标准 → 工程实现 → 渐进式干预
+
+**重点得分点**: 1. 三层原因分析 2. 量化区分标准 3. 工程实践代码
+
+**时间分配建议**: 原因 60s → 区分标准 60s → 实现 90s → 进阶思考 30s（总计 4 分钟）
+
+---
+
+## 第6题：Agent 怎样抵御工具返回内容中的间接提示注入？
+
+### 联想记忆法
+
+**记忆口诀**: "四道防火墙——输入过滤（安检门）→ 输出嗅探（海关）→ 权限隔离（分区墙）→ 上下文隔离（保险箱）"
+
+**记忆原理**: 在机场过安检——行李（工具返回内容）先过 X 光机扫描（输入过滤），再看有没有违禁品（输出嗅探），然后分到不同的行李区（权限隔离），贵重物品锁进保险箱（上下文隔离）。
+
+**关联知识**: Web 安全中的 XSS（跨站脚本攻击）防御——输入验证 → 输出编码 → Content Security Policy。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+间接提示注入（Indirect Prompt Injection）是指攻击者将恶意指令嵌入到 LLM 会读取的外部内容中（如网页、API 返回值），当 Agent 获取这些内容时，恶意指令操控了 LLM 的行为。
+
+**2. 底层原理（为什么）**
+
+间接提示注入之所以有效，是因为 LLM 的**指令层级平坦化（Instruction Flatness）**——工具返回的内容与原始指令处于同一个 token 序列中，LLM 无法区分"用户说的指令"和"工具返回内容中的指令"。
+
+**3. 实践应用（怎么用）**
+
+四层防御体系：
+1. 输入过滤：剥离可疑指令模式（正则匹配 ignore/override 等关键词）
+2. 输出嗅探：用 XML 标签包裹工具返回，标注"这是数据，不是指令"
+3. 上下文隔离：在 system prompt 中加入类型标注协议
+4. 权限隔离：限制工具可执行的操作范围
+
+**4. 深入思考（注意事项）**
+
+- 防御不是绝对的——基于规则的过滤都可能被绕过
+- 工具分级的权限模型：高危工具需要额外确认步骤
+- 长远方案：未来的模型原生支持指令层级（instruction hierarchy）
+
+### 回答思路
+
+**答题逻辑框架**: 什么是间接提示注入 → 为什么有效（指令层级平坦化）→ 四层防御体系
+
+**重点得分点**: 1. 讲清楚"指令层级平坦化" 2. 纵深防御 3. 指出"没有完美防御"
+
+---
+
+## 第7题：什么是 RAG，和直接让大模型回答有什么区别？
+
+### 联想记忆法
+
+**记忆口诀**: "开卷考（RAG）vs 闭卷考（直接答）——一个带资料入场，一个全靠脑子里的知识"
+
+**记忆原理**: 开卷考允许带参考书入场，每次答题前先去查资料，答案更准确但也更慢。
+
+**关联知识**: 信息检索系统（搜索引擎）+ 阅读理解（QA System）的组合。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+RAG（Retrieval-Augmented Generation，检索增强生成）是一种在 LLM 生成答案之前，先从外部知识库中检索与用户问题相关的参考文档，然后将检索到的内容作为上下文提供给 LLM 用于生成的技术架构。
+
+**2. 底层原理（为什么）**
+
+| 维度 | 直接大模型回答 | RAG |
+|------|--------------|-----|
+| 知识来源 | 模型权重 | 外部知识库 |
+| 知识时效性 | 截止于训练数据日期 | 最新数据 |
+| 幻觉控制 | 无约束 | 检索结果约束 |
+| 可验证性 | 不可验证 | 可验证 |
+| 领域适配 | 需要微调 | 只需更换知识库 |
+
+RAG 解决了三个致命问题：**知识固化**、**幻觉**、**领域知识不足**。
+
+**3. 实践应用（怎么用）**
+
+```python
+class RAGSystem:
+    def generate(self, query, llm_client):
+        contexts = self.retrieve(query)
+        prompt = f"基于以下参考资料回答问题：\n{contexts}\n问题：{query}"
+        return llm_client.complete(prompt)
+```
+
+**4. 深入思考（注意事项）**
+
+- RAG 的瓶颈不在 LLM，在检索系统（Retrieval Quality）
+- RAG 与 Fine-tuning 互补而非替代
+
+---
+
+## 第8题：Agent 和普通工作流有什么区别？
+
+### 联想记忆法
+
+**记忆口诀**: "机器人（Agent）vs 传送带（Workflow）——一个自己决定怎么做，一个按固定流程走"
+
+**记忆原理**: 流水线的传送带按固定速度送零件（确定性），机器人有眼睛和大脑自己决定怎么处理（自主性）。
+
+**关联知识**: 命令式编程 vs 声明式编程。自动化（Automation）vs 自主化（Autonomy）。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+普通工作流（Workflow）是**确定性执行模型**：任务的每个步骤、顺序、分支条件都是预定义的。
+
+Agent 是**自主性执行模型**：给定目标，Agent 自主决定需要哪些工具、按什么顺序调用、如何处理中间结果。
+
+**2. 底层原理（为什么）**
+
+Andrew Ng 的 Agentic Design Patterns 四个核心模式：
+1. **Reflection（反思）**：Agent 检查自己的输出并改进
+2. **Tool Use（工具使用）**：动态决定用哪个工具
+3. **Planning（规划）**：将复杂任务分解并动态排序
+4. **Multi-agent Collaboration（多 Agent 协作）**
+
+最根本区别：**不确定性容忍度**——Workflow 路径是预先画的，Agent 路径是走出来的。
+
+**3. 实践应用（怎么用）**
+
+Workflow 适合已知的重复任务（如 ETL 每日报表），Agent 适合不可预测的开放任务（如客服机器人）。
+
+**4. 深入思考（注意事项）**
+
+- 成本差异巨大：Agent 每轮循环 10-100 倍以上的成本
+- 混合模式：用 Workflow 搭骨架，用 Agent 填充关键节点
+
+---
+
+## 第9题：项目中挑战最大的是什么？
+
+### 联想记忆法
+
+**记忆口诀**: "STAR 讲挑战——S 场景选高质量、T 目标可量化、A 行动有技术含量、R 结果用数据说话"
+
+**记忆原理**: 行为题不考"你遇到了什么困难"，考"你如何应对困难"。
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+行为面试题（Behavioral Question），考察候选人实际解决问题的能力。用 STAR 法则（Situation, Task, Action, Result）组织。
+
+**2. 底层原理（为什么）**
+
+面试官考察的是：技术判断力、归因方式、解决问题模式、复盘习惯。
+
+**3. 实践应用（怎么用）**
+
+STAR 模板以 Agent 项目为例：
+- **S（场景）**：构建能调用多种外部工具的 AI Agent
+- **T（任务）**：30% 情况下 Agent 陷入无限循环
+- **A（行动）**：三层循环检测算法（精确匹配 → 模糊匹配 → 语义相似度）
+- **R（结果）**：循环率从 30% 降至 3%，Token 消耗降低 40%
+
+**4. 深入思考（注意事项）**
+
+- 不要选"太简单"的挑战，不要选"无法归因为自身"的挑战
+- 一定要有量化结果
+
+---
+
+## 第10题：出现幻觉怎么处理？
+
+### 联想记忆法
+
+**记忆口诀**: "HARD-CORE 七步法——Hallucination 检测、Alignment 对齐、Retrieval 检索、Data 数据、Calibration 校准、Output 约束、Review 审查、Evaluation 评估"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+幻觉（Hallucination）是 LLM 生成的内容在事实上不正确但语言流畅可信的现象。三类：忠实性幻觉、事实性幻觉、输入不一致幻觉。
+
+**2. 底层原理（为什么）**
+
+四个根源：
+1. **统计学习本质**：模型只知道 token 概率分布，没有真值表
+2. **训练数据偏差**：常见错误信息被学习
+3. **解码策略**：Temperature > 0 的随机性
+4. **上下文忽视**：Lost-in-the-middle
+
+**3. 实践应用（怎么用）**
+
+七层防御：
+1. RAG 前置检索
+2. 约束式生成 prompt
+3. 事实验证（第二个 LLM）
+4. 输出校验
+5. 不确定性声明
+6. 触发词检测
+7. 输出格式约束
+
+**4. 深入思考（注意事项）**
+
+- 幻觉不是 bug，是 feature——完全消除幻觉 = 完全消除创造力
+- RLHF 治标不治本，关键区分"需要事实准确的任务"和"允许创意的任务"
+
+---
+
+## 第11题：提示词具体是怎么做？
+
+### 联想记忆法
+
+**记忆口诀**: "CRISPE 六步法——Context（背景）→ Role（角色）→ Intent（意图）→ Structure（结构）→ Precision（精确）→ Example（示例）"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+提示词工程（Prompt Engineering）是设计、优化和迭代 LLM 输入的过程，目的是引导模型产生预期的、高质量的输出。
+
+**2. 底层原理（为什么）**
+
+四个关键原理：Priming（启动效应）、格式锚定（Format Anchoring）、负空间约束（Negative Space）、少样本锚定（Few-shot Anchoring）
+
+**3. 实践应用（怎么用）**
+
+六类提示词模板：
+1. 角色/系统提示（Role System Prompt）
+2. 分类任务提示（Classification）
+3. 代码生成提示（Code Generation）
+4. Agent 工具调用提示（Tool Use）
+5. 思维链提示（Chain-of-Thought）
+6. 结构化输出约束（Structured Output）
+
+**4. 深入思考（注意事项）**
+
+- 提示词不是银弹，提升有限
+- 模型迁移问题：GPT-4 优化 prompt 到 Claude 可能效果差
+- 版本化（Versioning）：修改 prompt 需要用 eval 做回归测试
+
+---
+
+## 第12题：还有其他提示词吗？
+
+### 联想记忆法
+
+**记忆口诀**: "七种武器——系统提示词、少样本提示词、思维链、反思提示、对抗提示、格式化提示、融合提示"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+提示词模式（Prompt Patterns）是经过验证的、可复用的提示词结构模板，每个模式解决特定的问题。
+
+**2. 底层原理（为什么）**
+
+LLM 的三个核心弱点：缺乏结构化推理 → 需要 CoT；输出不稳定 → 需要格式约束和少样本；容易幻觉 → 需要事实验证和反思。
+
+**3. 实践应用（怎么用）**
+
+七大模式：系统提示词、少样本提示词、思维链、反思提示、对抗提示、格式化提示、融合提示。可在不同场景组合使用。
+
+**4. 深入思考（注意事项）**
+
+- 不是模式越多越好，过多约束可能相互矛盾
+- 模式选择要考虑成本权衡
+
+---
+
+## 第13题：Agent的短期长期记忆是怎么实现的？
+
+### 联想记忆法
+
+**记忆口诀**: "人类大脑映射——短期=工作台面、中期=笔记本、长期=书架、永久=图书馆"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+Agent 的记忆是指 Agent 在多轮交互或跨会话中保持、检索和利用历史信息的能力。分四个层次：上下文记忆、对话摘要、向量记忆、结构化记忆。
+
+**2. 底层原理（为什么）**
+
+LLM 本身是"无状态推理引擎"，每次调用独立进行。分层记忆的动机是：将信息按照使用频率和重要性分配到不同存储介质中。
+
+**3. 实践应用（怎么用）**
+
+```python
+class AgentMemorySystem:
+    def build_context(self, query):
+        parts = []
+        parts.append(f"[用户信息] {self.kv_store.get('user_profile')}")
+        parts.append(f"[对话摘要] {self.summary}")
+        parts.append(f"[相关历史] {self.retrieve_similar(query)}")
+        parts.append(f"[最近对话] {self.format_context_buffer()}")
+        return "\n\n".join(parts)
+```
+
+**4. 深入思考（注意事项）**
+
+- 记忆的编辑和遗忘机制：需要支持"忘记"操作
+- 记忆检索质量取决于 embedding 模型
+- 记忆膨胀问题：需要去重、合并、老化机制
+
+---
+
+## 第14题：如果让你设计一个Agent要考虑哪些模块？
+
+### 联想记忆法
+
+**记忆口诀**: "TOWER 八层架构——Task 任务理解、Orchestrate 编排、Workflow 工作流、Execute 执行、Retrieve 记忆检索"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+设计生产级 Agent 涉及多个模块的协同：理解任务 → 规划方案 → 执行计划 → 监控结果 → 记忆学习 → 与人交互。
+
+**2. 底层原理（为什么）**
+
+模块化设计的动机：关注点分离、可维护性、可测试性、可扩展性。
+
+**3. 实践应用（怎么用）**
+
+八大模块：
+1. 任务理解（Task Understanding）
+2. 规划器（Planner）
+3. 工作流引擎（Workflow Engine）
+4. 工具执行器（Tool Executor）
+5. 记忆系统（Memory System）
+6. 监控与日志（Monitoring）
+7. 安全守卫（Safety Guard）
+8. 反馈学习（Feedback Learning）
+
+**4. 深入思考（注意事项）**
+
+- 模块的"轻"与"重"：不是所有场景都需要全部 8 个模块
+- 工具执行器（外部 API 延迟）和记忆系统（检索耗时）最容易成为瓶颈
+
+---
+
+## 第15题：如果遇到api超时和报错怎么解决？
+
+### 联想记忆法
+
+**记忆口诀**: "R3 法则——Recognize 识别、Retry 重试、Resilience 韧性"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+API 错误处理需要从调用层、流控层和架构层三个层次系统性地解决。
+
+**2. 底层原理（为什么）**
+
+错误分类：超时（可重试）、429 限流（等待后重试）、4xx 客户端错误（不可重试）、5xx 服务端错误（可重试）。
+
+退避策略：Fixed Backoff、Exponential Backoff、Exponential + Jitter、Decorrelated Jitter。
+
+**3. 实践应用（怎么用）**
+
+```python
+class ResilientAPIClient:
+    async def call(self, func, **kwargs):
+        if not self.circuit_breaker.allow_request():
+            raise ServiceUnavailableError()
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await asyncio.wait_for(func(**kwargs), timeout=self.timeout)
+            except TimeoutError:
+                wait = self._backoff(attempt)
+                await asyncio.sleep(wait)
+```
+
+**4. 深入思考（注意事项）**
+
+- 熔断器（Circuit Breaker）的必要性：防止持续调用已宕机的服务
+- Agent 需要理解 API 错误并调整策略，不只是重试
+
+---
+
+## 第16题：有没有考虑用大模型自己排除api超时和报错？
+
+### 联想记忆法
+
+**记忆口诀**: "Human 定规则、LLM 做决策——让医生（规则）看病（LLM）是浪费，让病人（LLM）自己诊断是危险"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+可以部分使用但不能完全依赖。需要区分哪些场景适合 LLM 处理，哪些必须用确定性规则。
+
+**2. 底层原理（为什么）**
+
+不适合完全用 LLM 处理的四个原因：
+1. 延迟和成本问题——API 已超时，LLM 处理雪上加霜
+2. LLM 不可靠地处理"数字判断"——重试涉及精确时间计算
+3. 确定性需求——错误处理需要有确定的行为
+4. 循环风险——LLM 可能永远说"再试一次"
+
+**3. 实践应用（怎么用）**
+
+混合架构：规则层做确定性的重试逻辑，LLM 做"策略升级"——规则层无能为力时才升级给 LLM。
+
+**4. 深入思考（注意事项）**
+
+- "LLM 处理错误"不是全有或全无：规则做执行，LLM 做决策
+- 逃逸窗口（Escape Hatch）：任何 LLM 参与的决策都必须有兜底
+
+---
+
+## 第17题：消耗token过快怎么排查？
+
+### 联想记忆法
+
+**记忆口诀**: "TOKEN 五步排查法——T 追踪、O 观察、K 知识、E 效率、N 净值"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+Token 消耗过快是 Agent 投产后的常见问题。排查需要系统化方法论。
+
+**2. 底层原理（为什么）**
+
+四个放大器：上下文膨胀、循环、不必要的工具调用、冗余系统提示。
+
+**3. 实践应用（怎么用）**
+
+```python
+class TokenConsumptionProfiler:
+    def detect_anomalies(self):
+        # 检测连续多次调用同一个工具（可能循环）
+        # 检测输入上下文异常增长
+        ...
+```
+
+生产环境排查清单：
+[ ] 每条工具调用的结果是否被完整保留？
+[ ] 是否做了 context window management？
+[ ] 是否有不必要的 tool calls？
+[ ] system prompt 是否过长？
+[ ] output tokens 限制是否设置？
+[ ] 是否开启了 caching？
+[ ] 是否陷入了循环？
+
+**4. 深入思考（注意事项）**
+
+中间丢失（Lost in the Middle）导致 Agent 反复查询已获得的信息，增加 token 消耗——恶性循环。
+
+---
+
+## 第18题：讲一下java线程池？
+
+### 联想记忆法
+
+**记忆口诀**: "ThreadPool = 银行柜台——核心线程（固定窗口）、最大线程（临时加窗口）、任务队列（等待区）、拒绝策略（关门）"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+Java 线程池（ThreadPoolExecutor）位于 `java.util.concurrent` 包，管理一组工作线程，复用线程执行任务，避免频繁创建销毁的开销。
+
+**2. 底层原理（为什么）**
+
+七个核心参数：corePoolSize、maximumPoolSize、keepAliveTime、TimeUnit、workQueue、threadFactory、RejectedExecutionHandler。
+
+工作流程：
+```
+运行线程 < corePoolSize → 创建新线程
+运行线程 >= corePoolSize → 任务入队
+队列满 → 运行线程 < maxPoolSize → 创建新线程
+队列满且运行线程 >= maxPoolSize → 执行拒绝策略
+```
+
+四种拒绝策略：AbortPolicy（默认）、CallerRunsPolicy（背压）、DiscardPolicy、DiscardOldestPolicy。
+
+**3. 实践应用（怎么用）**
+
+```java
+new ThreadPoolExecutor(
+    4, 8, 60L, TimeUnit.SECONDS,
+    new ArrayBlockingQueue<>(1000),  // 有界队列
+    new ThreadPoolExecutor.CallerRunsPolicy()
+);
+```
+
+**4. 深入思考（注意事项）**
+
+- CPU 密集型：N_threads = N_cpu + 1
+- IO 密集型：N_threads = N_cpu * (1 + W/C)
+- 禁止使用 Executors.newFixedThreadPool（无界队列 OOM 风险）
+
+---
+
+## 第19题：如果你重新设计一个线程池会怎么设计？
+
+### 联想记忆法
+
+**记忆口诀**: "原版 + 四大改进——动态调参 + 监控告警 + 任务血缘 + 负载感知"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+在原版 ThreadPoolExecutor 基础上进化，增加四个现在才有的基础设施能力。
+
+**2. 底层原理（为什么）**
+
+原版假设参数在构造时最优（现实：业务流量动态变化）、任务相互独立（现实：有依赖）、系统负载稳定（现实：时刻变化）。
+
+**3. 实践应用（怎么用）**
+
+四大改进：
+1. 动态决策引擎：基于运行时指标（CPU、队列深度、P99 延迟）自动调整参数
+2. 可观测性：用 Micrometer/OpenTelemetry 暴露指标
+3. 任务血缘追踪：记录任务间的父子依赖关系，检测循环依赖
+4. 负载感知调度：基于 CPU/内存利用率做背压控制
+
+**4. 深入思考（注意事项）**
+
+- 不要过度设计：80% 的应用用原版 + 有界队列就足够
+- 动态调整需要 hysteresis（迟滞）机制防止震荡
+
+---
+
+## 第20题：怎么把class文件加载到jvm中？
+
+### 联想记忆法
+
+**记忆口诀**: "三步上篮——Loading（加载）、Linking（连接）、Initialization（初始化）"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+类加载（Class Loading）是将 `.class` 文件的二进制数据读入内存，经过验证、准备、解析后，在方法区生成对应的 `Class` 对象的过程。
+
+**2. 底层原理（为什么）**
+
+七个阶段：加载 → 验证 → 准备 → 解析 → 初始化 → 使用 → 卸载。
+
+双亲委派模型（Parent Delegation Model）：
+```
+Bootstrap ClassLoader → Extension ClassLoader → Application ClassLoader → 自定义
+```
+先委派给父加载器，父加载器无法加载时才自己尝试——保证核心 API 安全。
+
+**3. 实践应用（怎么用）**
+
+```java
+public class MyClassLoader extends ClassLoader {
+    protected Class<?> findClass(String name) {
+        byte[] classBytes = readClassFile(name);
+        return defineClass(name, classBytes, 0, classBytes.length);
+    }
+}
+```
+
+**4. 深入思考（注意事项）**
+
+- 双亲委派的破坏：Tomcat 为每个 Web 应用独立加载
+- 两个不同 ClassLoader 加载的同一个类——在 JVM 中不是同一个类
+
+---
+
+## 第21题：mysql的undolog，redolog，binlog区别和场景？
+
+### 联想记忆法
+
+**记忆口诀**: "三个日志三种角色——Undo 后悔药（回滚）、Redo 记账本（恢复）、Binlog 日记本（备份+同步）"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+- **Undo Log（回滚日志）**：记录修改前旧值，用于回滚和 MVCC
+- **Redo Log（重做日志）**：记录数据页物理修改，用于 Crash Recovery
+- **Binlog（二进制日志）**：记录逻辑变更，用于主从复制和 PITR
+
+**2. 底层原理（为什么）**
+
+| 维度 | Undo Log | Redo Log | Binlog |
+|------|---------|---------|--------|
+| 层级 | InnoDB 引擎层 | InnoDB 引擎层 | MySQL Server 层 |
+| 日志类型 | 逻辑日志（逆向操作） | 物理日志（页修改） | 逻辑日志（SQL/行） |
+| 作用 | 回滚 + MVCC | Crash Recovery | 复制 + PITR |
+| 生命周期 | 事务结束可清理 | 循环写入 | 追加写入 |
+
+一条 UPDATE 的完整日志流程：Undo 记录旧值 → Buffer Pool 修改 → Redo Log Buffer 写入 → Binlog Cache 写入 → 两阶段提交（Redo prepare → Binlog write → Redo commit）。
+
+**3. 实践应用（怎么用）**
+
+配置建议：`innodb_flush_log_at_trx_commit=1`（最安全）、`binlog_format=ROW`、`sync_binlog=1`。
+
+**4. 深入思考（注意事项）**
+
+两阶段提交保证 Redo Log 和 Binlog 的一致性——崩溃恢复时，Binlog 有记录则重做，无记录则回滚。
+
+---
+
+## 第22题：什么是两阶段提交？
+
+### 联想记忆法
+
+**记忆口诀**: "两阶段 = 表决 + 执行——先问大家能不能（Prepare），再统一说开始（Commit）"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+两阶段提交（Two-Phase Commit, 2PC）是一种分布式事务协议，确保多个节点要么全部提交要么全部回滚。
+
+两个角色：协调者（Coordinator/TM）和参与者（Participants/RM）。
+
+**2. 底层原理（为什么）**
+
+第一阶段（Prepare）：协调者问所有参与者"能提交吗？"——参与者写日志、锁资源、回复 yes/no。
+第二阶段（Commit/Abort）：都 yes 则 commit，任一 no 则 abort。
+
+MySQL 中的应用：Redo Log prepare → Binlog write → Redo Log commit。
+
+**3. 实践应用（怎么用）**
+
+```java
+public boolean prepare(String txId) {
+    for (RM rm : participants) {
+        boolean ready = rm.prepare(txId);
+        if (!ready) return false;
+    }
+    return true;
+}
+```
+
+**4. 深入思考（注意事项）**
+
+2PC 三大问题：同步阻塞、单点故障、脑裂风险。替代方案：TCC、Saga、Seata AT、消息队列最终一致性。
+
+---
+
+## 第23题：多线程写一个死锁
+
+### 联想记忆法
+
+**记忆口诀**: "死锁四条件——互斥 + 持有等待 + 不可剥夺 + 循环等待——写死锁就是构造一个循环依赖"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+死锁（Deadlock）是多个线程互相等待对方持有的资源，导致所有线程无法继续执行的状态。
+
+四个必要条件：互斥、持有并等待、不可剥夺、循环等待。
+
+**2. 底层原理（为什么）**
+
+最常见模式：交叉锁（线程 A 拿锁 1 等锁 2，线程 B 拿锁 2 等锁 1）。
+
+**3. 实践应用（怎么用）**
+
+```java
+// 死锁代码
+Thread t1 = new Thread(() -> {
+    synchronized (resourceA) {
+        Thread.sleep(100);  // 确保死锁发生
+        synchronized (resourceB) { }
+    }
+});
+Thread t2 = new Thread(() -> {
+    synchronized (resourceB) {
+        Thread.sleep(100);
+        synchronized (resourceA) { }
+    }
+});
+
+// 防止死锁：固定锁顺序
+synchronized (first) { synchronized (second) { } }
+```
+
+**4. 深入思考（注意事项）**
+
+生产环境定位：jstack 查看 BLOCKED 线程链、ThreadMXBean.findDeadlockedThreads()、Arthas。
+
+---
+
+## 第24题：随便写一个单例模式
+
+### 联想记忆法
+
+**记忆口诀**: "饿汉（类加载就创建） vs 懒汉（需要时才创建）——用双重检查锁定的懒汉最完美"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+单例模式（Singleton Pattern）确保一个类在整个 JVM 生命周期中只有一个实例。
+
+**2. 底层原理（为什么）**
+
+需要解决：单一实例、线程安全、延迟加载。
+
+**3. 实践应用（怎么用）**
+
+四种写法：
+
+```java
+// 1. 饿汉式（最简单）
+public class SingletonEager {
+    private static final SingletonEager INSTANCE = new SingletonEager();
+    private SingletonEager() {}
+    public static SingletonEager getInstance() { return INSTANCE; }
+}
+
+// 2. 双重检查锁定（推荐面试）
+public class SingletonDCL {
+    private static volatile SingletonDCL instance;
+    private SingletonDCL() {}
+    public static SingletonDCL getInstance() {
+        if (instance == null) {
+            synchronized (SingletonDCL.class) {
+                if (instance == null) {
+                    instance = new SingletonDCL();
+                }
+            }
+        }
+        return instance;
+    }
+}
+
+// 3. 静态内部类（推荐生产）
+public class SingletonHolder {
+    private SingletonHolder() {}
+    private static class Holder {
+        static final SingletonHolder INSTANCE = new SingletonHolder();
+    }
+    public static SingletonHolder getInstance() { return Holder.INSTANCE; }
+}
+
+// 4. 枚举（最安全，防反射/序列化）
+public enum SingletonEnum { INSTANCE; }
+```
+
+**4. 深入思考（注意事项）**
+
+volatile 防止 new Singleton() 指令重排序。Spring 单例是"容器级"，不是"JVM 级"。
+
+---
+
+## 第25题：算法：合并两个有序数组
+
+### 联想记忆法
+
+**记忆口诀**: "双指针从后往前——不用额外空间，大的插到末尾"
+
+### 深度解答
+
+**1. 核心概念（是什么）**
+
+给定两个升序数组 nums1（长度 m+n，前 m 个有效）和 nums2（长度 n），原地合并到 nums1 中。
+
+**2. 底层原理（为什么）**
+
+从后往前双指针：p1=m-1、p2=n-1、p=m+n-1。比较 nums1[p1] 和 nums2[p2]，大的放到 nums1[p]。
+
+**3. 实践应用（怎么写）**
+
+```java
+public void merge(int[] nums1, int m, int[] nums2, int n) {
+    int i = m - 1, j = n - 1, k = m + n - 1;
+    while (j >= 0) {
+        if (i >= 0 && nums1[i] > nums2[j]) {
+            nums1[k--] = nums1[i--];
+        } else {
+            nums1[k--] = nums2[j--];
+        }
+    }
+}
+```
+
+复杂度：O(m+n) 时间，O(1) 空间。
+
+**4. 深入思考（注意事项）**
+
+从后往前利用了末尾空位，实现了原地合并。边界条件：p1 < 0 时只需将 nums2 剩余元素填入。
+
+---
+
+## 文档信息
+
+- 本文档由 Interview Coach Agent 自动生成
+- 采用 Harness Engineering 架构：多 Agent 协作 + 质量门控 + 自动部署
+- 每道题包含：联想记忆法 → 深度解答 → 回答思路
+
+
+---
+
+> 📋 **分类**: MySQL / 数据库
+> 🏷️ **标签**: `log` `undo` `binlog` `redo`
+> 📊 **难度**: 进阶
+> 📅 **归档时间**: 2026-07-24 09:33:50
