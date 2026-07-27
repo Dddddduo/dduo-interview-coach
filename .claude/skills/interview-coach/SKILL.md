@@ -29,9 +29,10 @@ user-invocable: true
 
 **在开始执行前，必须先读取以下 3 个参考文件：**
 
-1. **`references/constraints.md`** — 驾驭工程硬约束：M1-M10 流程完整性、G1-G6 Git 操作、Q1-Q6 输出质量、N1-N7 禁止行为
-2. **`references/workflow.md`** — 10 阶段执行流程详细步骤 + 使用示例
-3. **`references/git-config.md`** — Git 认证凭证（Token、Remote URL、身份配置）
+1. **`references/constraints.md`** — 驾驭工程硬约束：M1-M10 流程完整性、G1-G6 Git 操作、Q1-Q6 输出质量、N1-N7 禁止行为、**R1-R6 简历约束**
+2. **`references/workflow.md`** — 10 阶段执行流程详细步骤 + 使用示例（含简历加载流程）
+3. **`references/git-config.md`** — Git 认证凭证（SSH 方式）
+4. **`references/resume/resume.md`** — 候选人简历。**个人化问题必须基于此文件回答，严禁编造**
 
 > 以上文件位于 `${CLAUDE_SKILL_DIR}/references/` 下。
 
@@ -43,20 +44,35 @@ user-invocable: true
 
 | 阶段 | Agent 调用 | 说明 |
 |------|-----------|------|
-| 阶段 2 | `Agent(subagent_type="interview-answerer", ...)` | **并行**启动，每题一个 agent |
-| 阶段 3 | `Agent(subagent_type="quality-reviewer", ...)` | 逐题审查，携带 answerer 输出 |
+| 阶段 1 | `Read(references/resume/resume.md)` | **必须先读取简历**，再解析题目 |
+| 阶段 2 | `Agent(subagent_type="interview-answerer", ...)` | **并行**启动，每题一个 agent。个人化题目标注 `[个人化]` 传入 |
+| 阶段 3 | `Agent(subagent_type="quality-reviewer", ...)` | 逐题审查，个人化题目额外检查 P1-P7 简历约束 |
 | 阶段 5 | `Agent(subagent_type="doc-assembler", ...)` | 组装所有答案为一个文档 |
+
+### 个人化题目 Agent Prompt 模板
+
+对于阶段 1 中识别出的**个人化题目**，调用 interview-answerer 时 prompt 中必须包含：
+
+```
+[个人化问题 — 请基于简历回答]
+题目：{用户输入的问题}
+
+简历路径：references/resume/resume.md
+请在回答前先读取简历文件，严格依据简历内容回答。
+```
 
 ---
 
 ## 快速检查清单
 
-- [ ] 读取 `references/constraints.md` — 理解全部 MUST / MUST NOT 规则
+- [ ] 读取 `references/resume/resume.md` — **加载简历上下文（阶段 1 第一步）**
+- [ ] 读取 `references/constraints.md` — 理解全部 MUST / MUST NOT 规则（含 R1-R6）
 - [ ] 读取 `references/workflow.md` — 确认 10 阶段执行步骤
 - [ ] 读取 `references/git-config.md` — 获取 Git 凭证
-- [ ] 解析 `$ARGUMENTS` 中的面试题目（阶段 1）
-- [ ] 阶段 2 **并行**启动所有 `interview-answerer` agent
-- [ ] 阶段 3 逐题审查，FAIL 不超过 2 次重试（阶段 4）
+- [ ] 解析 `$ARGUMENTS` 中的面试题目，**区分技术题 / 个人化题**（阶段 1）
+- [ ] 阶段 2 **并行**启动所有 `interview-answerer` agent，个人化题目传入 `[个人化]` 标记
+- [ ] 阶段 3 逐题审查，个人化题目额外检查 R1-R6 简历约束
+- [ ] FAIL 不超过 2 次重试（阶段 4）
 - [ ] 阶段 6 用 Write 工具落盘到 `outputs/`
 - [ ] 阶段 7 用 `question_manager.py` 归档每道题
 - [ ] 阶段 8 运行 `generate_site.py`
