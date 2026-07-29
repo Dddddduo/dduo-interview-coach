@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-24T09:33:50",
-    "total_questions": 135
+    "last_updated": "2026-07-29T16:02:37",
+    "total_questions": 150
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 84
+      "count": 99
     },
     "python": {
       "name": "Python",
@@ -2030,6 +2030,175 @@
       "created": "2026-07-24 09:33:50",
       "source": "校招面试",
       "hash": "83f8dad2"
+    },
+    {
+      "id": "q0140",
+      "question": "重点介绍你的AI相关项目经历",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/重点介绍你的AI相关项目经历.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "bbf5e1db"
+    },
+    {
+      "id": "q0141",
+      "question": "进程和线程之间有什么区别",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/进程和线程之间有什么区别.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "d1e66615"
+    },
+    {
+      "id": "q0142",
+      "question": "TCP 和 UDP 有什么区别",
+      "category": "java",
+      "tags": [
+        "网络协议"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/TCP-和-UDP-有什么区别.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "87239db6"
+    },
+    {
+      "id": "q0143",
+      "question": "MySQL InnoDB 的索引使用什么数据结构",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/MySQL-InnoDB-的索引使用什么数据结构.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "1cbf9e86"
+    },
+    {
+      "id": "q0144",
+      "question": "什么是乐观锁和悲观锁",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么是乐观锁和悲观锁.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "ce40cea4"
+    },
+    {
+      "id": "q0145",
+      "question": "如何理解Harness Engineering",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如何理解Harness-Engineering.md",
+      "created": "2026-07-27 22:21:03",
+      "source": "用户输入",
+      "hash": "2ff56345"
+    },
+    {
+      "id": "q0146",
+      "question": "什么是缓存穿透",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么是缓存穿透.md",
+      "created": "2026-07-27 22:21:08",
+      "source": "用户输入",
+      "hash": "ebb4a997"
+    },
+    {
+      "id": "q0147",
+      "question": "项目里使用Redis实现分布式锁",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/项目里使用Redis实现分布式锁.md",
+      "created": "2026-07-27 22:21:08",
+      "source": "用户输入",
+      "hash": "2220180e"
+    },
+    {
+      "id": "q0148",
+      "question": "什么是死锁",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么是死锁.md",
+      "created": "2026-07-27 22:21:08",
+      "source": "用户输入",
+      "hash": "a6498322"
+    },
+    {
+      "id": "q0149",
+      "question": "Agent真正的核心能力是什么",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Agent真正的核心能力是什么.md",
+      "created": "2026-07-27 22:21:16",
+      "source": "用户输入",
+      "hash": "69120439"
+    },
+    {
+      "id": "q0150",
+      "question": "三次握手和四次挥手解决什么问题",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/三次握手和四次挥手解决什么问题.md",
+      "created": "2026-07-27 22:21:16",
+      "source": "用户输入",
+      "hash": "1fe56112"
+    },
+    {
+      "id": "q0151",
+      "question": "如何设计高质量Prompt",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如何设计高质量Prompt.md",
+      "created": "2026-07-27 22:21:16",
+      "source": "用户输入",
+      "hash": "04b9537e"
+    },
+    {
+      "id": "q0152",
+      "question": "优惠券秒杀中，为什么使用 Redis Lua 脚本进行校验和库存预扣？",
+      "category": "java",
+      "tags": [
+        "缓存"
+      ],
+      "difficulty": "medium",
+      "file": "questions/database/java/优惠券秒杀中为什么使用-Redis-Lua-脚本进行校验和库存预扣.md",
+      "created": "2026-07-29 16:02:36",
+      "source": "用户输入",
+      "hash": "4ced0d3d"
+    },
+    {
+      "id": "q0153",
+      "question": "你在项目中是否遇到过 Agent 无限循环的问题？你是怎么解决的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/你在项目中是否遇到过-Agent-无限循环的问题你是怎么解决的.md",
+      "created": "2026-07-29 16:02:36",
+      "source": "用户输入",
+      "hash": "f1239537"
+    },
+    {
+      "id": "q0154",
+      "question": "如何理解 Harness Engineering？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如何理解-Harness-Engineering.md",
+      "created": "2026-07-29 16:02:37",
+      "source": "用户输入",
+      "hash": "9dd582dd"
     }
   ]
 }
