@@ -1,6 +1,6 @@
 # Git 认证配置
 
-> 本文件包含 Git 推送所需的全部认证信息。Token 需要定期更新。
+> 使用 SSH 方式推送，不再依赖 Token（免过期问题）。
 
 ---
 
@@ -8,10 +8,9 @@
 
 | 配置项 | 值 |
 |--------|-----|
-| GITHUB_TOKEN | `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` |
 | GITHUB_USERNAME | `Dddddduo` |
 | GITHUB_REPO | `dduo-interview-coach` |
-| GIT_REMOTE_URL | `https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git` |
+| GIT_REMOTE_URL | `git@github.com:Dddddduo/dduo-interview-coach.git` |
 | GIT_USER_NAME | `zhudaoyang` |
 | GIT_USER_EMAIL | `1732446549@qq.com` |
 | GIT_BRANCH | `main` |
@@ -27,8 +26,8 @@ cd ~/Documents/projects/interview-coach
 git config user.name "zhudaoyang"
 git config user.email "1732446549@qq.com"
 
-# 配置 remote（含 Token）
-git remote set-url origin https://Dddddduo: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@github.com/Dddddduo/dduo-interview-coach.git
+# 配置 remote（SSH 方式，无需 Token）
+git remote set-url origin git@github.com:Dddddduo/dduo-interview-coach.git
 
 # 提交并推送
 git add outputs/ questions/ docs/
@@ -38,10 +37,8 @@ git push origin main
 
 ---
 
-## Token 过期处理
+## 故障排查
 
-如果 push 返回 401/403 错误：
-1. 到 GitHub Settings → Developer settings → Personal access tokens 生成新 Token
-2. 更新本文件中的 `GITHUB_TOKEN` 和 `GIT_REMOTE_URL`
-3. 同步更新 `.claude/settings.json` 中的 `GITHUB_TOKEN` 和 `GIT_REMOTE_URL` 环境变量
-4. 重新执行阶段 9
+如果 push 返回 SSH 认证错误：
+1. 检查 `~/.ssh/id_rsa.pub` 是否已添加到 GitHub → Settings → SSH Keys
+2. `ssh -T git@github.com` 测试连接
