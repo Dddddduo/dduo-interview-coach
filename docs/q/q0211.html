@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>怎么做 Prompt/模型/索引回滚？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0211</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>怎么做 Prompt/模型/索引回滚？</h1>
+    <div class="tag-row"></div>
+    <h1 id="prompt">怎么做 Prompt/模型/索引回滚？</h1>
+<h1 id="prompt_1">怎么做 Prompt/模型/索引回滚？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>记忆锚点：「三回一基，两原一速」</strong></p>
+<ul>
+<li><strong>三回</strong> = 三类回滚对象：<strong>Prompt 回滚</strong>（改动最频繁，靠版本管理+配置化下发）、<strong>模型回滚</strong>（靠模型路由+别名 alias，粒度最粗）、<strong>索引回滚</strong>（靠快照 snapshot+双索引切换，最容易被忽略）。</li>
+<li><strong>一基</strong> = 一套基础设施：配置中心（动态开关）、不可变版本化、灰度（金丝雀）、监控告警触发自动回滚——没有这四件套，回滚就是空谈。</li>
+<li><strong>两原</strong> = 两个设计原则：向前兼容（forward compatibility）、幂等（idempotency）。</li>
+<li><strong>一速</strong> = 一个速度目标：分钟级回滚。</li>
+</ul>
+<p><strong>生活化联想——把 LLM 应用当餐厅：</strong><br />
+- <strong>Prompt 是菜谱</strong>：天天改（今天多放点盐、明天换个摆盘），改坏了撕掉换昨天那张就行 → 配置切换，秒级回滚。<br />
+- <strong>模型是主厨</strong>：换个大厨（换模型）口味可能全崩，所以门口挂牌"今日主厨 = stable 档"（别名机制），挂牌即切换。<br />
+- <strong>索引是食材仓库</strong>：进货批次（索引快照）要留底，新批次食材出问题，直接把"后厨取材范围"切回上一批次 → 数据版本回滚。</p>
+<p>一句话记住核心：<strong>回滚的本质不是"重新发布旧的东西"，而是"把版本指针（version pointer）拨回已知良好状态"</strong>——指针切换，瞬时生效。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>回滚（Rollback）</strong>：把线上正在运行的配置、代码或数据，快速恢复到上一个已知良好状态（last known good state）的能力。</p>
+<p><strong>为什么 LLM 应用必须做回滚？</strong> 与传统软件不同，LLM 应用的每一次改动都是"软改动"（soft change）：Prompt 里一句话的调整、模型从 A 换到 B、温度（temperature）从 0.3 调到 0.7、索引里新增一批文档——任何一项都可能让线上效果变差。原因在于 LLM 输出的<strong>非确定性（non-determinism）</strong>：输出空间巨大，单测和回归用例根本兜不住所有行为变化，很多问题只在线上流量里才会暴露（格式漂移、幻觉增多、安全违规率上升）。所以回滚不是可选项，而是 LLM 工程的<strong>底线能力（engineering floor）</strong>——"改坏了能不能一键回来"决定了你敢不敢快速迭代。</p>
+<p><strong>三类回滚对象的粒度与时机：</strong></p>
+<p><strong>a) Prompt 回滚</strong>——改动最频繁的资产。一个生产 Prompt 一天可能改多次（调措辞、加 few-shot 示例、改 system prompt）。粒度最小：不涉及重部署，只是配置值的切换。做法是<strong>版本管理 + 灰度开关 + 配置化下发</strong>：代码里不内嵌 prompt 字符串，而是通过 <code>prompt_id + version</code> 从配置中心拉取；线上回答质量下降、格式漂移（format drift）、安全违规率上升时，把版本指针切回上一版。可以按用户哈希灰度 5% 流量，观察后再全量。</p>
+<p><strong>b) 模型回滚</strong>——粒度是"模型路由配置"（model routing configuration）的变更。生产代码不写死模型名，而是引用<strong>别名（alias）</strong>（如 <code>stable</code> / <code>beta</code>），别名由配置中心动态指向具体模型版本（如 <code>claude-sonnet-4-20250514</code>）；回滚 = 一行配置把 alias 从 v2 指回 v1，全量实例即时生效。发布新模型时走<strong>A/B 分流</strong>：新旧模型按流量比例并行，或新模型先跑影子模式（shadow mode）只记录不下发。<strong>自动回滚触发条件</strong>：错误率（error rate）超阈值且持续 N 分钟、P99 延迟（latency）超标、质量指标（自动评测集通过率、人工评估分）下滑超阈值——任一触发，自动把 alias 切回旧模型并告警。</p>
+<p><strong>c) 索引回滚</strong>——向量库/知识库的数据版本回退。知识库数据入库后，脏数据、对抗性注入内容（prompt injection 样本混入）、格式不一致都会拉低检索质量（recall@k 下降）。做法：<strong>快照（snapshot）</strong>——每次构建索引固化一份不可变快照并保留 N 份；<strong>双索引切换（dual index / blue-green index）</strong>——新索引构建完成后先在影子流量下验证，再原子切换查询指针；每个知识库带<strong>版本号 + 发布时间戳（published_at）</strong>，检索时限定版本。因为索引重建耗时分钟~小时级，而"切回旧快照"是秒级——这正是保留旧快照的意义。</p>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>为什么回滚能"回到过去"？</strong> 核心是"一切皆版本，版本不可变"（everything is versioned, versions are immutable）：</p>
+<ol>
+<li>
+<p><strong>不可变快照 + 指针切换</strong>：每次发布前，把 prompt 文本、模型配置、索引元数据固化成一个不可变的版本对象；线上运行时通过版本指针引用它，而不是直接覆盖内容。<strong>"指针切换"优于"内容覆盖"的根本原因</strong>：覆盖式更新没有"上一版"可言，想回滚也无从谈起。版本对象只能新建、不能修改，删掉旧版本就失去了回滚能力。</p>
+</li>
+<li>
+<p><strong>配置中心的最终一致下发</strong>：动态配置通过发布/订阅（pub/sub）或长轮询（long polling）下发到所有实例，支持按实例维度、按百分比维度定向生效——这为灰度与定向回滚提供了传输通道。</p>
+</li>
+<li>
+<p><strong>模型别名（alias）的间接层</strong>：代码 → 别名 → 具体版本，中间多了一层"间接引用"（indirection），切换就变成纯配置操作，与发版解耦。这是软件工程里"不要依赖具体实现，要依赖抽象"在 LLM 工程中的体现。</p>
+</li>
+<li>
+<p><strong>索引的快照隔离（snapshot isolation）</strong>：HNSW 这类向量索引构建后本质不可变（不支持原地更新/删除），所以生产上采用双索引：新索引构建+验证后，查询别名（index alias）原子切换；旧索引保留几天供回滚。注意：<strong>索引回滚不是"回滚构建过程"，而是"回滚查询指针"</strong>。</p>
+</li>
+<li>
+<p><strong>自动回滚的闭环</strong>：监控指标（错误率/延迟/质量）→ 告警（alert）→ 阈值（threshold）判定 → 自动切换版本指针 → 通知值班（on-call）。回滚动作本身只有"改指针"一行，复杂全在平时建设的监控与阈值体系里。</p>
+</li>
+</ol>
+<p><strong>为什么是"先回滚再排查"而不是"边修边上线"？</strong> 因为代价不对等：修复 LLM 问题需要复现、归因（LLM 问题非确定性、难复现），可能耗时数小时；而回滚回到的是"已知良好状态"，只需确认指标恢复，分钟级。线上每多挂一分钟都在损失用户与信任——所以<strong>生产铁律：先回滚止血（rollback first），再离线定位根因（debug later）</strong>。</p>
+<h2 id="3">3. 实践应用</h2>
+<p><strong>基础设施四件套（缺一不可）：</strong><br />
+1. <strong>配置中心（Config Center）</strong>：动态开关、灰度比例、版本指针的载体；<br />
+2. <strong>版本化与不可变快照</strong>：prompt / model / index 全部带版本号，快照只增不改；<br />
+3. <strong>灰度发布（金丝雀 Canary）</strong>：先放 1%→5%→50%→100%，每个阶段观察指标；<br />
+4. <strong>监控告警 + 自动回滚</strong>：阈值触发自动切指针，值班人机协作。</p>
+<p><strong>代码/配置示例（伪代码）：</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 配置中心中的版本指针（只存指针，不存内容）</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;prompt&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;summary_main&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;p20260701_003&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;canary_5%&quot;</span><span class="p">,</span><span class="w">              </span><span class="c1">// 灰度阶段</span>
+<span class="w">      </span><span class="nt">&quot;fallback_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;p20260601_002&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;stable_alias&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;model_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude-sonnet-4-20250514&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;beta_alias&quot;</span><span class="p">:</span><span class="w">   </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;model_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude-sonnet-4-5&quot;</span><span class="p">,</span><span class="w">         </span><span class="nt">&quot;params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;index&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;kb_main&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;snapshot_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;idx-20260730-1542&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;published_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-07-30T15:42:00Z&quot;</span><span class="w">   </span><span class="c1">// 知识库版本时间戳</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="c1"># 运行时：只读指针，从快照库加载不可变内容</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PromptRegistry</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">ptr</span> <span class="o">=</span> <span class="n">config_center</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;prompt.</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">snapshot_store</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">ptr</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>   <span class="c1"># 不可变快照，内容永不被覆盖</span>
+
+<span class="c1"># 自动回滚看门狗（watchdog）</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">auto_rollback_watchdog</span><span class="p">():</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">get_canary_items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">metrics</span><span class="o">.</span><span class="n">error_rate</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">error_threshold</span> \
+               <span class="ow">and</span> <span class="n">metrics</span><span class="o">.</span><span class="n">error_rate</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">sustained</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">duration_min</span><span class="p">):</span>
+                <span class="n">config_center</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="n">cfg</span><span class="o">.</span><span class="n">fallback_version</span><span class="p">,</span>
+                                        <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;rolled_back&quot;</span><span class="p">})</span>   <span class="c1"># 切指针 = 回滚</span>
+                <span class="n">alert</span><span class="o">.</span><span class="n">oncall</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[AUTO-ROLLBACK] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">fallback_version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">prev</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">cur</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">fallback_version</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>设计原则：</strong><br />
+1. <strong>向前兼容（forward compatibility）</strong>：新版本数据结构不能破坏旧版本解析器——prompt 模板变量、索引文档 schema 都要保持旧代码可读，否则"代码回滚到旧版"会读不了"新版数据"，产生反向依赖问题（rollback 后反而崩）。<br />
+2. <strong>幂等（idempotency）</strong>：回滚操作可重复执行且结果一致；回滚后可再前进（roll-forward）无副作用。避免"回滚脚本只能跑一次，重试就炸"。<br />
+3. <strong>回滚速度目标：分钟级</strong>：从发现到全量切回，理想小于 5 分钟。所以回滚路径要定期演练（game day / 故障演练），不能只在事故当天"临场发明"。<br />
+4. <strong>可观测性带版本标签</strong>：日志、指标、链路（trace）里都带 prompt / model / index 版本号——先知道"线上跑的是哪套组合"，才能决策回滚哪个。这是很多人忽略但极加分的一点。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>1）回滚 vs 修复的取舍。</strong> 回滚是"外科手术式恢复"——回到已知良好态，解决的是<strong>快速止血</strong>；修复是"根治"——解决<strong>不再复发</strong>。取舍依据：回滚成本低、修复时间长 → 先回滚；若问题轻微可容忍、且回滚本身有代价（如索引回滚会让新入库数据不可见），则可边观察边修。正确姿势是：<strong>回滚止血 → 带着快照与日志离线做根因分析（root cause analysis）→ 补回归用例 → 带着测试再发布</strong>。回滚不是逃避修复，而是给修复争取时间。</p>
+<p><strong>2）为什么"先回滚再排查"是生产铁律？</strong> 因为事故的每分钟线上成本远大于排查的收益；LLM 问题尤其如此——非确定性让"现场"难以保留，但指标会持续恶化。回滚先把服务带回可用态，把用户损失锁死在一个窗口内，再从容排查。这也是 SRE 的经典理念：<strong>可用性优先于诊断完整性</strong>。</p>
+<p><strong>3）多组件联动的回滚顺序：先回滚上游还是下游？</strong> 答：<strong>先回滚上游（调用链的源头、数据与配置的提供方）</strong>。因为下游的输出依赖上游的输入——如果同时改了 prompt 和模型，先切回旧 prompt（瞬时生效），观察指标；若仍异常，再切模型 alias。反例：先回滚下游模型而 prompt 仍是新版，"新 prompt + 旧模型"可能照样坏。经验法则：<strong>配置类（prompt/参数）瞬时生效、先切；数据类（索引）耗时、次切；若属于一次联动发布，则整体打成一个部署单元（deployment unit），一并回滚</strong>，避免"切一半"的混合状态。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<h2 id="-">答题逻辑框架（总-分-总）</h2>
+<ol>
+<li><strong>开场定调（15 秒）</strong>：一句话点出"LLM 应用的改动都是软改动，回滚是工程底线"，然后亮出框架："三类回滚对象 + 一套基础设施 + 两个原则"。</li>
+<li><strong>为什么需要回滚</strong>：非确定性输出、单测兜不住、每次改动 prompt/模型/索引都可能让线上变差。</li>
+<li><strong>逐类展开三类回滚（核心，占 50% 时间）</strong>：Prompt（版本管理+配置化+灰度）、模型（路由+alias+A/B+自动回滚阈值）、索引（快照+双索引+版本号+published_at）。</li>
+<li><strong>基础设施四件套 + 伪代码</strong>：配置中心、不可变版本化、金丝雀灰度、监控告警自动回滚；给出"配置指针 + watchdog"两段伪代码，讲清"回滚动作只有一行，复杂在平时建设"。</li>
+<li><strong>设计原则</strong>：向前兼容、幂等、分钟级目标。</li>
+<li><strong>深入思考收尾（加分区）</strong>：先回滚再排查铁律、回滚 vs 修复、多组件联动先回上游。</li>
+</ol>
+<h2 id="_4">重点得分点（面试官想听到的关键词）</h2>
+<ul>
+<li><strong>"不可变快照 + 版本指针切换"</strong> 而非"覆盖式更新"——这是回滚能成立的根本原理，讲出来立刻拉开差距；</li>
+<li><strong>模型别名（alias）机制</strong>：代码引用抽象而非具体模型 ID；</li>
+<li><strong>自动回滚触发条件</strong>：错误率/延迟/质量指标超阈值+持续时长；</li>
+<li><strong>索引快照保留 + 双索引（蓝绿）切换 + 知识库版本号与时间戳</strong>；</li>
+<li><strong>分钟级回滚目标、幂等、向前兼容</strong>；</li>
+<li><strong>"先回滚再排查"铁律</strong>、多组件联动<strong>先上游后下游</strong>；</li>
+<li><strong>可观测性带版本标签</strong>（日志/指标/trace 打版本号）——多数候选人想不到的加分项。</li>
+</ul>
+<h2 id="_5">常见误区（避免踩坑）</h2>
+<ul>
+<li>❌ 把回滚等同于"重新部署旧代码"——忽略 prompt/模型/索引是<strong>运行时配置与数据</strong>，回滚靠指针切换而非发版；</li>
+<li>❌ 模型名写死（hardcode）在代码里，无法动态切换——必须用 alias；</li>
+<li>❌ 只有全量回滚意识，没有灰度/金丝雀分层；</li>
+<li>❌ 索引只保留最新一份，回滚=重建（耗时小时级），不懂保留快照；</li>
+<li>❌ 只讲机制不讲闭环——不提监控、阈值、自动触发，回滚就只是"手动应急方案"；</li>
+<li>❌ 回滚脚本非幂等、无审计，事故现场手忙脚乱。</li>
+</ul>
+<h2 id="_6">时间分配建议</h2>
+<ul>
+<li><strong>5 分钟版</strong>：为什么(30s) → 三类回滚各 1 分钟 → 基础设施+原则(1 分钟) → 一句深入思考收尾。</li>
+<li><strong>10 分钟版</strong>：为什么(1min) → 三类回滚各 2min（每类含一句示例）→ 基础设施+伪代码(2min) → 设计原则(1min) → 深入思考(1.5min) → 留 30s 给追问。</li>
+</ul>
+<h2 id="_7">过渡话术</h2>
+<ul>
+<li><strong>开场</strong>："这个问题问的是 LLM 工程的兜底能力。我的回答分三层：先讲三类回滚对象各自的粒度与时机，再讲支撑它们的公共基础设施，最后是两个设计原则。"</li>
+<li><strong>Prompt→模型</strong>："刚才说的是改动最频繁、粒度最小的 Prompt 回滚，接下来看粒度更大的模型回滚，它的关键在路由与别名机制……"</li>
+<li><strong>三类→基础设施</strong>："这三类回滚能真正落地，依赖的是同一套地基——配置中心、不可变版本化、灰度发布和监控告警，缺一不可。"</li>
+<li><strong>收尾（升华）</strong>："最后我想强调，回滚不是目的，快速恢复加根因修复才是。所以我的团队有一条铁律——先回滚止血，再离线排查；让每次改动都敢改、能退、退得快。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0211')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0211')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

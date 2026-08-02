@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滑动窗口和令牌桶相比有什么区别？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0189</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>滑动窗口和令牌桶相比有什么区别？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">滑动窗口和令牌桶相比有什么区别？</h1>
+<h1 id="_2">滑动窗口和令牌桶相比有什么区别？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话定性</strong>：滑动窗口是「计数型」限流——数窗口里过了几个请求；令牌桶是「速率型」限流——看桶里还剩几张令牌。</p>
+<p><strong>生活比喻</strong>（两个画面感最强的例子）：<br />
+- 滑动窗口 = 餐厅的客流统计：老板规定「任意 10 分钟内最多接待 10 桌」，服务员每进来一桌就在本子上记一笔，同时划掉 10 分钟前的旧记录。它管的是<strong>时段总量</strong>，超了一律请出去。<br />
+- 令牌桶 = 自动售货机的代币机：机器每 1 分钟匀速吐 1 枚代币，最多攒 5 枚。客人来买东西必须投币，没币就排队等。它管的是<strong>持续速率</strong>，但攒下来的币允许你一次性花掉——这就是突发。</p>
+<p><strong>关键词钩子</strong>：「计数 vs 速率」「严格拒绝 vs 允许突发」「时间戳列表 vs 两个字段」「窗口硬上限 vs rate×t+burst」。</p>
+<p><strong>口诀</strong>：窗口数个数，桶里攒速率；窗口是闸门，桶是蓄水池。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>滑动窗口（Sliding Window）</strong>：一种计数型（counting-based）限流算法。维护一个固定长度的时间窗口（如 1 秒），窗口内累计请求数不得超过上限 N。窗口随时间推移持续滑动：新请求到达时，先把落在窗口之外的旧记录剔除，再判断窗口内计数是否已满。它是对<strong>固定窗口（Fixed Window）</strong>的改进——固定窗口在窗口边界处存在"双倍突刺"漏洞（比如 0.9 秒和 1.1 秒各打满 100 个请求，2 秒内实际通过了 200 个），滑动窗口通过持续平移消除了这个盲区。</p>
+<p><strong>令牌桶（Token Bucket）</strong>：一种速率型（rate-based）限流算法。以恒定速率 r 向桶中补充令牌（token），桶容量（bucket capacity）为 b；请求到达时必须消耗一个令牌才能放行，无令牌则拒绝或阻塞。长期来看平均速率不超过 r，但<strong>允许瞬时突发（burst）最多 b 个请求</strong>——前提是之前攒下了足够的令牌。</p>
+<p><strong>一句话概括本质区别</strong>：滑动窗口限制的是「任一窗口内的总量」（硬上限），令牌桶限制的是「长期平均速率 + 突发上限」（软速率）。</p>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>滑动窗口的实现</strong>：核心数据结构是一个时间戳队列/循环数组。每次请求到达：① 剔除所有 <code>now - 时间戳 ≥ 窗口长度</code> 的旧记录；② 若队列长度已达 N 则拒绝；③ 否则加入当前时间戳。精确版滑动窗口需要存储窗口内<strong>每一个</strong>请求的时间戳，内存随 QPS 线性增长；工程上常用<strong>滑动窗口计数器（Sliding Window Counter）</strong>变体——把窗口切成若干小格子（如 1s 切成 10 个 100ms），用「上一格子的部分占比 + 当前格子计数」估算总量，牺牲一点精度换取 O(1) 内存，Sentinel 即采用此方案。</p>
+<p><strong>令牌桶的实现</strong>：只需要<strong>两个字段</strong>——<code>lastRefillTime</code>（上次补充时间）和 <code>availableTokens</code>（当前令牌数）。请求到达时按 <code>(now - lastRefillTime) × rate</code> 补令牌（封顶为桶容量 b），再扣减 1。整个计算是 O(1) 的纯数学运算，无任何存储结构。</p>
+<p><strong>⚡ 关键洞察（数学差异，全场最值钱的一句）</strong>：两者对"时间窗内最大放行量"的约束完全不同——<br />
+- 滑动窗口：<strong>任意窗口内请求数严格 ≤ N</strong>，这是硬上限（hard cap）。<br />
+- 令牌桶：<strong>任意时长为 t 的窗口内，最多放行 rate × t + bucketSize 个请求</strong>。例如 rate=100/s、burst=50，那么 1 秒窗口内最多可放行 100×1+50 = <strong>150</strong> 个（桶里攒满 50 个再以 100/s 消费）。<br />
+- 结论：令牌桶在<strong>短窗口内可能超过 rate</strong>，滑动窗口则<strong>永不超 N</strong>。这正是"硬限制"与"软速率"的数学本质，答出来即与普通背概念的候选人拉开差距。</p>
+<h2 id="3">3. 实践应用</h2>
+<p><strong>滑动窗口适用场景</strong>：需要"绝对不超限"的硬约束——接口级 QPS 硬限制、网关单 IP 限流防刷/反爬（统计维度是次数而非速率）、对用户可感知的 SLO 承诺。典型代表：<strong>Sentinel</strong>（默认滑动窗口计数，统计 QPS、并发等指标并限流）、网关层按维度（IP/用户）限频。</p>
+<p><strong>令牌桶适用场景</strong>：下游保护 + 允许突发——数据库/第三方 API 有吞吐上限但能容忍瞬时尖峰；秒杀开场、缓存击穿恢复期的流量突刺；需要<strong>动态调整速率</strong>（按用户等级动态调 rate）。典型代表：<strong>Guava RateLimiter</strong>（SmoothBursty/SmoothWarmingUp 平滑变体）、Spring Cloud Gateway 的 RequestRateLimiter、Amazon API Gateway 的默认限流。</p>
+<p><strong>选型决策</strong>：追求「绝不超限、统计精确」→ 滑动窗口；追求「资源利用率最大化、允许突发、速率可调」→ 令牌桶。实际生产常<strong>组合使用</strong>：令牌桶削峰 + 滑动窗口封顶。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>代码级对比</strong>（两个核心实现并排）：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 滑动窗口：时间戳队列</span>
+<span class="kd">class</span> <span class="nc">SlidingWindow</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Deque</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span><span class="w"> </span><span class="n">timestamps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayDeque</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">limit</span><span class="p">;</span><span class="w">              </span><span class="c1">// N 个请求/窗口</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">windowMillis</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryAcquire</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">timestamps</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">                </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">timestamps</span><span class="p">.</span><span class="na">peekFirst</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">windowMillis</span><span class="p">)</span>
+<span class="w">            </span><span class="n">timestamps</span><span class="p">.</span><span class="na">pollFirst</span><span class="p">();</span><span class="w">       </span><span class="c1">// 剔除窗口外旧记录</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timestamps</span><span class="p">.</span><span class="na">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">limit</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// 严格拒绝</span>
+<span class="w">        </span><span class="n">timestamps</span><span class="p">.</span><span class="na">addLast</span><span class="p">(</span><span class="n">now</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 令牌桶：仅两个字段</span>
+<span class="kd">class</span> <span class="nc">TokenBucket</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">rate</span><span class="p">;</span><span class="w">            </span><span class="c1">// rate 个令牌/秒</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">capacity</span><span class="p">;</span><span class="w">        </span><span class="c1">// 桶容量 burst</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">tokens</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">lastRefillNanos</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryAcquire</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">nanoTime</span><span class="p">();</span>
+<span class="w">        </span><span class="n">tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">capacity</span><span class="p">,</span>
+<span class="w">                </span><span class="n">tokens</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">lastRefillNanos</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e9</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rate</span><span class="p">);</span>
+<span class="w">        </span><span class="n">lastRefillNanos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tokens</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">        </span><span class="n">tokens</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>并排看更清晰：滑动窗口多一个<strong>存储结构</strong>，令牌桶只有<strong>两个数值字段</strong>；滑动窗口的拒绝是即时的、绝对的，令牌桶的拒绝只发生在"令牌耗尽"时。</p>
+<p><strong>分布式实现差异</strong>（单机到分布式的放大效应）：滑动窗口在分布式下需要全局时间戳集合 → 用 Redis <strong>ZSET</strong>（score 为时间戳）存储，每次请求一次 <code>ZADD</code> + <code>ZREMRANGEBYSCORE</code> + <code>ZCARD</code>，内存随 QPS × 窗口时长线性增长，高 QPS 下内存成本很高；令牌桶在分布式下依然只有两个字段（<code>last_refill_time</code>、<code>tokens</code>），用 <strong>Lua 脚本</strong>原子完成"补充+扣减"，O(1) 内存。此外分布式滑动窗口还依赖节点时钟一致或 Redis 时间戳，令牌桶无此问题。这也是生产中<strong>分布式限流（如 Redis+Lua 方案）普遍偏向令牌桶</strong>的原因。</p>
+<p><strong>Sentinel 与 Guava 的选型逻辑</strong>：Sentinel 选滑动窗口，因为它的定位是"指标统计 + 限流一体"，需要按任意时间粒度精确统计 QPS/并发数并拒绝超限请求，滑动窗口天然的"窗口内严格 ≤ N"契合其保护微服务的硬约束目标；Guava 选令牌桶（平滑变体），因为它的定位是"平滑速率整形"，要利用突发能力、输出更平滑的流量。<strong>两者目标函数不同：一个要精确总量，一个要平滑速率。</strong></p>
+<p><strong>加分扩展——漏桶（Leaky Bucket）</strong>：漏桶恒定速率出水、无突发、纯粹整形，可看作"零突发的特殊令牌桶"。三角对比一句话：滑动窗口管总量、令牌桶管速率+突发、漏桶管匀速整形。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h2 id="34">答题逻辑框架（3~4 分钟标准结构）</h2>
+<ol>
+<li><strong>一句话定性（约 30 秒）</strong>：开口即点题——"滑动窗口是计数型限流，令牌桶是速率型限流"。</li>
+<li><strong>机制对比（约 60 秒）</strong>：讲清各自机制（窗口滑动剔除 + 计数；匀速补令牌 + 桶容量突发），可报一张对比表。</li>
+<li><strong>关键差异深挖（约 60 秒）</strong>：挑 2~3 个维度讲透，<strong>必讲数学洞察</strong>——滑动窗口任意窗口严格 ≤ N，令牌桶任意窗口 ≤ rate×t+burst。</li>
+<li><strong>场景选型（约 45 秒）</strong>：给两个具体场景（防刷→滑动窗口；下游保护/允许突发→令牌桶）说明决策依据。</li>
+<li><strong>升华收尾（约 30 秒）</strong>：分布式差异 + Sentinel/Guava 选型逻辑，最后留一句"要不要我展开漏桶"引导追问。</li>
+</ol>
+<h2 id="_6">重点得分点</h2>
+<ol>
+<li>第一句就给出"计数 vs 速率"的定性——直接命中本质。</li>
+<li><strong>数学不等式 rate×t+burst vs ≤ N</strong> 是最高分亮点，90% 候选人说不出来。</li>
+<li>对比维度覆盖全：突发能力、时间精度、实现成本、平滑性。</li>
+<li>现场能写出伪代码/核心字段（证明是真懂而非背概念）。</li>
+<li>结合框架实例：Sentinel=滑动窗口、Guava=令牌桶，并说出<strong>为什么</strong>（选型逻辑）。</li>
+<li>主动补漏桶做三角对比，展现知识宽度。</li>
+</ol>
+<h2 id="_7">常见误区</h2>
+<ul>
+<li>❌ 说"滑动窗口比令牌桶更精确"——两者约束语境不同（总量 vs 速率），不可直接比精确度。</li>
+<li>❌ 混淆固定窗口与滑动窗口——固定窗口才有边界突刺问题，滑动窗口正是其改进。</li>
+<li>❌ 说"令牌桶允许无限突发"——突发上限 = 桶容量 b。</li>
+<li>❌ 把 Guava RateLimiter 当成标准令牌桶——它是平滑变体（SmoothBursty/SmoothWarmingUp）。</li>
+<li>❌ 只聊单机——分布式下滑动窗口 ZSET 内存成本呈数量级差异，这是面试官最爱追问的延伸点。</li>
+<li>❌ 只背定义不给场景——面试官考察的是<strong>决策能力</strong>，必须落到选型。</li>
+</ul>
+<h2 id="_8">时间分配建议</h2>
+<ul>
+<li>0~30s：定性 + 核心机制。</li>
+<li>30s~1m30s：对比维度（挑突发、时间精度/数学、实现成本三个详讲）。</li>
+<li>1m30s~2m30s：场景选型 + 一段代码佐证。</li>
+<li>2m30s~3m30s：分布式差异 + 框架选型（升华段，最容易拉开差距）。</li>
+<li>最后 30s：金句收尾 + 引导追问（"漏桶要不要展开？"）。</li>
+</ul>
+<h2 id="_9">过渡话术</h2>
+<ul>
+<li>「这个问题本质是两种限流哲学的对比：一个管总量，一个管速率。」</li>
+<li>「单看机制差异还不够，从数学约束上看差距更本质——」</li>
+<li>「刚才讲的是单机场景，放到分布式下，这个差距会被进一步放大……」</li>
+<li>「补充一个选型场景帮大家落地：接口防刷你一定会选滑动窗口，但下游数据库保护你一定会选令牌桶。」</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0189')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0189')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

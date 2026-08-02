@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP和UDP的区别 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0220</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🌍 计算机网络</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>TCP和UDP的区别</h1>
+    <div class="tag-row"></div>
+    <h1 id="tcpudp">TCP和UDP的区别</h1>
+<h1 id="tcp-udp">TCP 和 UDP 的区别（深度面试解答）</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>1. 场景类比法（推荐，一记就是一辈子）</strong></p>
+<p>把 TCP 想象成<strong>打电话</strong>，把 UDP 想象成<strong>寄明信片</strong>：</p>
+<ul>
+<li>打电话要先<strong>拨号接通</strong>（三次握手），说完了要<strong>说"再见"再挂断</strong>（四次挥手），说话必须<strong>按顺序、一句不落</strong>（可靠有序），听不清时<strong>让对方再说一遍</strong>（超时重传）；</li>
+<li>寄明信片只需要<strong>写好投进邮筒</strong>（无连接），不用对方回执，<strong>丢了就丢了、顺序乱了也没人管</strong>（尽力而为），但<strong>几乎零成本、即写即寄</strong>（低开销低延迟）。</li>
+</ul>
+<p>面试时先抛这个类比，再落到技术细节，面试官会立刻觉得你"讲人话"。</p>
+<p><strong>2. 口诀法（用于答题收尾快速复盘）</strong></p>
+<blockquote>
+<p><strong>"三握四挥、两窗控流、序号重传、可靠有序；八字节头、无连无窗、尽力而为、轻快实时。"</strong></p>
+</blockquote>
+<p>拆解：三次握手、四次挥手（TCP）；滑动窗口 + 拥塞窗口（TCP 的两大窗口控制）；UDP 头部仅 8 字节、无连接无窗口。</p>
+<p><strong>3. 数字锚定法（记关键数字，防冷场）</strong></p>
+<ul>
+<li>TCP 头部 <strong>20~60 字节</strong> vs UDP 头部 <strong>8 字节</strong>（差 3~7 倍）；</li>
+<li>TCP 端口字段 16 位、UDP 同样是 16 位——<strong>两者都靠四元组</strong>（源 IP、源端口、目的 IP、目的端口）标识通信；</li>
+<li>握手报文数：TCP 建立 3 个、释放 4 个；UDP 为 0。</li>
+</ul>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p><strong>TCP（Transmission Control Protocol，传输控制协议）</strong> 和 <strong>UDP（User Datagram Protocol，用户数据报协议）</strong> 都工作在 <strong>传输层（Transport Layer）</strong>，位于网络层（IP 协议）之上、应用层之下。它们把应用数据交给 IP 传输，区别在于 IP 只提供"尽力而为"的投递，而 TCP 在此基础上补齐了可靠性，UDP 则直接沿用"尽力而为"哲学。</p>
+<p>一句话概括：<strong>TCP 用复杂度换可靠性，UDP 用"不负责"换轻量和实时。</strong></p>
+<p>两者的核心差异可用一张表讲透（面试核心素材）：</p>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>TCP</th>
+<th>UDP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连接性</td>
+<td><strong>面向连接</strong>（connection-oriented），需握手建立连接</td>
+<td><strong>无连接</strong>（connectionless），即发即走</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td><strong>可靠传输</strong>：确认（ACK）、超时重传、去重</td>
+<td><strong>尽力而为</strong>（best-effort），可能丢失/重复</td>
+</tr>
+<tr>
+<td>有序性</td>
+<td><strong>字节流有序</strong>：按序交付，先到的数据不会后给应用</td>
+<td><strong>数据报可能乱序</strong>，需应用层自行处理</td>
+</tr>
+<tr>
+<td>全双工</td>
+<td><strong>全双工</strong>（full-duplex），收发可同时进行</td>
+<td><strong>也是全双工</strong>，双向独立收发</td>
+</tr>
+<tr>
+<td>流量控制/拥塞控制</td>
+<td>有：滑动窗口 + 拥塞窗口</td>
+<td><strong>无</strong>：既不限速也不避让</td>
+</tr>
+<tr>
+<td>头部开销</td>
+<td><strong>20~60 字节</strong>（含选项字段）</td>
+<td><strong>8 字节</strong></td>
+</tr>
+<tr>
+<td>传输单位</td>
+<td><strong>字节流</strong>（byte stream），无消息边界</td>
+<td><strong>数据报文</strong>（datagram），一条消息一个报文</td>
+</tr>
+<tr>
+<td>组播/广播</td>
+<td>仅支持<strong>单播</strong>（unicast）</td>
+<td>支持单播、<strong>组播</strong>（multicast）和<strong>广播</strong>（broadcast）</td>
+</tr>
+<tr>
+<td>典型应用</td>
+<td>HTTP/HTTPS、FTP、SMTP、SSH、MySQL</td>
+<td>DNS、视频通话、在线游戏、实时流媒体、DHCP</td>
+</tr>
+</tbody>
+</table>
+<p><strong>容易被忽略但很加分的点</strong>：TCP 和 UDP 都是全双工的；TCP 只支持单播（要建立连接，必须一对一），UDP 才能做广播/组播——这也是视频会议、IPTV 等技术选型的底层原因之一。</p>
+<h3 id="2">2. 底层原理</h3>
+<p><strong>TCP 的可靠性是怎么"贵"出来的？</strong>（简讲以佐证对比）</p>
+<ul>
+<li><strong>三次握手（three-way handshake）</strong>：客户端发 SYN → 服务端回 SYN+ACK → 客户端回 ACK，连接建立。为什么不是两次？因为要<strong>防止历史失效连接请求</strong>被服务端误建（迟到的旧 SYN 会因 seq 序号错乱被拒绝）。</li>
+<li><strong>四次挥手（four-way handshake）</strong>：主动方发 FIN → 被动方 ACK → 被动方发 FIN → 主动方 ACK，然后主动方进入 <strong>TIME_WAIT</strong>（等待 2MSL），保证最后一个 ACK 丢失时能重发。</li>
+<li><strong>序号确认（sequence number + ACK）</strong>：每个字节都有序号，接收方<strong>累计确认</strong>，发送方据此判断哪些包丢了；乱序数据先缓存，最终<strong>按序交付</strong>给应用层——这就是"有序"的来历。</li>
+<li><strong>超时重传（timeout retransmission）</strong>：发送后启动定时器，超时未收到 ACK 就重传；<strong>去重</strong>由接收方的序号窗口完成（重复序号直接丢弃）。</li>
+<li><strong>滑动窗口（sliding window）</strong>：接收方通告 <strong>rwnd（接收窗口）</strong>，实现<strong>流量控制</strong>，防止发送过快把接收方缓冲区打爆。</li>
+<li><strong>拥塞控制（congestion control）</strong>：发送方维护 <strong>cwnd（拥塞窗口）</strong>，采用<strong>慢启动（slow start）→ 拥塞避免（congestion avoidance）→ 快重传（fast retransmit）→ 快恢复（fast recovery）</strong>四阶段，探测网络容量、丢包时减半退让。<strong>所有控制状态都要维护</strong>，这就是 TCP "重"的根源。</li>
+</ul>
+<p><strong>UDP 为什么轻？</strong></p>
+<p>UDP 报文头仅 <strong>8 字节</strong>：源端口（2B）+ 目的端口（2B）+ 长度（2B）+ 校验和（2B）。没有序号、没有确认、没有窗口，发送方把 <strong>User Datagram（用户数据报）</strong> 原样丢给 IP，能不能到、以什么顺序到，一概不管。它唯一的"可靠性动作"是<strong>校验和（checksum）</strong>：接收方校验失败就丢弃（不重传），在 IPv4 下校验和甚至可选、置 0 表示不校验——这是"尽力而为"最直白的注脚。之所以叫 <strong>datagram（数据报）</strong>，是因为它保留了消息边界：一次 send 就是一次 receive，应用层不需要处理<strong>粘包/拆包</strong>问题（TCP 是字节流，应用层必须自己划分消息边界）。</p>
+<h3 id="3">3. 实践应用</h3>
+<p><strong>"谁在用谁"映射（面试必背）</strong>：</p>
+<ul>
+<li><strong>TCP 阵营（要完整性，丢不起）</strong>：HTTP/HTTPS（网页）、FTP（文件传输）、SMTP/IMAP/POP3（邮件）、SSH（远程登录）、MySQL（数据库）。这些场景里<strong>内容必须一字不差</strong>，多等几十毫秒无妨。</li>
+<li><strong>UDP 阵营（要实时性，等不起）</strong>：DNS（域名解析，一个请求一个应答）、RTP/RTSP（视频通话与直播）、在线竞技游戏（操作指令）、DHCP（地址分配，甚至要广播）、TFTP、QUIC（后文详述）。</li>
+</ul>
+<p><strong>选型底层逻辑</strong>：<strong>丢数据的代价 vs 延迟的代价</strong>。网页丢一个字节 = 页面损坏，重传代价可接受 → TCP；视频通话丢一帧 = 画面闪烁一下，而如果为等重传<strong>卡顿一秒</strong>，用户体验更差 → UDP。实时性要求越高、对局部丢包容忍度越高，越倾向 UDP；正确性要求越高、延迟容忍度越高，越倾向 TCP。这也是面试官最想听到的"决策视角"。</p>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>升华点：TCP 的"原罪"与 QUIC（Quick UDP Internet Connections）的逆袭。</strong></p>
+<p>TCP 的字节流模型有一个致命问题——<strong>队头阻塞（head-of-line blocking）</strong>：一个数据包丢失后，<strong>它后续所有包即便已到达，也必须等在接收缓冲区里</strong>，直到该包重传成功，才能整体交付给应用层。对 HTTP/1.1 一个连接传一个请求的场景尚可忍受，但在现代网络（高丢包、多路复用）下代价巨大。</p>
+<p>于是 2013 年谷歌提出 <strong>QUIC</strong>，<strong>基于 UDP 实现"可靠传输 + 有序交付 + 加密 + 低延迟"</strong>，被 <strong>HTTP/3</strong> 采用，成为本世纪传输层最成功的演进：</p>
+<ul>
+<li><strong>多流复用（multiplexing）</strong>：一个 QUIC 连接内多条逻辑流<strong>互相独立</strong>，一条流丢包只阻塞自己，<strong>不阻塞其他流</strong>——从根上解决了 TCP 的队头阻塞；</li>
+<li><strong>0-RTT/1-RTT 建连</strong>：内置 <strong>TLS 1.3</strong> 加密握手，首包即可携带数据，比 TCP+TLS 的两轮握手快得多；</li>
+<li><strong>连接迁移（connection migration）</strong>：用<strong>连接 ID 而非四元组</strong>标识连接，Wi-Fi 切移动网络时连接不断。</li>
+</ul>
+<p><strong>QUIC 是"TCP vs UDP"考题的最佳收尾</strong>，它同时证明两件事：UDP 不是"不靠谱"的协议，而是"可靠与否由上层决定"的协议；TCP 也不是终极答案，它的可靠性和有序性恰恰成了现代场景的瓶颈。</p>
+<p><strong>常见误区（务必主动澄清，这是拉开差距的地方）</strong>：</p>
+<ol>
+<li><strong>"UDP 一定比 TCP 快"——错</strong>。在无丢包的局域网里，TCP 与 UDP 的吞吐差距极小；UDP 的"快"来自<strong>省去建连和确认的往返时间（RTT）</strong>与更低的处理开销，但可靠性是独立维度。可靠传输与性能是两回事：有时恰恰是 TCP 的重传机制在大丢包链路上提供了 UDP 无法比拟的"有效吞吐"。</li>
+<li><strong>"UDP 不安全"——不严谨</strong>。传输层安全是 <strong>TLS</strong> 的职责，TLS 既可跑在 TCP 上（HTTPS）也可跑在 UDP 上（QUIC/DTLS）。UDP 的"不安全"更多指<strong>无连接导致源地址可伪造（如 DNS 放大攻击）</strong>，这是应用层设计问题，而非协议原罪。</li>
+<li><strong>"TCP 一定可靠"——只对了传输层的一半</strong>。TCP 保证的是<strong>字节流按序无损坏交付到接收端内核</strong>，但：它不保证应用层消息边界（要处理粘包/拆包）；不保证对端进程一定存活（半开连接、RST 重置）；应用崩溃、断连重连等<strong>应用层语义</strong>仍需业务代码兜底。</li>
+</ol>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（总分总，4 分钟版）</strong>：</p>
+<ol>
+<li><strong>一句话定义开场（30 秒）</strong>："TCP 和 UDP 都是传输层协议，TCP 面向连接、可靠有序，UDP 无连接、尽力而为。我的思路是先讲清楚关键差异，再补原理和场景，最后聊一个演进方向。"</li>
+<li><strong>对比表主干（1.5 分钟）</strong>：抛出上面的维度表，按"连接性→可靠性→有序性→流量/拥塞控制→头部开销→传输单位→组播广播→应用映射"的顺序展开。<strong>注意补一句"两者都是全双工"</strong>，这是很多人漏掉的对称点，显得你严谨。</li>
+<li><strong>原理佐证（1.5 分钟）</strong>：用三次握手、序号确认+超时重传、滑动窗口/拥塞窗口证明"TCP 为什么重"；用 8 字节头结构证明"UDP 为什么轻"。<strong>点到为止，不背全流程</strong>——本题是"对比"不是"手撕 TCP"。</li>
+<li><strong>场景落地（30 秒）</strong>：HTTP/FTP/SMTP 用 TCP，DNS/视频/游戏用 UDP，并给一句选型原则（"丢数据的代价 vs 延迟的代价"）。</li>
+<li><strong>升华收尾（30 秒）</strong>："最后我想提一个演进方向——QUIC，它用 UDP 实现了可靠传输并解决了 TCP 的队头阻塞，这正好说明 TCP 与 UDP 不是优劣关系，而是设计取舍。"<strong>这是全场最大的加分点。</strong></li>
+</ol>
+<p><strong>重点得分点</strong>（面试官的打分清单）：<br />
+- 提全"<strong>全双工</strong>"和"<strong>UDP 也全双工</strong>"（对称维度最容易漏）；<br />
+- 提"<strong>可靠传输与性能是两回事</strong>"（破除"UDP 更快"误区，展示思辨深度）；<br />
+- 提"<strong>TCP 队头阻塞 + QUIC 多流复用</strong>"（知识面与时俱进）；<br />
+- 提"<strong>应用层选型视角</strong>"而不是罗列特性（展示工程判断力）。</p>
+<p><strong>常见误区（自己回答时别踩）</strong>：<br />
+- 只背"可靠 vs 不可靠"，不提<strong>流量控制、拥塞控制、组播广播、头部大小</strong>等维度——对比题要多维度展开；<br />
+- 说"UDP 不安全/更快"等绝对化结论——要加限定条件；<br />
+- 把三次握手四次挥手背完整流程而忘了本题核心是<strong>差异</strong>——喧宾夺主。</p>
+<p><strong>时间分配建议</strong>：定义 30s + 对比表 90s + 原理 90s + 场景 30s + 升华 30s ≈ 4 分钟；若面试官催促，砍原理细节，保留对比表与 QUIC 升华。若被追问原理，再展开握手与拥塞控制细节——<strong>留一手，层层递进</strong>。</p>
+<p><strong>过渡话术（让回答行云流水）</strong>：<br />
+- 进主体："为了直观，我们先把两者的差异放在一张维度表里看。"<br />
+- 进原理："光看表还不够，要从原理层解释这种差异是怎么来的——TCP 的重，重在哪？"<br />
+- 进场景："这些特性决定了它们的应用边界，典型的就是 HTTP 用 TCP、DNS 和游戏用 UDP。"<br />
+- 进升华："讲到这里，你可能会想：有没有办法'既要 UDP 的快，又要 TCP 的可靠'？这正是 QUIC 解决的问题。"<br />
+- 收尾反问："以上就是我对比 TCP 和 UDP 的思路，您想让我深入展开哪一部分？"（把话语权交还面试官，展现掌控感）</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 计算机网络<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0220')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0220')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP是全双工还是半双工？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0171</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🌍 计算机网络</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>TCP是全双工还是半双工？</h1>
+    <div class="tag-row"></div>
+    <h1 id="tcp">TCP是全双工还是半双工？</h1>
+<h1 id="tcp_1">TCP 是全双工还是半双工？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>1. 打电话 vs 用对讲机</strong><br />
+- 对讲机（walkie-talkie）：一次只有一个人能说，说完要喊"over"，你说话时听不见对方——这是<strong>半双工（half-duplex）</strong>。<br />
+- 电话（telephone）：双方可以同时说话、同时听，谁也不打断谁——这就是<strong>全双工（full-duplex）</strong>。<br />
+- 记忆口诀："<strong>TCP 打电话，UDP 发短信，HTTP 写信</strong>。"TCP 就像打电话，连接建立后双方随时可以同时开口。</p>
+<p><strong>2. 两根水管</strong>：把一条 TCP 连接想象成两根并排的水管——一根 A→B 流水，一根 B→A 流水，互不干扰，可以同时双向流水。半双工则是单根水管来回倒水，同一时刻只能流向一个方向。</p>
+<p><strong>3. 单词拆解</strong>：full-duplex 里的 "du" = dual（双），"full" = 满，即"两股数据流都拉满"；half-duplex 是"一半"，一次只能走一股。对应记忆：<strong>half = 一半时间只能一个方向，full = 两个方向同时满负荷</strong>。</p>
+<p><strong>4. 四次挥手作证</strong>：TCP 为什么是四次挥手（four-way handshake）？因为两个方向的数据流要<strong>分别独立关闭</strong>——A 发 FIN 并收到 ACK，B 也发 FIN 并收到 ACK，各关各的。如果是半双工的单通道，就不需要四步。这个细节本身就是全双工的"指纹"。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p><strong>结论先行：TCP（Transmission Control Protocol，传输控制协议）是全双工（full-duplex）的。</strong></p>
+<p>"双工（duplex）"描述的是通信双方数据传递的方向属性，共分三类：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>能否双向</th>
+<th>能否同时双向</th>
+<th>生活类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单工（simplex）</td>
+<td>否，单向</td>
+<td>—</td>
+<td>广播电台，只发不听</td>
+</tr>
+<tr>
+<td>半双工（half-duplex）</td>
+<td>能</td>
+<td>否，同一时刻只能一个方向</td>
+<td>对讲机，按着说话听不到对方</td>
+</tr>
+<tr>
+<td>全双工（full-duplex）</td>
+<td>能</td>
+<td>能，收发互不干扰</td>
+<td>电话，同时说同时听</td>
+</tr>
+</tbody>
+</table>
+<p>TCP 属于<strong>全双工</strong>：一条 TCP 连接建立后，客户端和服务端可以<strong>同时</strong>向对方发送数据，数据发送与接收互不阻塞、互不影响。</p>
+<p>需要立刻划清一个概念边界：全双工描述的是<strong>数据传输方向</strong>层面的属性，它不等于"应用层能同时做请求-响应"（这取决于应用层协议，比如 HTTP 的设计），也不同于"面向连接""可靠传输"等其他 TCP 特性。这个区分是整个回答的灵魂。</p>
+<h3 id="2">2. 底层原理：全双工在实现上靠什么支撑</h3>
+<p>TCP 的全双工不是一句口号，而是有一整套机制在协议栈实现层面保证，面试时能讲出这五点，就说明你真懂：</p>
+<p><strong>① 独立的发送/接收缓冲区（send buffer / receive buffer）</strong>：每个 TCP socket 在操作系统中维护两个完全独立的缓冲区。用户进程把数据写入发送缓冲区，内核协议栈负责按 MSS 分段、加 TCP 头、发送；反向，内核把到达的数据放入接收缓冲区，等用户进程 read 取走。发送排队不影响接收，接收积压不影响发送——两个方向的流通路物理隔离。</p>
+<p><strong>② 独立的确认机制（independent acknowledgment）</strong>：TCP 是可靠传输，每发一段数据，接收方都要回 ACK（acknowledgment，确认报文）。关键是：<strong>两个方向各自独立确认</strong>。A→B 的数据由 B 回 ACK，B→A 的数据由 A 回 ACK。TCP 头中同时携带序号（sequence number）和确认号（acknowledgment number），两个方向的数据流各有自己的一套序号体系，互不干扰。</p>
+<p><strong>③ 全双工通道（two independent data streams）</strong>：一条 TCP 连接逻辑上是两条背向的单向字节流（byte stream）叠加，各自独立编号、独立重传、独立交付。所以 TCP 是"可靠的字节流"，且是<strong>两个反向的可靠字节流</strong>。</p>
+<p><strong>④ 窗口大小（window size）独立控制</strong>：流量控制（flow control）用滑动窗口（sliding window）实现。每个方向的接收窗口（receive window / rwnd）由该方向的接收方根据其接收缓冲区剩余空间通告，A 的发送窗口大小取决于 B 的通告，B 的发送窗口取决于 A 的通告，<strong>完全独立</strong>。一个方向窗口收缩甚至为 0（零窗口），另一个方向照样满速传输——这是全双工最硬核的体现。</p>
+<p><strong>⑤ ACK 与数据的反向捎带（piggyback）</strong>：正因为两个方向可以同时传数据，B 回给 A 的 ACK 不必单独发一个空包，而是<strong>搭顺风车</strong>塞进 B 发给 A 的数据段 TCP 头里一起走（延迟确认 delayed ACK 机制也为此优化）。ACK 不单独占用通信时间，反向数据流和确认信息在同一条"车道"上共行。</p>
+<h3 id="3">3. 实践应用：全双工在工程中的体现</h3>
+<p><strong>① Socket 同时可读可写</strong>：编程上，TCP socket 的 read() 和 write() 可以同时进行——读操作不会阻塞写，写操作不会阻塞读。例如聊天服务器：一个线程 read 接收客户端消息，另一个线程同时 write 给客户端推送消息，两个流程互不阻塞。若 TCP 是半双工，推送就必须等接收完成。</p>
+<p><strong>② NIO 全双工编程模型</strong>：Java NIO（New I/O）和 Netty 中，一个 Channel 注册到 Selector 上，可以<strong>同时关注 OP_READ 和 OP_WRITE 两种事件</strong>。全双工使得读写事件完全解耦、独立驱动：Channel 可读时触发读事件，可写时触发写事件。半双工模式下做不到这种双事件驱动，只能"发完等收、收完再发"，编程模型被严重制约。</p>
+<p><strong>③ 应用层协议的三种工程形态</strong>（这部分是拉开差距的亮点）：<br />
+- <strong>HTTP/1.1 是半双工应用</strong>：虽然它跑在全双工的 TCP 之上，但应用层设计成严格的请求-响应串行（request-response serial）——一个连接同一时刻最多一个请求在途，客户端发完请求必须干等响应，pipelining 还会带来队头阻塞（head-of-line blocking）。这就是"<strong>传输层全双工 ≠ 应用层全双工</strong>"的经典案例。<br />
+- <strong>HTTP/2 多路复用（multiplexing）</strong>：一个 TCP 连接上多个 stream 并发交错传输，双向同时进行，终于把 TCP 全双工的能力真正用起来了。<br />
+- <strong>WebSocket 是全双工应用层协议</strong>：连接建立后，客户端和服务端可以随时互相推送数据，无需请求-响应配对——所以实时聊天、在线游戏、行情推送都选它。</p>
+<p><strong>④ 性能影响</strong>：全双工保证单向传输占满带宽时，反向仍能传输数据。典型如大文件下载：下行数据满速跑时，上行方向仍能承载 ACK、控制报文以及用户自己的上行数据；P2P、流媒体、实时对战都依赖这种双向并发。</p>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>① "双向" ≠ "全双工"</strong>："双向"只说明两个方向都能传（半双工也满足），"全双工"强调<strong>同时</strong>。要辨析三个层次：能双向传（半双工即可）→ 能同时双向传（全双工）→ 应用层能并发交互（取决于应用协议）。面试时主动拆出这三层，是明显的加分动作。</p>
+<p><strong>② UDP 也是全双工</strong>：UDP（User Datagram Protocol，用户数据报协议）同样是全双工——双方可以同时互发数据报（datagram）。它与 TCP 的区别在<strong>无连接（connectionless）、无可靠性和流量控制</strong>，自然没有独立确认和窗口机制，但"全双工"这一方向属性两者一致。常见的错误认知是"面向连接的 TCP 才全双工，UDP 是单向的"，完全不对。</p>
+<p><strong>③ ACK 占用反向通道算半双工吗？不算。</strong> 全双工/半双工定义的是<strong>用户数据能否同时双向传输</strong>，ACK 属于控制面（control plane）信息，不是用户数据。即使某个时刻反向只有 ACK 流动、没有业务数据，这条链路依然是全双工链路——就像打电话时对方一直沉默，电话仍然是全双工设备。这个误区源于把"信道上流动的报文"和"用户数据的传输方向"混为一谈。</p>
+<p><strong>④ 分层视角：协议全双工 vs 物理全双工</strong>：TCP 的全双工是<strong>协议层语义</strong>，不要求物理链路必须是全双工。物理层实现全双工的手段有频分/时分/空分复用（光纤用一对纤芯、双绞线用四对线中两收两发）；链路层的共享式以太网（HUB 时代）是半双工加 CSMA/CD 冲突检测，交换式以太网才是全双工。就算 TCP 跑在物理半双工链路上，也能靠排队交替传输模拟出逻辑上的全双工，只是效率受损。能讲出这一层，深度直接上台阶。</p>
+<p><strong>⑤ 面试延伸钩子</strong>：答完本题常被追问——"既然 TCP 全双工，为什么 HTTP/1.1 还要 keep-alive？"（应用层串行，长连接只为省握手开销）；"TCP 为什么四次挥手？"（两个方向独立关闭，恰是全双工的证明）。提前备好这两问的答案，形成完整闭环。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<h3 id="_4">答题逻辑框架</h3>
+<ol>
+<li><strong>一句话结论 + 定义（20-30 秒）</strong>："TCP 是全双工的——连接建立后双方可以同时收发数据。"</li>
+<li><strong>三类双工对照（30-45 秒）</strong>：广播（单工）→ 对讲机（半双工）→ 电话（全双工），类比讲透。</li>
+<li><strong>底层实现机制（60-90 秒，核心）</strong>：独立收发缓冲区 → 独立序号与确认 → 独立滑动窗口 → ACK 捎带，证明"定义如此，实现也如此"。</li>
+<li><strong>工程对照（30-60 秒）</strong>：Socket 同时可读可写、NIO 双事件驱动；HTTP/1.1 半双工、HTTP/2 多路复用、WebSocket 全双工——点出"传输层与应用层分开看"。</li>
+<li><strong>误区澄清 + 收束（20-30 秒）</strong>：UDP 同样全双工；ACK 不算半双工。总时长 3-4 分钟，适配大多数面试窗口。</li>
+</ol>
+<h3 id="_5">重点得分点</h3>
+<ul>
+<li>一开口<strong>直接下结论</strong>，并精确给出定义，"<strong>同时</strong>"二字是灵魂。</li>
+<li>类比选对讲机 vs 电话，形象可记忆，面试官极易接受。</li>
+<li>能说出至少 3 个实现层支撑（缓冲区、独立 ACK/序号、独立窗口、捎带确认），证明理解而非背书。</li>
+<li>主动区分"传输层全双工"与"应用层半双工（HTTP/1.1）"——这是本题拉开差距的最大亮点。</li>
+<li>补一句"UDP 也是全双工"，展示知识广度与精确度。</li>
+</ul>
+<h3 id="_6">常见误区</h3>
+<ul>
+<li>❌ 把"TCP 连接是双向的"当成"TCP 是半双工"——双向是半双工也满足的性质，全双工强调的是同时。</li>
+<li>❌ 以为 ACK 占用反向通道就算半双工——混淆了控制面报文与用户数据流。</li>
+<li>❌ 以为 UDP 不是全双工——UDP 全双工但无连接、无确认无窗口。</li>
+<li>❌ 把 HTTP/1.1 的请求-响应串行说成"TCP 是半双工"——混淆了传输层与应用层。</li>
+<li>❌ 把全双工和并发/多线程混为一谈——全双工是方向属性，与线程模型无必然关系。</li>
+</ul>
+<h3 id="_7">时间分配建议</h3>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>时间</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>结论 + 定义</td>
+<td>20-30s</td>
+<td>先给结论，不要铺垫</td>
+</tr>
+<tr>
+<td>三类双工类比</td>
+<td>30-45s</td>
+<td>对讲机/电话，单工快速带过</td>
+</tr>
+<tr>
+<td>底层实现机制</td>
+<td>60-90s</td>
+<td>本回答的重头戏，给最多时间</td>
+</tr>
+<tr>
+<td>工程对比（HTTP/NIO）</td>
+<td>30-60s</td>
+<td>突出传输层 vs 应用层的分野</td>
+</tr>
+<tr>
+<td>误区 + 收束</td>
+<td>20-30s</td>
+<td>澄清一两个高频误区即止</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">过渡话术</h3>
+<ul>
+<li><strong>开场</strong>："我先给结论：TCP 是全双工的。要真正理解这句话，先看双工的三种形态——"</li>
+<li><strong>概念转原理</strong>："定义好懂，关键是实现——TCP 是怎么从协议栈层面保证双方能同时收发的？"</li>
+<li><strong>原理转实践</strong>："这套机制落到工程上，最直观的表现就是 Socket 能同时读和写，NIO 里读写事件完全独立……"</li>
+<li><strong>收尾升华</strong>："最后提醒一点：全双工是 TCP 的属性，HTTP 怎么用它又是另一回事——HTTP/1.1 就把它用成了半双工，这正是 HTTP/2 多路复用和 WebSocket 出现的动机之一。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 计算机网络<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0171')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0171')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

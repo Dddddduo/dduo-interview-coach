@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手写堆排序 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0175</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>手写堆排序</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">手写堆排序</h1>
+<h1 id="_2">手写堆排序</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话口诀</strong>：堆排序 = 「一次建堆 O(n) + n 次取顶 O(log n)」，总计 O(n log n)。</p>
+<p><strong>下标三公式（必背）</strong>：左孩子 <code>2i+1</code>、右孩子 <code>2i+2</code>、父节点 <code>(i-1)/2</code>。记忆锚点："左单右双"——左孩子是奇数下标 <code>2i+1</code>，右孩子是偶数下标 <code>2i+2</code>。</p>
+<p><strong>建堆起点 <code>n/2 - 1</code></strong>：这是最后一个非叶子节点（最后一个叶子的父节点）。记法：树里一半是叶子，所以起点是"一半再减一"。</p>
+<p><strong>形象记忆——"金字塔夯实法"</strong>：把数组想象成一座金字塔（堆的完全二叉树形态）。<br />
+- 建堆 = 从倒数第二层最右侧开始，把每一层节点<strong>往下夯实</strong>（下沉），夯到它的子树比自己高为止；<br />
+- 排序 = 每次把塔尖（最大值）<strong>扔到塔底</strong>（数组末尾），再把新塔尖继续夯实下去；<br />
+- 每扔一次，塔就矮一层（有效堆长度减一），扔 n-1 次，金字塔变成有序的一列。</p>
+<p><strong>对比记忆</strong>：快排 vs 堆排——"快排是一家人挨着排队，堆排是隔空投递"。快排 partition 是顺序扫描（缓存友好），堆排 siftDown 是跳着访问 <code>2i+1/2i+2</code>（缓存不友好），所以实战中快排更快。</p>
+<p><strong>稳定性记忆</strong>："隔层交换，顺序必乱"——堆顶和末尾相隔甚远的长距离交换，必然打乱相等元素的相对顺序，所以<strong>不稳定</strong>。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>堆（Heap）</strong>是一种特殊的树形数据结构，两个本质特征：</p>
+<ol>
+<li><strong>逻辑上是一棵完全二叉树（Complete Binary Tree）</strong>：除最后一层外每层都是满的，最后一层节点从左到右依次排列、中间无空洞。</li>
+<li><strong>物理上用数组（Array）存储</strong>：不存指针，父子关系全靠下标映射：</li>
+<li>左孩子下标：<code>2i + 1</code></li>
+<li>右孩子下标：<code>2i + 2</code></li>
+<li>父节点下标：<code>(i - 1) / 2</code></li>
+</ol>
+<p><strong>大顶堆（Max-Heap）性质</strong>：每个节点的值 ≥ 它的左右孩子值，根节点就是全局最大值。小顶堆（Min-Heap）反之。注意：堆只保证"父子之间的偏序"，<strong>不保证兄弟之间、也不保证层与层之间的顺序</strong>——它只是"部分有序"（partially ordered），这正是它只能高效取极值、不能直接全排序的原因。</p>
+<p><strong>堆排序（Heap Sort）</strong>的定义：利用大顶堆"根 = 最大值"的性质完成排序。两步走：建堆 → 反复"交换堆顶与末尾 + 下沉恢复"。</p>
+<h2 id="2">2. 底层原理</h2>
+<h3 id="21-floyd-on-on-log-n">2.1 为什么 Floyd 建堆是 O(n) 而非 O(n log n)？</h3>
+<p>Floyd 建堆法（Floyd's heap construction，以 R.W. Floyd 命名）从最后一个非叶子节点下标 <code>n/2 - 1</code> 开始，<strong>自底向上</strong>对每个节点做一次下沉（sift down）。</p>
+<p><strong>数学直觉——"深度加权"分析</strong>：下沉的代价与节点所在高度成正比（高度越高，下沉路径越长）。设树高 <code>h = ⌊log₂n⌋</code>，从最底层往上数第 k 层的节点数为 <code>n/2^(k+1)</code>，该层每个节点下沉最多 k 步。总工作量：</p>
+<div class="highlight"><pre><span></span><code>T(n) = Σ (k=0..h)  (n / 2^(k+1)) · k = (n/2) · Σ (k / 2^k)
+</code></pre></div>
+
+<p>而幂级数和 <code>Σ k/2^k</code> 收敛于常数 2，因此 <strong>T(n) = O(n)</strong>。</p>
+<p><strong>直觉类比</strong>：树的节点大量集中在底部，底部节点几乎不需要下沉或只下沉一两步（它们的子树高度≈1）；需要下沉很多步的节点（靠近根的）数量极少（根层只有 1 个）。"人多活少、人少活多"，加权求和后是线性的。</p>
+<p><strong>反例对比</strong>：如果从根开始<strong>自顶向下</strong>做下沉（此时子树还没建好，语义错误），或者对每个元素做"插入堆"式上浮（sift up），代价是 <code>Σ n·log n = O(n log n)</code>。所以建堆起点和方向是性能关键，从 <code>n/2-1</code> 倒着走是铁律。</p>
+<h3 id="22">2.2 排序阶段的"交换 + 下沉"循环</h3>
+<ol>
+<li>大顶堆建好后，堆顶 <code>a[0]</code> 是当前最大值；</li>
+<li>交换 <code>a[0]</code> 与 <code>a[len-1]</code>，然后 <code>len--</code>——最大值"沉淀"到数组尾部永久就位；</li>
+<li>此时新堆顶 <code>a[0]</code> 可能违反堆性质，对下标 0 执行 <code>siftDown(0, len)</code> 恢复大顶堆（恢复过程只会向下蔓延，因为只有堆顶被换乱）；</li>
+<li>重复第 2、3 步共 <code>n-1</code> 次，数组变成升序。</li>
+</ol>
+<p>每次"交换 + 下沉"代价 O(log n)，共 n-1 次，排序阶段 O(n log n)。总复杂度 = O(n) + O(n log n) = <strong>O(n log n)</strong>。</p>
+<h3 id="23-java">2.3 完整 Java 代码（可运行）</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Arrays</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">HeapSort</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="c1">// 对外入口：对整个数组升序排序</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">heapSort</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">a</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// ① 建堆（build heap / heapify）：</span>
+<span class="w">        </span><span class="c1">//    从最后一个非叶子节点 n/2 - 1 开始，自底向上逐个下沉。</span>
+<span class="w">        </span><span class="c1">//    （最后一个叶子下标 n-1，其父节点为 (n-1-1)/2 = n/2 - 1）</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">siftDown</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// ② 排序：反复把堆顶（当前最大值）交换到未排序区末尾</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">swap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">);</span><span class="w">          </span><span class="c1">// 最大值沉到末尾，下标 i 处永久就位</span>
+<span class="w">            </span><span class="n">siftDown</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">);</span><span class="w">      </span><span class="c1">// 堆有效长度缩为 i，对新的堆顶下沉恢复堆性质</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * 下沉（sift down）：将 a[i] 在堆边界 [0, end) 内下沉到合适位置，</span>
+<span class="cm">     * 保持大顶堆性质。end 是&quot;堆的有效边界&quot;，防止访问已排好的区域。</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">siftDown</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">end</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 只要 i 还有左孩子就继续（2i+1 &lt; end 同时天然防止了越界）</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">end</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">   </span><span class="c1">// 左孩子下标</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">    </span><span class="c1">// 右孩子下标</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">bigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">left</span><span class="p">;</span><span class="w">       </span><span class="c1">// 先假设较大的孩子是左孩子</span>
+<span class="w">            </span><span class="c1">// 关键防越界：右孩子存在（right &lt; end）才参与比较</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">right</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">a</span><span class="o">[</span><span class="n">right</span><span class="o">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="o">[</span><span class="n">left</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">bigger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">right</span><span class="p">;</span><span class="w">      </span><span class="c1">// 右孩子更大，改选右孩子</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="o">[</span><span class="n">bigger</span><span class="o">]</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">a</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span><span class="w">               </span><span class="c1">// 两个孩子都不大于父节点：堆性质已满足</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">swap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">bigger</span><span class="p">);</span><span class="w">      </span><span class="c1">// 父节点与较大的孩子交换</span>
+<span class="w">            </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bigger</span><span class="p">;</span><span class="w">              </span><span class="c1">// 关键：更新 i 指向新的位置，继续向下比较</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">swap</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">a</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">a</span><span class="o">[</span><span class="n">j</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tmp</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">arr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">};</span>
+<span class="w">        </span><span class="n">heapSort</span><span class="p">(</span><span class="n">arr</span><span class="p">);</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">Arrays</span><span class="p">.</span><span class="na">toString</span><span class="p">(</span><span class="n">arr</span><span class="p">));</span>
+<span class="w">        </span><span class="c1">// 输出：[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>代码要点回放</strong>：<code>while (2*i+1 &lt; end)</code> 用"左孩子存在"作为循环条件，本身就是越界保护；<code>right &lt; end</code> 是第二重保护；交换后 <code>i = bigger</code> 保证下沉一路到底；<code>end</code> 在排序循环中随 <code>i</code> 缩小，确保下沉永不触碰已排好序的尾部。</p>
+<h2 id="3">3. 实践应用</h2>
+<h3 id="_5">应用场景</h3>
+<ul>
+<li><strong>优先队列（Priority Queue）</strong>：Java 的 <code>PriorityQueue</code> 底层就是二叉堆（默认小顶堆），<code>offer/poll</code> 均为 O(log n)。堆排序的思路即"取出堆顶再恢复"的批量版。</li>
+<li><strong>TopK 问题</strong>：海量数据中取最大的 K 个，维护一个大小 K 的<strong>小顶堆</strong>，遍历数据时比堆顶大就替换并下沉，复杂度 O(n log K)、空间 O(K)；且天然支持数据流（streaming）场景——不需要把全部数据载入内存。</li>
+<li><strong>定时器（Timer）</strong>：操作系统与框架的定时器常用最小堆管理"到期时间"，每次取堆顶（最早到期任务）O(1)，插入/删除 O(log n)。堆在这里的价值是"只取极值、不要求全序"。</li>
+<li><strong>双堆求中位数</strong>：大顶堆放较小的一半、小顶堆放较大的一半，两个堆顶拼出中位数。</li>
+<li><strong>多路归并</strong>：K 个有序流的合并，用小顶堆每次弹出当前最小元素。</li>
+</ul>
+<h3 id="_6">工程里的真实地位</h3>
+<p>Java <code>Arrays.sort()</code>：基本类型用 DualPivotQuickSort（快排变体）、引用类型用 TimSort（归并变体），<strong>标准库里没有把堆排序作为默认排序</strong>。但"堆"本身是高频组件（Dijkstra/Prim 的优先队列优化、调度器、TopK），这就是"堆排序考的其实是堆"的面试真相。</p>
+<h2 id="4">4. 深入思考</h2>
+<h3 id="41-quick-sort-merge-sort">4.1 与快排（Quick Sort）/ 归并排序（Merge Sort）对比</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>堆排序</th>
+<th>快速排序</th>
+<th>归并排序</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平均时间</td>
+<td>O(n log n)</td>
+<td>O(n log n)</td>
+<td>O(n log n)</td>
+</tr>
+<tr>
+<td>最坏时间</td>
+<td>O(n log n) 无退化</td>
+<td>O(n²)（可随机化规避）</td>
+<td>O(n log n)</td>
+</tr>
+<tr>
+<td>空间</td>
+<td><strong>O(1) 原地（in-place）</strong></td>
+<td>O(log n) 递归栈</td>
+<td>O(n) 额外数组</td>
+</tr>
+<tr>
+<td>稳定性</td>
+<td>不稳定</td>
+<td>不稳定</td>
+<td><strong>稳定</strong></td>
+</tr>
+<tr>
+<td>缓存局部性</td>
+<td>差（跳跃访问）</td>
+<td>好（顺序扫描）</td>
+<td>好（但需拷贝）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42">4.2 为什么实际性能通常快排更好？</h3>
+<ol>
+<li><strong>缓存局部性（Cache Locality）</strong>：这是最核心的原因。快排的 partition 对连续内存做顺序扫描，CPU 缓存命中率高、分支预测友好；堆排序的 siftDown 每次按 <code>2i+1/2i+2</code> <strong>跳跃式访问</strong>，父子下标跨度随深度指数增长（第 d 层的孩子与父相隔约 2^d），大规模数据下 cache miss 频繁，差距可达数倍。</li>
+<li><strong>常数因子（constant factor）</strong>：堆排序每趟下沉要做 2~3 次比较（先比左右孩子、再比父），且每次交换 3 次赋值，一趟下沉常伴随多次交换；快排的 partition 每个元素平均只做 1 次比较和少量移动。</li>
+<li><strong>最坏情况</strong>：堆排序无退化但也不被常数因素补偿——它的"稳"恰恰是"慢得稳定"。</li>
+</ol>
+<p><strong>堆排序的独特卖点</strong>：最坏 O(n log n) 无退化风险（快排有 O(n²) 最坏）、O(1) 原地空间（归并要 O(n) 辅助数组）、比较模型下可推广。适合"不能接受最坏情况退化、且内存紧张"的场景。</p>
+<h3 id="43">4.3 稳定性成因</h3>
+<p><strong>长距离交换（long-distance swap）</strong>：堆顶与堆末尾的交换跨越几乎整个数组，相等元素一旦卷入这类交换，相对顺序就无法保证。例如 <code>[5a, 5b, 3]</code>，建堆可能让 5a 上到堆顶，排序时 5a 被换到末尾，最终 5b 排到了 5a 前面。即使把比较条件改成 <code>&gt;=</code> 也无济于事——不稳定性源于交换距离，而非比较边界。</p>
+<h3 id="44-bug">4.4 常见 Bug 清单（面试自查表）</h3>
+<ol>
+<li><strong>右孩子越界</strong>：<code>right</code> 可能等于 <code>end</code>（节点只有左孩子），不写 <code>right &lt; end</code> 就会读到已排序区或数组越界。</li>
+<li><strong>交换后未更新索引</strong>：漏写 <code>i = bigger</code> 会导致只下沉一层就退出，排序结果错误或死循环。</li>
+<li><strong>建堆起点错误</strong>：从 <code>n-1</code> 开始（叶子无需下沉，白做）；从 <code>0</code> 开始自顶向下建堆（子树未建成、逻辑错误且复杂度退化）。</li>
+<li><strong>循环条件写成 <code>i &lt; n</code></strong>：必须用"堆有效边界" <code>end</code>，否则下沉会碰到已经排好序的尾部大元素，破坏结果。</li>
+<li><strong>大顶堆/小顶堆与升降序搞反</strong>：升序用大顶堆（大值沉末尾），降序用小顶堆。</li>
+<li><strong>排序循环写成 <code>for (int i = n-1; i &gt;= 0; i--)</code></strong>：<code>i = 0</code> 时只剩一个元素，无需再交换下沉，写成 <code>i &gt; 0</code> 即可。</li>
+<li><strong>用递归实现 siftDown</strong>：大数组下递归深度 = 树高 O(log n) 倒不至于爆栈，但迭代版更稳、面试更显功力。</li>
+</ol>
+<h2 id="_7">🗺️ 回答思路</h2>
+<h2 id="_8">答题逻辑框架（三明治结构）</h2>
+<p><strong>开场（30 秒）——定义先行</strong>："堆排序基于大顶堆——完全二叉树 + 数组存储，下标满足左孩子 <code>2i+1</code>、右孩子 <code>2i+2</code>，根是最大值。"先证明"我懂堆"，再谈排序。</p>
+<p><strong>中段（3 分钟）——流程 + 代码</strong>："算法分两步：先建堆、再排序。建堆从 <code>n/2-1</code> 自底向下沉，为什么是 O(n)？因为大部分节点在底层、下沉步数少，深度加权求和是常数。"然后直接上手写 <code>siftDown → heapify → swap → sort</code>，边写边念关键边界。</p>
+<p><strong>收尾（1 分钟）——复杂度 + 对比 + 应用</strong>：O(n log n) / O(1) 空间 / 不稳定；对比快排缓存局部性；一句话点出 TopK 与优先队列。</p>
+<h2 id="_9">重点得分点（面试官在听什么）</h2>
+<ul>
+<li><strong>写对 siftDown 的边界</strong>：<code>right &lt; end</code> 防越界、<code>i = bigger</code> 更新游标、<code>end</code> 随排序缩小——这是手写题的第一判分点；</li>
+<li><strong>说出建堆起点 <code>n/2-1</code> 的理由</strong>（最后一个非叶子节点）；</li>
+<li><strong>讲出"建堆为何 O(n)"</strong>：即使只给"底部节点多、下沉步数少，Σn/2^k·k 收敛"的直觉也算加分；</li>
+<li><strong>主动暴露稳定性</strong>："这里要提一句，它不稳定，因为长距离交换……"——主动补盲点很加分；</li>
+<li><strong>能对比快排并落到缓存局部性</strong>，而不是停留在"都是 O(n log n)"。</li>
+</ul>
+<h2 id="_10">常见误区（说了就减分）</h2>
+<ul>
+<li>建堆从 <code>0</code> 或 <code>n-1</code> 开始；下沉后忘记 <code>i = bigger</code>；</li>
+<li>比较右孩子时不检查它是否存在；</li>
+<li>断言"堆排序最坏最优，所以实际比快排快"——方向反了，常数因子和缓存决定快排更快；</li>
+<li>大顶堆/小顶堆与升降序配对搞反。</li>
+</ul>
+<h2 id="_11">时间分配建议</h2>
+<ul>
+<li><strong>15 分钟手写题</strong>：2 分钟讲思路 → 8 分钟写码 → 3 分钟自查边界 → 2 分钟复杂度与对比；</li>
+<li><strong>5 分钟压缩版</strong>：只写 <code>heapSort</code> 骨架（siftDown + 双循环），注释标注两个关键边界即可；</li>
+<li><strong>40 秒口头回答</strong>（无手写）：堆的性质 → 两步流程 → O(n log n)/O(1)/不稳定 → 对比快排一句。</li>
+</ul>
+<h2 id="_12">过渡话术（可直接背）</h2>
+<ul>
+<li><strong>堆 → 排序</strong>："堆只保证堆顶是极值，要全排序就必须反复'取顶 + 恢复'，这正好拆成建堆和下沉两个子问题。"</li>
+<li><strong>复杂度 → 对比</strong>："虽然堆排序最坏也是 O(n log n)，但实际工程里快排更快，关键在缓存局部性——快排顺序访问，堆排跳着访问。"</li>
+<li><strong>收尾</strong>："如果需求只是 TopK 而不是全排序，维护大小为 K 的小顶堆更划算，O(n log K) 时间、O(K) 空间，还能处理数据流。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0175')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0175')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>如果成本超预算，先优化哪一层？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0210</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>如果成本超预算，先优化哪一层？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">如果成本超预算，先优化哪一层？</h1>
+<h1 id="_2">如果成本超预算，先优化哪一层？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话记忆：先看账单再动刀，省钱六招「缓、缩、路、限、收、换」。</strong></p>
+<p>类比"减肥"来记：<br />
+1. <strong>先量体脂再减肥</strong>——对应"成本归因（cost attribution）"：不拆账单就动手，等于不知道脂肪在哪就节食；<br />
+2. <strong>先戒含糖饮料</strong>——对应"Prompt 前缀缓存（prompt caching）"：最无痛、零风险、收益最大；<br />
+3. <strong>再少吃一口</strong>——对应"压缩输入（input compression）"：少发 token 就是少花钱；<br />
+4. <strong>再替换食材</strong>——对应"模型路由（model routing）"：小模型干小活，就像鸡胸肉代替五花肉；<br />
+5. <strong>再控制份量</strong>——对应"限制输出（output capping）"：max_tokens + 结构化输出，防止"输出暴食"；<br />
+6. <strong>最后才上手术</strong>——对应"换更便宜的模型/微调小模型"：全局大改动、风险高，永远放在最后。</p>
+<p>再记<strong>排序逻辑</strong>（为什么是这个顺序）：<code>缓存、压缩</code>不碰模型不改效果（零风险）→ <code>路由、限长</code>每查询决策一次（低风险）→ <code>检索收紧</code>动了效果敏感变量（中风险）→ <code>换模型/微调</code>全局牵一发动全身（高风险）。<strong>风险从低到高、收益从稳到险</strong>，这就是性价比排序。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p>成本超预算（budget overrun）时，最忌讳的就是"拍脑袋换个便宜模型"。这是一个系统工程，核心概念有三个：</p>
+<ul>
+<li><strong>成本归因（cost attribution）</strong>：把总账单（billing）通过埋点（instrumentation）拆解成 token 消耗结构——输入 vs 输出、Prompt 里的固定系统提示 vs 检索证据 vs 历史对话 vs 工具调用（tool calls），并按功能/用户两个维度切片。<strong>没有归因，不优化</strong>：你不知道钱花在哪，就不知道刀往哪砍。</li>
+<li><strong>优化优先级按性价比（cost-performance ratio）排序</strong>：不是"省得多就优先"，而是"节省比例 / 质量风险 / 改动成本"三者权衡。</li>
+<li><strong>北极星指标是单位成本质量比（quality per dollar）</strong>：我们优化的不是"最便宜"，而是"每一块钱买到的质量"。</li>
+</ul>
+<h2 id="2">2. 底层原理</h2>
+<p>LLM 计费的本质是：<strong>总成本 = 输入 token × 输入单价 + 输出 token × 输出单价</strong>。这决定了三个隐藏事实：</p>
+<ol>
+<li><strong>输入通常占大头且高度冗余</strong>。每次请求，系统提示、工具定义、历史上下文都会原样重复发送，模型要为这些 token 重新做 prefill 计算。这就是 Prompt 缓存（prompt caching）能成为第一杠杆的原因：它复用 KV 缓存（KV cache），命中的前缀<strong>只收约 1/10 的钱、甚至更低</strong>，而模型看到的输入完全不变——<strong>质量零风险</strong>。主流厂商的具体机制：Anthropic 缓存读（cache read）打 0.1×（省 90%），缓存写（cache write）收 1.25× 溢价；OpenAI 自动前缀缓存（旧型号 50% 折扣、新旗舰约 90%）；Google Gemini 按存储小时计费。这也是题目里"成本降 80% 级"的依据。</li>
+<li><strong>输出 token 单价通常是输入的 3~5 倍</strong>（例如 $3/M 输入 vs $15/M 输出）。所以"限制输出"是直击最贵单价的杠杆：max_tokens 收敛、结构化输出（structured output）约束格式，都能直接砍钱。</li>
+<li><strong>不同模型的推理成本差一个数量级</strong>（小模型 vs 旗舰模型），但真实流量里大多数请求是简单请求——这是模型路由（model routing）成立的前提：难度分层是客观存在的。</li>
+</ol>
+<p>而"换更便宜的模型/微调"为什么必须放最后？因为它是一个<strong>全局杠杆</strong>：质量要全面回归评估；且<strong>换模型会清空缓存</strong>（缓存是模型级别的，新模型要把整个前缀按原价重算），之前的缓存收益瞬间归零；微调还要数据、训练、评测周期。一次改动，牵动缓存、路由、评估所有系统。</p>
+<h2 id="3">3. 实践应用</h2>
+<p><strong>Step 0 — 成本归因（没有归因不优化）</strong><br />
+- 每一请求记录：model、input_tokens、output_tokens、cache_read、cache_creation、功能 ID、用户 ID、时间戳；<br />
+- 按两个方向拆：①结构维度：输入 vs 输出；Prompt 固定部分 vs 检索证据 vs 历史 vs 工具调用——办法是把固定前缀单独标记，或用缓存命中的 token 数倒推；②业务维度：按功能（Top 功能排行）、按用户（P95 单用户成本）。<br />
+- 你会发现 80/20：往往 2 个功能、5% 的用户吃掉了 60% 的账单。</p>
+<p><strong>Step 1 — Prompt 前缀缓存</strong>（成本降 80% 级）<br />
+- 把系统提示、工具定义、常驻文档排成稳定前缀，打缓存断点（cache_control）；监控缓存命中率（cache hit rate），健康值应 &gt; 0.8，低于 0.3 说明断点打在了易变内容上。</p>
+<p><strong>Step 2 — 压缩输入</strong><br />
+- 减少历史（窗口截断、先摘要再入参）、检索证据去噪（只留高相关块）、精简系统提示、紧凑格式（压缩 JSON、删冗余 few-shot）。压缩工具（如 LLMLingua 类）可做到数倍压缩。</p>
+<p><strong>Step 3 — 模型路由</strong><br />
+- 简单任务（分类、抽取、格式化）走小模型，复杂任务（推理、规划、长文生成）走大模型；路由决策可以是规则（长度/意图关键词）、embedding 相似度、或小模型难度分类器。</p>
+<p><strong>Step 4 — 限制输出</strong><br />
+- max_tokens 收敛到业务上限；用 JSON schema / function calling 让输出"定型定量"，杜绝模型废话。</p>
+<p><strong>Step 5 — 收紧检索预算</strong><br />
+- 调小检索块数（top-k）和块长（chunk size），减少塞进 prompt 的证据量。</p>
+<p><strong>Step 6 — 最后才换更便宜的模型 / 微调小模型</strong><br />
+- 全局评估质量、重做缓存布局与路由策略，微调小模型要拿评测集证明"在业务分布上不掉点"。</p>
+<p><strong>量化收益方法（贯穿全程）</strong>：每项优化上线前先估算节省比例（预估 ROI），上线后做 A/B 验证质量不回退（效果指标 diff 在置信区间内），再对比实际节省金额 vs 预估，形成闭环。</p>
+<p><strong>工程机制</strong>：日/月预算告警 + 单用户成本上限（cost cap），超过阈值触发告警；成本看板（cost dashboard）按功能/用户/模型实时展示；预算耗尽时自动降级（graceful degradation）——降模型档位、关非核心功能、拉高缓存复用，这一部分正是"第 55 题（超支自动降级）"的策略落地，这里负责触发与策略排序。</p>
+<h2 id="4">4. 深入思考</h2>
+<ul>
+<li><strong>成本与质量的平衡</strong>：不能无脑省钱。省钱方案必须"质量中性或可回退"——缓存、压缩、限长属于前者；砍检索证据属于后者，砍过头就是幻觉率（hallucination rate）上升，隐性损失远超省下的钱。</li>
+<li><strong>quality per dollar 才是北极星</strong>：举个例子，小模型单次便宜 10 倍但正确率 80%，大模型贵 10 倍但 95%——纯算 token 觉得小模型赢，但算"每个正确回答的成本"可能大模型更优。一切优化决策都应回到这个比值。</li>
+<li><strong>缓存命中率是长期健康指标</strong>：不仅监控它，还要分析 miss 的原因（断点位置、前缀易变性、模型切换），把"缓存友好"（cache-friendly）当成 prompt 设计的约束。</li>
+<li><strong>更深一层的协同</strong>：模型路由和缓存会互相打架——换模型即清缓存。所以多轮 agent 场景里，路由要尽量发生在会话边界而非中途；缓存、压缩、路由要当成一个联合优化问题，而不是三件独立的事。</li>
+</ul>
+<h2 id="_5">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（总—分—总）</strong>：<br />
+1. 一句话亮结论："先做成本归因，再按性价比六步优化：缓存→压缩→路由→限输出→收紧检索→最后换模型。"<br />
+2. 归因：账单+埋点拆 token 结构，强调"没有归因不优化"；<br />
+3. 六步优先级：每一步一句话讲清"省什么钱、什么风险、为什么这个位次"；<br />
+4. 量化与机制：预估 ROI、A/B 验证、预算告警/看板/超支降级（联动第 55 题）；<br />
+5. 收尾升华：quality per dollar 北极星 + 成本质量平衡 + 缓存命中率监控。</p>
+<p><strong>重点得分点</strong>：<br />
+- 主动先讲"归因"，而不是上来就报方案——体现工程思维；<br />
+- 明确说出"排序依据是性价比/风险，不是省钱绝对值"；<br />
+- 量化意识：每项优化给出节省量级与验证方法；<br />
+- 系统意识：告警、看板、自动降级，说明你做过生产环境。</p>
+<p><strong>常见误区</strong>：<br />
+- 只盯总账单不做归因，方案全凭猜；<br />
+- 上来就换便宜模型——显外行，且忽略换模型会清空缓存、质量全面回退；<br />
+- 为了省钱猛砍检索证据，幻觉率上升，隐形成本翻倍；<br />
+- 只谈"省了多少"不谈"质量有没有掉"，缺 A/B 闭环。</p>
+<p><strong>时间分配建议</strong>（总共约 3~4 分钟）：开场定框架 20 秒；归因 40 秒；六步优先级 1 分半；量化与工程机制 40 秒；平衡思考收尾 30 秒。</p>
+<p><strong>过渡话术</strong>：<br />
+- 从归因到方案："归因之后我们发现，80% 的钱花在输入 token 上，而其中一大半是重复发送的固定前缀——所以第一刀砍缓存。"<br />
+- 从方案到机制："方案落地必须配工程护栏，否则下个月又会超，所以我还会加预算告警和自动降级。"<br />
+- 收尾："最后我想强调的是，省钱不是目的，quality per dollar 才是——所有优化都要回到这个比值来验证。"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0210')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0210')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

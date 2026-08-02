@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>什么是 Agentic RAG？它和"一次检索后直接生成"有什么区别？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0212</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-easy">● 基础</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>什么是 Agentic RAG？它和"一次检索后直接生成"有什么区别？</h1>
+    <div class="tag-row"></div>
+    <h1 id="agentic-rag">什么是 Agentic RAG？它和"一次检索后直接生成"有什么区别？</h1>
+<h1 id="agentic-rag_1">什么是 Agentic RAG？它和"一次检索后直接生成"有什么区别？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>记忆口诀/联想</strong>：「一次检索打天下 → Agent 四问再作答」</p>
+<p>把 Agentic RAG（智能体检索增强生成，Agentic Retrieval-Augmented Generation）记成一句口诀：<strong>要不要查？查什么？查几轮？查完够不够？</strong>——这"四问"正好一一对应"Agentic RAG vs 经典 RAG"的四个核心区别维度：</p>
+<ol>
+<li><strong>要不要查？</strong> → 决策主体（固定流程 vs Agent 自主判断）</li>
+<li><strong>查什么？</strong> → 工具能力（仅检索 vs 检索+计算+API 推理工具集）</li>
+<li><strong>查几轮？</strong> → 检索轮数（一次 vs 多轮迭代）</li>
+<li><strong>查完够不够？</strong> → 反馈回路（无 vs 基于生成中间结果的改写/补检）</li>
+</ol>
+<p><strong>记忆原理</strong>：人对"问答式"信息比对"概念定义式"信息记忆更牢（生成效应，generation effect）。面试时按 1→2→3→4 依次展开，"四问"就是现成的答题骨架，按序讲绝不漏点、绝不乱序。</p>
+<p><strong>关联知识</strong>：你已掌握的 ReAct 循环（思考-行动-观察，Reasoning-Acting-Observation loop）就是 Agentic RAG 的引擎——只需把循环中的 Action 具体化为"检索"这个工具调用即可。类比记忆：经典 RAG 是<strong>流水线工位</strong>（只会执行既定步骤），Agentic RAG 是<strong>自主小老板</strong>（会决策、会复盘、会补货）。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1">1. 核心概念（是什么）</h3>
+<p><strong>一句话定义</strong>：Agentic RAG（智能体检索增强生成）是把"是否需要检索、检索什么、检索几次、检索后是否还需补充"这组决策权，从固定流程转移给大模型智能体（Agent）本身，由 LLM 通过工具调用（Tool Calling）自主编排检索动作的 RAG 形态；而经典 RAG（Naive RAG）是"一次检索（retrieval）→ 一次生成（generation）"的静态流水线。</p>
+<p><strong>经典 RAG 的完整流程</strong>（先讲清楚"一次检索后直接生成"）：</p>
+<ol>
+<li>用户查询 q 输入；</li>
+<li>用嵌入（Embedding）模型把 q 编码成向量，在向量数据库（Vector Database，如 PgVector、Faiss）中做相似度检索（Similarity Search），取 top-k 个最相关文档；</li>
+<li>把命中文档拼入提示词（Prompt）上下文，交给大语言模型（LLM）生成答案。</li>
+</ol>
+<p>整个过程是"查询 → 检索 → 拼接 → 生成"的单向管线（Pipeline）：<strong>静态（static）、无反馈（no feedback）</strong>。检索质量好不好，生成阶段不回头修正；查询表达不清楚，也没有任何改写机制。它的隐含假设是"查询本身足以表达信息需求"——该假设对事实型单跳问题（Single-hop）成立，但对多跳推理问题（Multi-hop）就会失效。例如："快手支付白盒测试平台的负责人是谁？他所在的团队用了什么向量库？"这类问题需要先定位"负责人"，再顺着关系找到"团队与向量库"，一次 top-k 检索往往只能命中一半证据，另一半就变成 LLM 的脑补——这正是幻觉（Hallucination）的来源。</p>
+<p><strong>Agentic RAG 的核心</strong>：把"检索"从被动步骤升级为 Agent 手中的一个可调用工具（Tool），由 LLM 在循环中自主决策：</p>
+<ul>
+<li><strong>是否需要检索</strong>（常识/记忆类问题直接作答，跳过检索）；</li>
+<li><strong>检索什么</strong>（改写查询词、拆成子问题分别检索）；</li>
+<li><strong>检索几次</strong>（结果不足时换关键词重试、追加检索）；</li>
+<li><strong>是否调用其他工具配合</strong>（计算器、数据库 API、代码解释器等）。</li>
+</ul>
+<p><strong>为什么面试会问</strong>：RAG 是当前 LLM 应用落地的最大主线，从 Naive RAG → Advanced RAG（高级 RAG）→ Agentic RAG 是公认的演进路径。能讲清这条线，说明候选人既有"如何把知识接进模型"的工程观，又有"何时该把控制权交给模型"的系统观。</p>
+<h3 id="2">2. 底层原理（为什么）</h3>
+<p><strong>Naive RAG 为什么不够</strong>，三个根因：</p>
+<ul>
+<li><strong>词汇失配（Vocabulary Mismatch）</strong>：查询与文档用词不同（如查询说"提效"，文档写"缩短耗时"），向量检索虽比 BM25 容错强，仍会漏检；</li>
+<li><strong>单轮无反馈，沉默失败（Silent Failure）</strong>：没有校验环节，LLM 面对缺失证据不会主动说"我查不到"，而是自信地生成幻觉；</li>
+<li><strong>查询粒度不足</strong>：复杂问题需要分解与串联，Naive RAG 没有分解机制。</li>
+</ul>
+<p><strong>Agentic RAG 的引擎是 ReAct 循环</strong>，建立在 LLM 工具调用（Function Calling）能力之上，四步往复：</p>
+<ol>
+<li><strong>Thought（思考）</strong>：LLM 评估当前上下文信息是否足够，决定下一步意图（检索/计算/直接作答）；</li>
+<li><strong>Action（行动）</strong>：调用检索工具（如 <code>vector_search(query, top_k)</code>）或计算器等工具；</li>
+<li><strong>Observation（观察）</strong>：把工具返回结果追加进上下文；</li>
+<li>回到 1，直到 LLM 输出终止标记（Final Answer），或触发显式终止条件。</li>
+</ol>
+<p><strong>最本质的机制差异是"上下文回路"</strong>：每一轮的 Observation 都会成为下一轮 Thought 的输入，形成<strong>基于生成中间结果的反馈回路（Feedback Loop）</strong>。检索不再是"一次动作"，而是"检索 → 评估证据充分性 → 决定是否改写/补检"的闭环。设计哲学是：既然 LLM 能读懂检索结果，就应该让它参与"检索计划"的制定——把判断力还给模型，而不是把判断写死在代码里。</p>
+<p><strong>四大典型形态</strong>（按自主程度递进）：</p>
+<ol>
+<li><strong>查询改写-再检索（Rewrite-Retrieve-Read）</strong>：先让 LLM 把原始查询改写/扩展成多个更利于检索的查询（如多查询扩展 Multi-Query Expansion、假设性文档嵌入 HyDE），再做检索与生成。简历中"Query 压缩重写 + 多查询扩展，召回率提升 55%"正是这一形态；</li>
+<li><strong>迭代检索（Iterative Retrieval）</strong>：生成与检索交替进行（如 IRCoT、FLARE）——先生成一部分，发现证据缺口，再检索补充，循环直到答案完整；</li>
+<li><strong>自适应检索（Adaptive-RAG）</strong>：先用轻量分类器（Classifier）对查询分级（无需检索 / 单轮检索 / 多轮检索），按等级路由到不同策略——本质是"检索预算的显式调度"；</li>
+<li><strong>多 Agent 检索（Multi-Agent Retrieval）</strong>：规划器（Planner）把复杂问题分解为子问题，分发（Dispatch）给多个检索 Worker 并行执行，最后汇总（与 OrbitQA"PMO 编排 + 域 Agent 执行"双层架构同源）。</li>
+</ol>
+<h3 id="3">3. 实践应用（怎么用）</h3>
+<p><strong>最小实现伪代码</strong>（ReAct 循环 + 检索工具 + 工程三件套）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">agentic_rag</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">max_rounds</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="n">context</span><span class="p">,</span> <span class="n">seen_queries</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_rounds</span><span class="p">):</span>                  <span class="c1"># 检索预算：硬性轮数上限</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">decide</span><span class="p">(</span>                        <span class="c1"># Thought + Action 决策</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+            <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;vector_search&quot;</span><span class="p">,</span> <span class="s2">&quot;calculator&quot;</span><span class="p">,</span> <span class="s2">&quot;final&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;final&quot;</span><span class="p">:</span>                  <span class="c1"># 终止条件①：模型显式终止</span>
+            <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">query</span> <span class="ow">in</span> <span class="n">seen_queries</span><span class="p">:</span>            <span class="c1"># 防循环：同查询短路，强制兜底</span>
+            <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        <span class="n">seen_queries</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">docs</span> <span class="o">=</span> <span class="n">vector_db</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">docs</span><span class="p">)</span>                        <span class="c1"># Observation 写入上下文回路</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">enough_evidence</span><span class="p">(</span><span class="n">docs</span><span class="p">):</span>               <span class="c1"># 反馈回路：证据不足 → 改写补检</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vector_db</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">llm</span><span class="o">.</span><span class="n">rewrite</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">query</span><span class="p">),</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>             <span class="c1"># 终止条件②：预算耗尽兜底</span>
+</code></pre></div>
+
+<p><strong>生产级工程四要点</strong>：</p>
+<ol>
+<li><strong>检索预算控制（Retrieval Budget）</strong>：<code>max_rounds</code> 轮数上限、单轮 <code>top_k</code> 上限、单轮 Token 上限——三处都要设，防止 Agent 无限检索烧钱烧时间；</li>
+<li><strong>终止条件双保险（Termination）</strong>：模型显式输出终止动作 + 预算兜底，两者取先到者；更精细的做法是置信度阈值（Confidence Threshold），模型自评"证据充分度"低于阈值才允许补检；</li>
+<li><strong>防循环（Anti-loop）</strong>：已检索查询去重（同查询短路）、语义相似查询合并、重复命中文档不计新证据、步骤上限强制退出——死循环是 Agentic RAG 上线后第一号事故；</li>
+<li><strong>可观测性（Observability）</strong>：每轮 Thought/Action/工具返回落日志，定位"哪一轮检索引入了幻觉性上下文"，并做对照评估（Naive RAG vs Agentic RAG 的准确率/延迟/成本对比，以及"第 N 轮补检的边际增益曲线"）。</li>
+</ol>
+<p><strong>适用场景判断</strong>：复杂多跳问题（多步推理、跨文档对比聚合）用 Agentic RAG 收益显著；简单事实型问题（FAQ、单点查文档）用 Naive RAG 更快更便宜——简单问题走 Agent 回路是"杀鸡用牛刀"，每多一轮就是一次 LLM 决策调用（百毫秒到秒级）加一次向量检索，延迟和 Token 成本双增。这正好联动第 59/61 题：与 Self-RAG 一类的反思式检索控制、以及延迟/成本权衡类问题共享同一套判断框架——<strong>先分级，再决定用多重</strong>。</p>
+<p><strong>简历实证（OrbitQA 星轨平台，真实项目）</strong>：我在快手电商支付质量中心的 OrbitQA 平台中，域 Agent（Domain Agent）基于 Spring AI 实现 ReAct 循环、自主调用工具执行测试流水线（PMO 编排 + 域 Agent 执行分离的双层架构）；其 RAG 管线使用 Query 压缩重写 + 多查询扩展，召回率提升 55%。这就是"检索决策交给 Agent"思想的工程落地——面试时可以从"为什么做查询改写、怎么防止工具循环"展开讲。</p>
+<h3 id="4">4. 深入思考（注意事项）</h3>
+<ul>
+<li><strong>代价意识</strong>：Agentic RAG 不是免费午餐——多轮迭代意味着多次 LLM 调用（延迟与成本）、更大的上下文（上下文污染风险）与更不可控的执行轨迹。生产上"先路由分级、再决定 Agent 化程度"是正确姿势，这正是 Adaptive-RAG 的工程意义。</li>
+<li><strong>与 Self-RAG 的分工</strong>（联动第 59 题）：Self-RAG 通过反思标记（Reflection Tokens）在生成侧自检"是否需要检索、答案是否被证据支持"；Agentic RAG 偏执行侧的工具编排。两者可叠加：Agent 循环负责编排，反思机制负责证据校验。</li>
+<li><strong>与缓存/长记忆的取舍</strong>（联动第 61 题）：多轮检索的中间结果可缓存（同查询幂等、语义去重），Agent 的决策轨迹可沉淀为记忆，二次命中直接复用——这是控制成本的另一个抓手。</li>
+<li><strong>三个翻车点</strong>：① 死循环（检索结果喂回后模型再次发出相同检索）；② 检索垃圾淹没上下文（缺证据过滤，需 Rerank 或摘要）；③ 幻觉转移（Agent 在证据不足时仍直接作答而非补检，应设强制证据门槛）。</li>
+<li><strong>面试追问预案</strong>：如何评估 Agentic RAG 收益？（对照组 + 每轮检索边际增益曲线）；多 Agent 是否必然优于单 Agent？（不是——规划错误会连锁放大，小任务单 Agent + 工具循环更稳）。</li>
+</ul>
+<p><strong>一句话结论</strong>：Agentic RAG 的本质是把"检索决策权"从代码交给模型——Naive RAG 只回答"检索什么"，Agentic RAG 回答"要不要检索、怎么检索才够"。判断该不该用，只看一个问题：你的查询需不需要"想一步、查一步"。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架</strong>（总分总三段式）：</p>
+<ul>
+<li><strong>开（30 秒）</strong>：一句话定义 + 一句话对比——"Naive RAG 是一次检索一次生成的静态流水线；Agentic RAG 把检索决策交给 Agent，本质差异是反馈回路"；</li>
+<li><strong>中（2~2.5 分钟）</strong>：① 拆 Naive RAG 四步流程，点出"静态、无反馈"；② 用"四问口诀"展开四个区别维度（决策主体/检索轮数/反馈回路/工具能力）；③ 讲四大典型形态；④ 落到工程（预算、终止、防循环）；</li>
+<li><strong>合（30 秒）</strong>：适用场景判断（复杂多跳受益、简单问题反而慢）+ 简历实证（OrbitQA）。</li>
+</ul>
+<p><strong>重点得分点</strong>（面试官在听的）：</p>
+<ol>
+<li>能画出 Naive RAG"单向管线、无反馈"与 Agentic RAG"循环、有反馈"的结构对比；</li>
+<li>讲得出"反馈回路、终止条件、预算上限、防循环"这类只有做过工程才有的细节；</li>
+<li>主动提成本与"简单问题别用"，体现架构权衡能力；</li>
+<li>简历实证真实不夸大——OrbitQA 真实数据是"召回率提升 55%"。</li>
+</ol>
+<p><strong>常见误区</strong>：</p>
+<ul>
+<li>把 Agentic RAG 只说成"多轮检索"——漏掉决策主体与工具能力两个维度，失分；</li>
+<li>把 Agentic RAG 与 Naive RAG 对立——它们是演进关系，Naive RAG 可视为"零轮决策"的特例；</li>
+<li>只讲概念不讲代价——面试官最反感没有成本概念的方案；</li>
+<li>编造简历数据——所有量化指标必须与简历一致（提效 70%、召回率提升 55%）。</li>
+</ul>
+<p><strong>时间分配建议</strong>：总时长 3~3.5 分钟。定义+对比 30 秒 → 机制与四维区别 1.5 分钟 → 典型形态+工程实践 1 分钟 → 场景判断+简历 30 秒。</p>
+<p><strong>过渡话术</strong>：</p>
+<ul>
+<li>定义 → 机制："要理解 Agentic RAG 为什么成立，得先看 Naive RAG 卡在哪一步——它缺一个校验闭环。"</li>
+<li>机制 → 形态："ReAct 循环是骨架，四种典型形态就是骨架上的四种编排方式。"</li>
+<li>形态 → 工程："这些形态听起来美好，落地时真正要命的是三件事：预算、终止、防循环。"</li>
+<li>工程 → 简历："这套思想我在快手 OrbitQA 平台上有实际落地——域 Agent 的 ReAct 循环与查询改写管线，召回率提升了 55%。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 基础<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0212')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0212')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

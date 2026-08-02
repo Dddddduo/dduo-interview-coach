@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漏桶算法是什么？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0187</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>漏桶算法是什么？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">漏桶算法是什么？</h1>
+<h1 id="_2">漏桶算法是什么？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>记忆口诀</strong>："一个桶、一个洞、匀速漏、溢出丢"——再配一句对比口诀："令牌管进口，漏桶管出口；令牌可突发，漏桶必匀速。"</p>
+<p><strong>记忆原理</strong>：漏桶（Leaky Bucket）是一个天然的视觉化场景，大脑对"具象画面"的记忆效率远高于抽象概念。面试时先在白板上画一个水桶——上面水龙头哗哗倒水（任意速率的输入），底部一个小洞匀速滴水（恒定速率 outflow），桶满后水溢出来被泼掉（溢出丢弃）。这一幅图就是全部考点：桶身=容量（Capacity），洞的大小=速率（Rate），滴水=输出恒定，溢出=拒绝语义。画面记住了，四个要素就齐了，回答时"先画图再讲理"还能显得思路特别清晰。</p>
+<p><strong>关联知识</strong>：把它挂在你已经熟悉的"限流四件套"上——固定窗口（Fixed Window）、滑动窗口（Sliding Window）、漏桶（Leaky Bucket）、令牌桶（Token Bucket）。其中漏桶和令牌桶是镜像关系：令牌桶是"入口发牌，攒牌可突发"，漏桶是"出口限速，出来必匀速"。此外可以联想消息队列的"削峰填谷"，本质就是漏桶思想的落地。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="1">1. 核心概念（是什么）</h3>
+<p><strong>一句话定义</strong>：漏桶算法（Leaky Bucket Algorithm）是一种限流（Rate Limiting）与流量整形（Traffic Shaping）算法——用一个容量固定的桶充当缓冲，请求以任意速率"倒入"桶中，桶底以恒定速率匀速"漏出"（即按固定速率处理请求）；当桶被灌满时，新到达的请求溢出桶沿，被直接丢弃（拒绝服务）。</p>
+<p>它解决的核心问题是：<strong>把突发的、不均匀的输入流量，整形为平滑、恒定的输出流量</strong>。注意它的关注点不是"一段时间内最多放行多少个请求"，而是"任意时刻的输出速率都不能超过一个定值"。这决定了它在限流算法家族中的独特地位——它是四大经典算法中唯一一个"输出恒定、零突发"的算法，也因此成为与令牌桶（Token Bucket）对比的高频考题。</p>
+<h3 id="2">2. 底层原理（为什么）</h3>
+<p>漏桶有<strong>两种实现形态</strong>，面试中把两种都说清楚是拉开差距的关键：</p>
+<p><strong>形态一：队列式（FIFO 队列 + 匀速消费）</strong>——最直观的实现<br />
+- 一个容量为 <code>capacity</code> 的 FIFO（先进先出）队列作为桶；<br />
+- 请求到达时，队列未满则入队缓冲，已满则丢弃；<br />
+- 一个消费者线程（或定时器）以恒定速率 <code>rate</code> 从队头取出请求处理。<br />
+- 特点：它是<strong>真正的缓冲</strong>。突发的请求被按到达顺序排开，依次匀速放行；未满桶时请求不会丢，只是等待时间变长。代价是需要存储请求和常驻消费线程。</p>
+<p><strong>形态二：算法式（时间戳累加）</strong>——"令牌桶的反向"实现<br />
+- 不实际存储请求，只维护两个变量：当前水位 <code>waterLevel</code> 和上次漏水时间 <code>lastLeakTime</code>；<br />
+- 每个请求到来时，先按流逝的时间计算"漏掉了多少水"：<code>leaked = (now - lastLeakTime) × rate</code>，水位减去漏掉的量；<br />
+- 再尝试"加一滴水"（一个请求 = 一滴水），若加水后超过桶容量，则拒绝；否则放行并更新时间戳。<br />
+- 特点：零存储开销、无线程，纯 O(1) 计算。它与令牌桶（Token Bucket）恰好互为反向：令牌桶是"按恒定速率加令牌、请求来了拿走令牌、桶满则令牌浪费"，漏桶是"请求来就加水、按恒定速率漏掉水、桶满则请求被溢弃"。</p>
+<p>两种形态的本质差异：队列式可以<strong>缓存并延后</strong>请求（延迟换吞吐），时间戳式是<strong>立即裁决</strong>（溢满即拒，快速失败）。</p>
+<p><strong>关键特性与代价</strong>：<br />
+- 输出速率恒定（强整形）：无论上游怎么突发，流出速率恒为 <code>rate</code>，输出流量曲线近似一条直线，平滑性在四大算法中最好；<br />
+- 无突发：绝对不允许瞬时流量穿透，任何超过漏速的流量都必须先在桶内缓冲或被丢弃；<br />
+- 代价是延迟：桶内积压的请求必须排队等前面的"漏"完，队列越长等待越久，延迟不可控。</p>
+<p><strong>设计哲学</strong>：漏桶的设计目标不是"最大化吞吐"，而是"保护下游"。它把"流量管理的确定性"放在第一位——下游永远看到的是一个匀速的输入流，这正是脆弱系统（数据库、第三方 API）最需要的东西。</p>
+<h3 id="3">3. 实践应用（怎么用）</h3>
+<p><strong>代码示例一：时间戳累加式漏桶（Java）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LeakyBucketRateLimiter</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">capacity</span><span class="p">;</span><span class="w">   </span><span class="c1">// 桶容量：允许缓冲的最大请求数</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">leakRate</span><span class="p">;</span><span class="w"> </span><span class="c1">// 漏速：每秒漏出（处理）的请求数</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">waterLevel</span><span class="p">;</span><span class="w">     </span><span class="c1">// 当前水位</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">lastLeakTime</span><span class="p">;</span><span class="w">     </span><span class="c1">// 上次漏水时间戳（毫秒）</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">LeakyBucketRateLimiter</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">capacity</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">leakRate</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">capacity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">capacity</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">leakRate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">leakRate</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">waterLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">lastLeakTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryAcquire</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">        </span><span class="c1">// 1. 先按流逝时间&quot;漏水&quot;：漏掉 (now - lastLeakTime) 秒 × 漏速 的水</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">leaked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">lastLeakTime</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">leakRate</span><span class="p">;</span>
+<span class="w">        </span><span class="n">waterLevel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">waterLevel</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">leaked</span><span class="p">);</span>
+<span class="w">        </span><span class="n">lastLeakTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 2. 尝试加水（一个请求 = 一滴水）</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">waterLevel</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">capacity</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">           </span><span class="c1">// 桶已满 → 溢出丢弃（拒绝请求）</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">waterLevel</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">                </span><span class="c1">// 放行，等待匀速&quot;漏出&quot;处理</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// 使用：桶容量 100，漏速 20 请求/秒 → 无论突发多大，输出恒定为 20 req/s</span>
+<span class="n">LeakyBucketRateLimiter</span><span class="w"> </span><span class="n">limiter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">LeakyBucketRateLimiter</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">limiter</span><span class="p">.</span><span class="na">tryAcquire</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">process</span><span class="p">(</span><span class="n">handleRequest</span><span class="p">());</span><span class="w">      </span><span class="c1">// 正常处理</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">rejectWith429</span><span class="p">();</span><span class="w">               </span><span class="c1">// 返回 429 Too Many Requests</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>代码示例二：队列式漏桶（Java 伪代码）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">LeakyBucketQueue</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">BlockingQueue</span><span class="o">&lt;</span><span class="n">Runnable</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bucket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">LinkedBlockingQueue</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">capacity</span><span class="p">);</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">ScheduledExecutorService</span><span class="w"> </span><span class="n">consumer</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="n">Executors</span><span class="p">.</span><span class="na">newSingleThreadScheduledExecutor</span><span class="p">();</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">rate</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 匀速消费：每隔 1/rate 秒从桶里取一个任务执行</span>
+<span class="w">        </span><span class="n">consumer</span><span class="p">.</span><span class="na">scheduleAtFixedRate</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Runnable</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bucket</span><span class="p">.</span><span class="na">poll</span><span class="p">();</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">task</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">task</span><span class="p">.</span><span class="na">run</span><span class="p">();</span>
+<span class="w">        </span><span class="p">},</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="mi">1000</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">rate</span><span class="p">),</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">MILLISECONDS</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span><span class="n">Runnable</span><span class="w"> </span><span class="n">task</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">bucket</span><span class="p">.</span><span class="na">offer</span><span class="p">(</span><span class="n">task</span><span class="p">);</span><span class="w">  </span><span class="c1">// 桶满则 offer 返回 false → 丢弃</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>真实落地案例</strong>：<br />
+- <strong>Nginx <code>limit_req</code></strong>：这是面试中最该说出的落地案例。Nginx 的 <code>ngx_http_limit_req_module</code> 就是漏桶算法实现：<code>limit_req_zone $binary_remote_addr zone=one:10m rate=10r/s;</code> 中 <code>rate</code> 即恒定漏速，<code>limit_req zone=one burst=5;</code> 中 <code>burst</code> 即桶容量，超过 burst 的请求直接返回 503。加 <code>nodelay</code> 参数则让 burst 内请求不排队立即放行（牺牲平滑换取低延迟）。<br />
+- <strong>QoS 流量整形 / ATM 网络</strong>：漏桶最早出自电信网络领域。ATM（异步传输模式，Asynchronous Transfer Mode）网络用它做流量整形与流量合约（Traffic Contract），保证信元（cell）按恒定比特率（CBR，Constant Bit Rate）发送；QoS 中的承诺信息速率（CIR，Committed Information Rate）本质上就是"恒定漏速"。<br />
+- <strong>秒杀/抢购排队</strong>：秒杀瞬间涌来百万请求，用漏桶把请求匀速灌入处理队列（如 1 万/秒），数据库和下游不被冲垮，用户侧表现为"排队中"。<br />
+- <strong>保护下游脆弱系统</strong>：上游任意突发，经过漏桶后下游永远看到恒定速率，适合调用有 QPS 上限的第三方 API、写入连接池有限的数据库等场景。</p>
+<h3 id="4">4. 深入思考（注意事项）</h3>
+<p><strong>队列容量与丢弃策略</strong>：桶容量 = 允许的缓冲深度，是"突发容忍度"与"延迟"的旋钮。容量越大，能吞下的突发越多，但排队延迟越久；容量设为 0 时退化为严格限速——凡是超过恒定速率的请求一律拒绝。溢出后的丢弃策略也可以扩展：直接拒绝（429）、静默丢弃、按优先级丢弃、降级返回兜底数据，甚至改为"排队 + 超时"而非丢弃。</p>
+<p><strong>满桶时的拒绝语义</strong>：漏桶是"被动拒绝"——满了就溢，没有让请求"等下一帧"的窗口概念（除非用阻塞式队列实现）。因此它的拒绝是<strong>立即且确定</strong>的，天然适配快速失败（Fail Fast）的场景；如果业务允许等待，应选用队列式实现并配合超时与重试。</p>
+<p><strong>与滑动窗口 / 令牌桶的组合使用</strong>：现实系统很少单用漏桶。常见组合：网关层用令牌桶放行（允许突发、响应快），服务层用漏桶整形（保护下游），两级配合兼顾"用户体验"与"下游安全"；滑动窗口负责总量控制（如每秒总配额），漏桶负责输出速率整形。Guava RateLimiter、Sentinel、Resilience4j 等主流限流组件多以令牌桶或滑动窗口为主，因为漏桶的恒定输出意味着请求延迟不可控，对 API 场景不友好——这个"为什么主流组件不用漏桶"的反问本身就是加分回答。</p>
+<p><strong>限流与削峰的区别</strong>：限流（Rate Limiting）的语义是"拒绝超出能力的请求"，总量被削减；削峰填谷（Peak Shaving）的语义是"把高峰流量存起来、到低谷再放"，总量不变只是平移。漏桶恰好横跨两者：溢出的部分做限流（丢弃），缓冲的部分做削峰（延后）。更精确地说——<strong>队列式漏桶更像削峰，时间戳式漏桶更像限流</strong>。能讲出这层区别，说明你真的吃透了它。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架</strong>（按此顺序讲，逻辑闭环）：<br />
+1. 一句话定义 + 白板画桶（模型四要素：容量、漏速、恒定输出、溢出丢弃）；<br />
+2. 两种实现形态（队列式 vs 时间戳式，点明"令牌桶反向"）；<br />
+3. 关键特性与代价（恒定、无突发、延迟）；<br />
+4. 与令牌桶对比（这里主动引出对比，是面试官最想听的）；<br />
+5. 落地案例（Nginx limit_req、QoS/ATM、秒杀排队）；<br />
+6. 收尾升华（容量与延迟权衡、组合使用、限流 vs 削峰）。</p>
+<p><strong>重点得分点</strong>：<br />
+- 说出"流量整形（Traffic Shaping）"这个专业术语——直接拉开档次；<br />
+- 主动画出对比矩阵：漏桶=出口限速+无突发+以延迟为代价，令牌桶=入口发牌+可突发+以积压丢弃为代价；<br />
+- 明确指出漏桶的代价是<strong>延迟</strong>，体现你理解权衡而非背概念；<br />
+- 举 Nginx <code>limit_req</code> 实例并说出 <code>burst</code> 就是桶容量；<br />
+- 说出两种实现形态的差异（队列式可缓冲 vs 时间戳式即决即拒）。</p>
+<p><strong>常见误区</strong>：<br />
+- 把漏桶和令牌桶混为一谈——这是最致命的错误；<br />
+- 说"漏桶可以处理突发流量"——恰恰相反，漏桶禁止突发穿透输出；<br />
+- 把桶容量和漏速混淆——容量管"能积多少"，速率管"每秒出去多少"；<br />
+- 只背概念不画图——漏桶是最具象的算法，画图等于白送分；<br />
+- 忽略延迟代价，只说"平滑性好"——面试官一句"那延迟怎么办"就可能卡住。</p>
+<p><strong>时间分配建议</strong>（总计 3~4 分钟）：<br />
+- 定义 + 画图：30 秒；<br />
+- 原理 + 两种实现形态：1 分钟（重头戏，两种形态务必讲全）；<br />
+- 与令牌桶对比：45 秒（高频追问点，值得多花时间）；<br />
+- 应用案例：45 秒（Nginx + 秒杀两个案例即可）；<br />
+- 深入思考收尾：30 秒（容量权衡 + 限流与削峰区别）。</p>
+<p><strong>过渡话术</strong>：<br />
+- 开场画图："我先给一个直观模型——想象一个底部有洞的水桶……"<br />
+- 概念转实现："模型说完，看它在代码里怎么落地，其实有两种形态……"<br />
+- 主动引对比："这里有一个面试官几乎必问的对比点——漏桶和令牌桶的区别……"<br />
+- 转落地："实际系统中最有名的落地是 Nginx 的 limit_req 模块……"<br />
+- 收尾升华："如果往深想一层，漏桶还牵扯到限流与削峰的本质区别……"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0187')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0187')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

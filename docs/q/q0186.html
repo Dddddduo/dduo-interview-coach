@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>讲一下分布式令牌桶限流。 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0186</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>讲一下分布式令牌桶限流。</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">讲一下分布式令牌桶限流。</h1>
+<h1 id="_2">讲一下分布式令牌桶限流。</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话记忆：令牌桶 = 水龙头匀速注水的桶。</strong> 桶有容量（突发上限），水龙头每秒匀速滴入 rate 个令牌（常态速率），请求来了从桶里拿令牌，桶满则多余的水溢出（多余令牌丢弃），桶空则拒绝。把"水"换成"令牌"，原理一字不差。</p>
+<p><strong>三个记忆钩子：</strong><br />
+1. <strong>公式钩子</strong>：<code>tokens = min(capacity, tokens + (now - last_refill) × rate)</code>——所有令牌桶实现（单机、Guava、Redis Lua）都是这一行数学公式的变体。面试时先背这行公式，代码就是它的翻译。<br />
+2. <strong>对比钩子</strong>：漏桶（Leaky Bucket）像"漏斗"——进多出少、出水量恒定；令牌桶像"蓄水池"——允许你一次性舀走很多（突发 burst），但长期平均速率被 rate 锁死。一句话分胜负：<strong>漏桶恒定速率，令牌桶允许突发</strong>。<br />
+3. <strong>分布式口诀</strong>："<strong>单机桶 → Redis 全局桶 → 分片桶 → 本地桶+Token Server</strong>"——这是一条演进链，每层解决上一层的问题。顺着背，答题不会乱。</p>
+<p><strong>数字记忆</strong>：Nginx 后面挂 5 台机器、每台单机限 100 QPS，全局最高能到 500——"5×100=500"这个翻车公式，是回答"为什么单机限流不够"的最好开场白。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>限流（Rate Limiting）</strong>：控制单位时间内进入系统的请求量，防止流量尖峰打垮下游。</p>
+<p><strong>令牌桶（Token Bucket）</strong>：核心三个参数——<br />
+- <strong>桶容量 burst</strong>：桶最多能存多少令牌，决定<strong>瞬时突发</strong>能力；<br />
+- <strong>令牌生成速率 rate</strong>：每秒匀速向桶中补充多少令牌，决定<strong>长期平均速率</strong>；<br />
+- 请求到来时消耗一个令牌，有令牌放行、无令牌拒绝。</p>
+<p><strong>与漏桶（Leaky Bucket）的本质区别</strong>：漏桶把请求排进一个固定速率的队列，<strong>出口恒定速率</strong>，不关心入口尖峰——你的服务不支持突发；令牌桶是"匀速补充 + 任意消耗"，<strong>允许突发（burst）</strong>，只要桶里有积攒的令牌，短时间可以打满 burst 个请求。一句话：<strong>漏桶平滑"出口"，令牌桶平滑"入口的平均速率但容忍突发"</strong>。这也是为什么网关选型时，Nginx 的 <code>limit_req</code>（漏桶模型）适合保护单一后端吞吐，而令牌桶适合"允许秒杀瞬间的流量但长期封顶"的业务。</p>
+<p><strong>分布式令牌桶（Distributed Token Bucket）</strong>：多实例部署下，把"一个桶"变成"全局共享的一个桶"（Redis 承载），或在"各实例本地桶 + 中心协调"之间做折中，保证全局视角的限流精度。</p>
+<h2 id="2">2. 底层原理</h2>
+<h3 id="21">2.1 单机令牌桶：一行公式</h3>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">TokenBucket</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">capacity</span><span class="p">;</span><span class="w">    </span><span class="c1">// 桶容量 burst</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">rate</span><span class="p">;</span><span class="w">     </span><span class="c1">// 每秒生成令牌数</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">tokens</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">lastRefill</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">tryAcquire</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">();</span>
+<span class="w">        </span><span class="c1">// 核心公式：按时间差补令牌，上限为桶容量</span>
+<span class="w">        </span><span class="n">tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">capacity</span><span class="p">,</span><span class="w"> </span><span class="n">tokens</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">lastRefill</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">rate</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">        </span><span class="n">lastRefill</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tokens</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">tokens</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>两个工程细节：一是<strong>懒更新（lazy refill）</strong>——不需要后台线程定时补令牌，只在请求来时按时间差补，性能最优；二是 Guava 的 <code>RateLimiter</code> 本质是同一思路，但引入了 <code>storedPermits</code> 与"预热（warmup）"平滑模型，面试可顺带提一句证明用过。</p>
+<h3 id="22">2.2 为什么单机令牌桶不够</h3>
+<p>第一，<strong>多实例流量不均</strong>。集群里 5 个实例各自持有一个独立的桶，每个限 100 QPS，负载均衡再均匀，用户视角的全局上限也只是"约 500"，不精确；更糟的是 hash 不均、新实例上线、机器权重不同时，<strong>某个实例可能先被打爆</strong>，而另一些实例的额度白白浪费。</p>
+<p>第二，<strong>单机限流在 Nginx 后面的误区</strong>。Nginx 把请求分发到 5 个应用实例，如果只在应用里配了单机限流，每台限 100，<strong>全局峰值可能到 500</strong>——你以为保护了后端，实际只是把 500 拆成了 5 份"各自为政"。而且 Nginx 边缘层不限流的话，突发流量照样穿透到应用层。正确姿势是<strong>分层</strong>：网关（Nginx 集群）做边缘限流挡大流量，应用层再做全局精确限流兜底。我之前在项目里就是这套组合：Nginx 用 lua 脚本做边缘粗粒度限流，Sentinel 集群流控做应用层精确限流。</p>
+<h3 id="23-redis-lua">2.3 分布式实现：Redis Lua 原子实现</h3>
+<p>核心难点是<strong>原子性（atomicity）</strong>：读取令牌数、补令牌、扣减、写回，必须是不可分割的，否则并发下会超发。Redis 单线程模型 + Lua 脚本天然满足——<strong>Eval 执行的脚本不会被其他命令插入</strong>。</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- KEYS[1] : 桶 key，如 &quot;rate_limit:user:1001&quot;</span>
+<span class="c1">-- ARGV[1] : 桶容量 capacity（突发上限）</span>
+<span class="c1">-- ARGV[2] : 令牌生成速率 rate（每秒个数）</span>
+<span class="c1">-- ARGV[3] : 当前时间戳（毫秒）</span>
+<span class="c1">-- ARGV[4] : 本次消耗令牌数 cost，通常为 1</span>
+
+<span class="kd">local</span><span class="w"> </span><span class="nv">key</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nv">KEYS</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">cap</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">rate</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">now</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">cost</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">ARGV</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+<span class="kd">local</span><span class="w"> </span><span class="nv">last</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;HGET&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;last_refill&#39;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nv">now</span><span class="p">)</span>
+<span class="kd">local</span><span class="w"> </span><span class="nv">tokens</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">tonumber</span><span class="p">(</span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;HGET&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tokens&#39;</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="nv">cap</span><span class="p">)</span>
+
+<span class="c1">-- 核心公式：按时间差匀速补令牌，最多补到桶容量</span>
+<span class="nv">tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">math.min</span><span class="p">(</span><span class="nv">cap</span><span class="p">,</span><span class="w"> </span><span class="nv">tokens</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="nv">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">last</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nv">rate</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="kr">if</span><span class="w"> </span><span class="nv">tokens</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="nv">cost</span><span class="w"> </span><span class="kr">then</span>
+<span class="w">    </span><span class="nv">tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">tokens</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nv">cost</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;HSET&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tokens&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">tokens</span><span class="p">)</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;HSET&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;last_refill&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">now</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">-- 设置过期时间，空闲桶自动回收，避免 key 无限增长</span>
+<span class="w">    </span><span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;PEXPIRE&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="nb">math.ceil</span><span class="p">(</span><span class="nv">cap</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nv">rate</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span>
+<span class="w">    </span><span class="kr">return</span><span class="w"> </span><span class="mi">1</span><span class="w">                      </span><span class="c1">-- 1 放行</span>
+<span class="kr">end</span>
+<span class="nv">redis</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="s1">&#39;HSET&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">key</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;last_refill&#39;</span><span class="p">,</span><span class="w"> </span><span class="nv">now</span><span class="p">)</span>
+<span class="kr">return</span><span class="w"> </span><span class="mi">0</span><span class="w">                          </span><span class="c1">-- 0 拒绝</span>
+</code></pre></div>
+
+<p>Java 侧调用：</p>
+<div class="highlight"><pre><span></span><code><span class="n">Long</span><span class="w"> </span><span class="n">allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Long</span><span class="p">)</span><span class="w"> </span><span class="n">jedis</span><span class="p">.</span><span class="na">eval</span><span class="p">(</span><span class="n">script</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="s">&quot;rate_limit:user:1001&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s">&quot;100&quot;</span><span class="p">,</span><span class="w">              </span><span class="c1">// capacity</span>
+<span class="w">        </span><span class="s">&quot;10&quot;</span><span class="p">,</span><span class="w">               </span><span class="c1">// rate: 每秒 10 个</span>
+<span class="w">        </span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()),</span>
+<span class="w">        </span><span class="s">&quot;1&quot;</span><span class="p">);</span>
+</code></pre></div>
+
+<p>要点：桶的状态（<code>last_refill</code> 时间戳 + 剩余令牌数）持久化在 Redis Hash 里；时间戳建议用 <code>redis.call('TIME')</code> 取 <strong>Redis 服务器时间</strong>，而不是客户端时钟，规避多机时钟偏差；<code>PEXPIRE</code> 让不活跃的 key 自动过期，防止内存被限流 key 撑爆。</p>
+<h3 id="24-redis-key">2.4 Redis 单 key 的性能与热点问题</h3>
+<p>这是必须主动讲出的缺点：<strong>单 key 限流是天然热点（hot key）</strong>。所有实例的请求都打到同一个 Redis key，而 Redis 单线程处理命令，百万级 QPS 下<strong>单个分片会成为瓶颈</strong>，甚至比被打爆的服务更早挂。解决方向有三层：<br />
+1. <strong>分片桶</strong>：按用户 ID / 业务维度把 key 拆到多个分片——热点分散了，但"全局一个桶"的精度没了，只能做"每用户限流"这类天然可分维度的场景；<br />
+2. <strong>本地桶 + 中心协调</strong>（见下文）；<br />
+3. <strong>网关层前置限流</strong>，把打到 Redis 的流量先削掉一层。</p>
+<h2 id="3">3. 实践应用</h2>
+<h3 id="31-redis-lua">3.1 Redis Lua 方案落地要点</h3>
+<ul>
+<li>限流维度设计：按用户、按 IP、按接口分别建 key；</li>
+<li>超时与降级：Redis 不可用时不能把请求全部放行，要 fallback 到本地令牌桶兜底；</li>
+<li>性能：一次 eval 约亚毫秒级，单分片支撑数万 QPS 没问题，再高就要拆。</li>
+</ul>
+<h3 id="32-token-server">3.2 分片令牌桶 / 本地令牌桶 + 分布式协调（Token Server）</h3>
+<p><strong>分片令牌桶</strong>：把全局配额按维度均分到 N 个桶，每个桶独立限流。优点是无中心、性能好；缺点是均分不代表真实流量分布，配额利用率低。</p>
+<p><strong>本地令牌桶 + Token Server（令牌服务器）</strong>——我推荐的重点方案，也是 Sentinel 集群流控的实现思路：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 每 5 秒向 TokenServer 领取本实例配额（带租约 lease）</span>
+<span class="n">Quota</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokenServer</span><span class="p">.</span><span class="na">allocate</span><span class="p">(</span><span class="n">instanceId</span><span class="p">,</span><span class="w"> </span><span class="n">baseQuota</span><span class="p">);</span>
+<span class="n">localBucket</span><span class="p">.</span><span class="na">refresh</span><span class="p">(</span><span class="n">q</span><span class="p">.</span><span class="na">limit</span><span class="p">);</span><span class="w">   </span><span class="c1">// 本地令牌桶按分配到的额度限流</span>
+</code></pre></div>
+
+<ul>
+<li><strong>每实例分额度</strong>：实例从中心领取自己的配额，请求只打本地内存桶，<strong>零网络开销</strong>，性能接近单机限流；</li>
+<li><strong>动态调整</strong>：TokenServer 依据各实例真实流量、权重、负载动态调额（流量大的实例多给，空闲的回收），配额<strong>带租约（lease）自动过期</strong>，实例宕机不续租即自动回收，防止额度泄漏；</li>
+<li><strong>一致性取舍</strong>：领取周期内各实例"各管各的"，全局精度略降（瞬时可能超一点点），换来的是吞吐和可用性——<strong>限流本质是概率保护，不是精确记账</strong>。</li>
+</ul>
+<h3 id="33">3.3 网关级方案</h3>
+<ul>
+<li><strong>Sentinel 集群流控（Cluster Flow Control）</strong>：应用层主流方案。启动 Token Server（<strong>内嵌模式</strong>：实例内选主；<strong>独立模式</strong>：单独部署），支持两种阈值模式——<strong>单机均摊阈值</strong>（全局值除以节点数）和<strong>集群总阈值</strong>（严格全局）；选主故障时可自动降级为单机限流。</li>
+<li><strong>Nginx 集群限流</strong>：OpenResty + <code>lua-resty-limit-traffic</code> 配合 <code>lua_shared_dict</code> 做单机，加 Redis 后端可做集群；注意 <code>ngx_http_limit_req_module</code> 本身是<strong>漏桶</strong>模型（恒定速率 + <code>burst</code> 排队），这是加分细节。</li>
+<li><strong>Kong</strong>：<code>rate-limiting</code> 插件支持本地内存与 Redis（cluster）两种模式，是现成的网关限流方案。</li>
+</ul>
+<p>我之前的经历正好覆盖这条链路：<strong>Nginx（lua-resty + Redis）做边缘限流挡住大流量 → Sentinel 集群流控在应用层做精确兜底</strong>，上线后限流超发率从单机方案的"不可控"收敛到集群总阈值以内。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>时钟问题（Clock Skew）</strong>：Lua 脚本里如果用客户端时间戳，各机器时钟漂移会让补令牌计算失真；应改用 <code>redis.call('TIME')</code> 取 Redis 服务器时间（同一节点内一致）。Token Server 租约续期依赖时钟，时钟回拨会导致租约失效/延长，需 NTP 同步 + 安全余量。</p>
+<p><strong>预热（Warmup）</strong>：令牌桶初始化即桶满，冷启动立刻满速放行——服务刚扩容的实例会瞬间被打满，违背扩容的"慢启动"意图。解法：初始令牌设为 0、预热期逐步抬升 rate（Guava <code>SmoothWarmUp</code>），或 Sentinel 的 warmup 流量控制做冷启动保护。</p>
+<p><strong>动态配额（Dynamic Quota）</strong>：大促时全局 rate 上调，各实例额度按权重比例同步刷新；配额中心可按实时负载与水位动态调额，避免"限流器先于服务被打爆"。</p>
+<p><strong>降级（Degradation）</strong>：限流组件必须自身可控故障——策略上分 <strong>fail-open（放行）与 fail-closed（拒绝）</strong>：Redis 挂掉时降级到本地桶兜底（额度按实例数均摊），TokenServer 挂掉时降级为单机限流；同时监控限流器自身的丢弃率、耗时、超时，让"限流器挂了"这件事可感知、可切换。<strong>原则：限流器不能成为比被保护服务更脆弱的故障点。</strong></p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h2 id="_6">答题逻辑框架（金字塔式）</h2>
+<div class="highlight"><pre><span></span><code>一句话定义（令牌桶=匀速补令牌+允许突发，与漏桶的区别）
+  ↓ 单机原理：一行公式 + 为什么不够（Nginx 后 5×100=500 的误区）
+  ↓ 分布式三连：Redis Lua（原子）→ 热点问题（单 key 天然热点）
+  ↓              → 分片/本地桶+Token Server（性能与精度的取舍）
+  ↓              → 网关级（Sentinel 集群流控 / Nginx / Kong）+ 个人经历
+  ↓ 收尾：时钟/预热/动态配额/降级（展示思考深度）
+</code></pre></div>
+
+<h2 id="_7">重点得分点（面试官想听到的关键词）</h2>
+<ol>
+<li><strong>一句话分清令牌桶和漏桶</strong>：允许突发 vs 恒定速率；</li>
+<li><strong>公式</strong>：<code>min(capacity, tokens + (now-last_refill)*rate)</code>；</li>
+<li><strong>Lua 原子性</strong>：单线程 + eval 无插队，"读-改-写"不可分割——这是分布式限流正确性的基石；</li>
+<li><strong>主动说出热点问题</strong>：单 key 是天然热点、千万 QPS 打爆单分片——主动暴露问题比被追问强十倍；</li>
+<li><strong>性能与精度取舍</strong>：本地桶+Token Server 是面试官最想听的"工程感"答案；</li>
+<li><strong>降级策略</strong>：fail-open / fail-closed 二选一的权衡；</li>
+<li><strong>结合经历</strong>：Nginx 边缘限流 + Sentinel 集群流控，一句带过即可加分。</li>
+</ol>
+<h2 id="_8">常见误区（一定要避开）</h2>
+<ul>
+<li>❌ 说"分布式令牌桶就是把 Redis 当桶"，漏掉热点问题——会被追问"百万 QPS 怎么办"；</li>
+<li>❌ 混淆漏桶与令牌桶，尤其说"Nginx limit_req 是令牌桶"（它是漏桶变体）；</li>
+<li>❌ 说"每台机器限 100 就等于全局限 100"——这是 Nginx 后的经典翻车点，主动纠正它；</li>
+<li>❌ 只背 Redis 方案不讲降级——"Redis 挂了怎么办"是必问 follow-up；</li>
+<li>❌ 把 Lua 脚本的时间戳用客户端时钟而不解释——时钟问题考察点。</li>
+</ul>
+<h2 id="23">时间分配建议（总长 2~3 分钟）</h2>
+<ul>
+<li><strong>0:00–0:30</strong> 定义 + 令牌桶 vs 漏桶一句话对比；</li>
+<li><strong>0:30–1:00</strong> 单机公式 + Nginx 后误区（讲故事）；</li>
+<li><strong>1:00–2:00</strong> 分布式方案主体：Lua 原子实现 → 热点 → Token Server → 网关；</li>
+<li><strong>2:00–2:30</strong> 深入思考收尾（时钟/预热/降级各一句）+ 结合自己经历。</li>
+<li>时间紧就砍"分片桶"，但<strong>热点和降级必须讲</strong>。</li>
+</ul>
+<h2 id="_9">过渡话术（可直接背）</h2>
+<ul>
+<li>开场："我先从单机令牌桶讲起，因为分布式方案只是把它搬到共享存储上，公式不变。"</li>
+<li>引出误区："这里有个很常见的误区——很多人在 Nginx 后面的每台机器上各限 100，觉得全局就是 100，实际 5 台机器能冲到 500。"</li>
+<li>转分布式："把桶放进 Redis，用 Lua 保证原子性，是最直接的分布式方案，但它有一个绕不开的问题——热点。"</li>
+<li>讲方案取舍："所以工程上更常用的是本地桶 + Token Server：性能接近单机，精度通过动态调额找回，限流本来就是概率保护。"</li>
+<li>收尾："最后补一句降级——Redis 挂了不能 fail-open 全放行，我会降级到本地桶兜底并告警，限流器不能成为新的故障点。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0186')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0186')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

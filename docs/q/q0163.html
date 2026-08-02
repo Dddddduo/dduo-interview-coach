@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电商图生视频缓存实现 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0163</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">⚡ Redis / 缓存</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>电商图生视频缓存实现</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">电商图生视频缓存实现</h1>
+<h1 id="_2">电商图生视频缓存实现</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p>把「图生视频缓存」拆成三个记忆锚点，面试前 30 秒快速过一遍：</p>
+<p><strong>锚点一：公式记忆。</strong> 图生视频缓存 = 多级缓存（简历已有）+ 文件型结果（新增）+ 生成式状态机（State Machine）（新增）。简历上「Redis + Caffeine 多级缓存」管的是读得快的 JSON 数据；图生视频的结果是一段视频文件，所以核心差别一句话：<strong>Redis 存元数据（Metadata）和任务状态，OSS + CDN 存视频文件本身</strong>。记住这个「文件不进 Redis」的差别，就不会答成普通数据缓存。</p>
+<p><strong>锚点二：口诀记忆。</strong> 「穿透布隆、击穿互斥、雪崩抖动」——三大经典问题的三板斧；再补两句：「重建一把锁」（对应第 12 题互斥重建）、「Key 里加校验」（对应第 11 题 MD5 冲突）。五句话把防护体系和两个关联题全串起来。</p>
+<p><strong>锚点三：类比记忆。</strong> 把图生视频比作简历里的「热点藏品」：热点藏品是"读接口贵"（RT 700ms），用缓存降到 50ms；图生视频是"算接口贵"（GPU 生成要几秒到几分钟），用缓存把"已经生成过的结果"直接复用。本质都是<strong>把贵的读/算，变成便宜的缓存命中</strong>。面试时先讲简历的多级缓存故事，再向图生视频平移扩展，逻辑最顺。</p>
+<h2 id="_4">📖 个人化回答</h2>
+<h3 id="_5">第一步：先如实说简历里实际做了什么</h3>
+<p>我在数字藏品电商平台（省级实验室项目，2025.03-2026.03）后端，真实落地的缓存相关经历有：</p>
+<ul>
+<li><strong>多级缓存机制</strong>：使用 Redis 和 Caffeine 构建两级缓存，Caffeine 作本地 L1、Redis 作 L2，优化数据读取速度、减少数据库压力；</li>
+<li><strong>热点缓存</strong>：针对热点藏品引入缓存机制，接口 RT 从 <strong>700ms 提升到 50ms</strong>（简历真实量化数据，未命中走 DB、命中走缓存的收益对比）；</li>
+<li><strong>配套能力</strong>：AOP + 自定义注解 + Redisson 实现分布式锁注解；Lua + Redis 实现库存秒杀扣减；XXL-JOB（含分片）做定时扫表；RocketMQ 做异步消息；Seata AT 模式分布式事务。</li>
+</ul>
+<p>这里必须先坦白：<strong>「图生视频」模块在简历中没有明确记载</strong>，我项目的缓存对象是藏品数据（JSON 读缓存），不是视频文件。所以下面分两部分：以上是简历真实经历；接下来是基于这段经历、对「电商图生视频缓存」做的合理设计推演——<strong>推演是我的方案设计，不是简历经历</strong>，请以此区分。</p>
+<h3 id="_6">第二步：基于经历的「电商图生视频缓存」设计推演</h3>
+<p><strong>1. 缓存什么、存在哪（层次设计）</strong></p>
+<p>图生视频结果和藏品数据本质不同：结果是<strong>文件</strong>而非行数据。我的推演是三层：</p>
+<ul>
+<li>视频二进制文件存 OSS + CDN，文件级缓存由 CDN 承载（大文件进 Redis 是错误方案，浪费内存且吞吐差）；</li>
+<li>Redis 存<strong>元数据（Metadata）+ 任务状态机（State Machine）</strong>：pending / running / done / failed，以及结果 OSS 地址、时长、封面、校验信息；</li>
+<li>沿用简历思路，Caffeine 做 L1：对热门模板、高频结果元信息做本地缓存，Redis 做 L2 兜底——与简历「Redis + Caffeine 两级缓存」完全同构，只是缓存对象从藏品行数据换成了结果元信息。</li>
+</ul>
+<p><strong>2. Key 设计</strong></p>
+<ul>
+<li>请求特征 Key：<code>img2video:req:{md5(userId|imageMd5|prompt|model|params)}</code> → 存「该请求是否生成过、对应哪个 taskId」；</li>
+<li>结果 Key：<code>img2video:result:{taskId}</code> → 存 OSS 地址、元数据、TTL、校验字段；</li>
+<li>图片内容 Key：<code>img:md5:{imageMd5}</code> → 识别相同输入图，支撑「同图同 prompt 复用结果」，这是图生视频缓存收益最大的场景。</li>
+</ul>
+<p><strong>3. TTL 与一致性</strong></p>
+<p>生成式结果不可变、生成成本极高，TTL 应设长（推演：7 天），由 XXL-JOB 定时扫描清理过期结果——直接平移简历「XXL-JOB 分片扫表」经验；用户主动删除时用 RocketMQ 异步删 OSS 文件 + Redis 元数据。因为视频生成后基本不再修改，用最终一致性即可，一致性压力远小于订单/库存这类强一致场景（那里我用了 Seata + 乐观锁，这里不需要）。</p>
+<p><strong>4. 穿透（Cache Penetration）/ 击穿（Cache Breakdown）/ 雪崩（Cache Avalanche）防护</strong></p>
+<ul>
+<li><strong>穿透</strong>：布隆过滤器（Bloom Filter）拦截不存在的请求特征，再兜底空值缓存（null cache）短 TTL（如 30s），避免恶意请求打到生成服务；</li>
+<li><strong>击穿</strong>：热点 Key 过期瞬间大量请求同时重建，用互斥（Mutex）重建控制（见第 5 点）；</li>
+<li><strong>雪崩</strong>：TTL 加随机抖动（基础 TTL ±10%），L1/L2 TTL 错峰（Caffeine 短、Redis 长），避免同时大面积失效。</li>
+</ul>
+<p><strong>5. 重建并发控制（关联第 12 题）</strong></p>
+<p>推演场景：两个用户同一秒提交「相同图片 + 相同 prompt」，绝不能生成两次浪费 GPU。方案直接复用简历能力：在生成入口用<strong>自定义注解 + Redisson tryLock</strong> 做互斥，拿到锁的线程幂等（Idempotent）创建任务并写 Redis 状态，未拿到锁的线程轮询已有 taskId；用 <strong>Lua 脚本原子完成「检查 → 上锁 → 写状态」</strong>，保证不并发重建。关键差异点：图生视频的生成是异步的，所以互斥点从「同步重建缓存」变成了「幂等创建任务」——命中就返回结果，未命中就任务化，前端轮询/SSE 拿状态，这比普通缓存重建多一层任务化设计。</p>
+<p><strong>6. MD5 哈希冲突（关联第 11 题）</strong></p>
+<p>请求特征 Key 用 MD5 拼出，理论上存在冲突；一旦冲突会把别人的结果错误复用给当前用户，而一次生成耗几秒到几分钟的 GPU 时间，错误成本极高。推演方案：Key 中拼入 userId 等业务维度降低冲突面；命中时<strong>二次校验</strong>（比对 imageMd5、图片大小、prompt 长度等字段），必要时追加 SHA-256 做精确匹配，宁可 miss 重新生成，也不错误复用。</p>
+<h3 id="_7">第三步：量化口径说明</h3>
+<p>简历真实量化仅有两组：热点藏品接口 RT <strong>700ms→50ms</strong>；关单性能 <strong>10 单/s→50 单/s</strong>。图生视频的命中率目标、耗时预期（如「命中毫秒级返回、未命中异步生成」）属于推演设计目标，面试时我会明确标注为「设计预期」，不会伪装成简历数据。</p>
+<h2 id="_8">🗺️ 答题策略</h2>
+<ol>
+<li><strong>先立边界再展示能力</strong>：开场主动说明「简历没有图生视频模块」，用诚实建立信任，再用「多级缓存、Redisson 锁、Lua、XXL-JOB、RocketMQ」五段真实经历锚定能力——面试官不会因模块缺失扣分，反而认可严谨性。</li>
+<li><strong>每提一个推演，挂一段简历证据</strong>：互斥重建挂 Redisson 注解，清理挂 XXL-JOB，异步回填挂 RocketMQ，原子操作挂 Lua。让推演「有根」，是个人化回答的灵魂。</li>
+<li><strong>主动串联第 11、12 题</strong>：讲到 Key 设计时主动抛出「MD5 冲突二次校验」，讲到重建时主动抛出「互斥 + 幂等任务化」，展示知识体系是串起来的，而不是背题库。</li>
+<li><strong>反问收尾</strong>：追问「结果文件平均大小、单次生成成本、目标命中率」，展示你是带着工程指标思考的，而非背方案。</li>
+<li><strong>三个避坑点</strong>：700ms→50ms 只能说成热点藏品数据；所有图生视频方案都要带「推演」标记；绝不提「Redis 直接存视频」这种错误方案。</li>
+<li><strong>时间分配建议（总计约 4.5 分钟）</strong>：开场 30s 先坦白简历无图生视频模块、立边界 → 1min 讲简历多级缓存与 RT 700ms→50ms 量化 → 3min 推演设计（层次/Key 设计 60s、TTL 与一致性 30s、防护 45s、重建并发 45s、MD5 校验 30s）→ 30s 反问收尾。若被追问，优先展开「互斥重建」与「MD5 二次校验」这两个与第 11、12 题联动的深水区。</li>
+</ol>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Redis / 缓存<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0163')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0163')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

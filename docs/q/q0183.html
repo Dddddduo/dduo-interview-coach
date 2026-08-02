@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 的任务规划是怎么做的？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0183</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Agent 的任务规划是怎么做的？</h1>
+    <div class="tag-row"></div>
+    <h1 id="agent">Agent 的任务规划是怎么做的？</h1>
+<h1 id="agent_1">Agent 的任务规划是怎么做的？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>一句话记忆</strong>：Agent 的任务规划（task planning）本质就是"当好一个项目经理（PM）"——拿到一个模糊的大目标，先拆成小任务，排出先后顺序和依赖关系，分给人去干，干完一步验一步，干砸了就返工重来。</p>
+<p><strong>五字诀</strong>：<strong>拆 → 排 → 派 → 验 → 救</strong><br />
+- <strong>拆</strong>：把复杂目标分解为有序子任务（task decomposition）<br />
+- <strong>排</strong>：排列任务之间的依赖关系，画出依赖图（DAG），找出哪些任务可以并行执行<br />
+- <strong>派</strong>：把任务分派给执行者——单 Agent 场景下自己边想边做，多 Agent 场景下由规划者（planner）分发给执行者（executor）<br />
+- <strong>验</strong>：每个步骤执行后验证结果是否达标（checkpoint 检查点）<br />
+- <strong>救</strong>：失败时重试（retry）、回退（fallback）、甚至推翻原计划重新规划（re-plan）</p>
+<p><strong>画面联想</strong>：想象一个电影剧组。总导演（Planner）拿到剧本，拆成分镜表，排好拍摄顺序和场次依赖，分派给各执行组（Executor）去拍；每拍一条都要看回放验收（checkpoint），拍砸了补拍（retry），关键镜头还要资方签字确认（human-in-the-loop，人类介入审批点）。</p>
+<p><strong>对比联想</strong>：ReAct 是"想一步做一步"的贴身短打——思考（thought）→行动（action）→观察（observation）循环；Plan-and-Execute 是"先排兵布阵再冲锋"——先输出完整计划再逐步执行。就像考试答题：ReAct 是边做边想，Plan-and-Execute 是先在草稿纸上列好全部解题步骤再誊写。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p><strong>任务规划（task planning）</strong> 指的是：把用户的复杂目标（goal）分解为一系列<strong>有序的子任务（subtasks）</strong>，并调度（schedule）它们去执行的过程。它回答三个问题：<strong>做什么（拆解）、按什么顺序做（排序与依赖）、谁来做（执行分派）</strong>。</p>
+<p>规划是 Agent 系统的"思考层"，与"执行层"分离。规划的产物通常是一个<strong>计划（plan）</strong>——一组带顺序、依赖、输入输出契约的任务步骤。与之相对，<strong>执行（execution）</strong>是逐条落实计划、调用工具（tool）或模型产出结果的过程。二者分离后，规划可以独立于执行被审视、修正和复用。</p>
+<p>围绕"规划在哪里发生"，业界有三大范式：</p>
+<ul>
+<li><strong>单 Agent 内规划（intra-agent planning）</strong>：规划与执行在同一 Agent 的循环中交替进行，最典型的就是 <strong>ReAct</strong>（Reasoning + Acting）模式，其核心循环为 <code>thought（思考）→ action（行动）→ observation（观察）</code>。Agent 每步先推理"下一步该做什么"（thought），再调用工具或作答（action），把工具返回结果作为观察（observation）喂回上下文，驱动下一步思考。规划是<strong>内隐的、逐步行进的</strong>。</li>
+<li><strong>多 Agent 协作规划（multi-agent collaborative planning）</strong>：规划由专门角色承担，典型模式是 <strong>规划者-执行者（planner-executor）</strong>：一个 Planner Agent 负责理解目标、做<strong>任务分解（task decomposition）</strong>并生成任务清单，多个 Executor Agent 领取各自任务并返回结果，Planner 汇总。这是一种"领导分活、下属干活"的层级结构，适合跨领域、可并行的复杂任务。</li>
+<li><strong>工作流编排（workflow orchestration）</strong>：规划结果被固化成<strong>有向无环图（DAG，Directed Acyclic Graph）依赖图</strong>或<strong>状态机（state machine）</strong>，由编排引擎（orchestrator）驱动节点按依赖顺序执行。这是工程化的、确定性的规划形态，节点和边都是显式的。</li>
+</ul>
+<h3 id="2">2. 底层原理</h3>
+<p>规划的实现方式（planning implementation）按"动态程度"从低到高有三种：</p>
+<p><strong>① Prompt 驱动的规划（prompt-driven planning）</strong>：在系统提示词（system prompt）中要求 LLM 输出结构化计划，最常见的是<strong>输出 JSON 步骤数组</strong>，例如 <code>[{"step": 1, "action": "search", "params": {...}}, ...]</code>，程序解析 JSON 后逐条执行。优势是灵活、零代码；代价是计划质量完全依赖模型能力，且 JSON 可能解析失败，需要容错。<strong>工具调用（function calling / tool use）</strong>本质上也是这类：模型按 schema 输出"调用哪个工具、传什么参数"，即单步的 prompt 驱动规划。</p>
+<p><strong>② 代码定义的固定流程（code-defined pipeline）</strong>：规划完全由程序员用代码写死，比如"先检索（retrieve）→ 再重排（rerank）→ 最后生成（generate）"的经典 RAG 流水线。执行顺序确定、可观测、可测试，但<strong>不具备适应性</strong>，遇到流程外的需求就失效。</p>
+<p><strong>③ LLM 动态规划（LLM dynamic planning）</strong>：让模型自主生成计划甚至元认知地评估计划。<br />
+- <strong>Plan-and-Execute</strong>（BabyAGI / LangChain 早期实践）：先让 LLM 一次输出<strong>完整计划</strong>（plan），执行时逐条展开，每步完成后更新任务列表，必要时追加新任务——典型实现是维护一个 <strong>任务队列（task queue）</strong>：从目标拆出任务入队，执行完出队，执行中发现新依赖则重新入队，循环直到队列为空。<br />
+- <strong>Tree of Thoughts（ToT，思维树）</strong>：把推理过程建模为<strong>树形搜索</strong>，每一步生成多个候选"思维"分支，用评估器打分剪枝（类似广度/深度优先搜索 + 回溯），在分支上做<strong>自我评估（self-evaluation）与回溯（backtrack）</strong>。这是"规划 = 搜索"的思想，规划质量更高但成本成倍增长。</p>
+<p>支撑上述机制的两个底层构件是<strong>状态（state）</strong>与<strong>图（graph）</strong>：执行引擎维护共享状态（消息历史、中间结果、环境），DAG 或状态机则定义了状态转移的合法路径——前者解决"数据怎么流"，后者解决"流程怎么走"。</p>
+<h3 id="3">3. 实践应用</h3>
+<p>落地一个任务规划系统，要解决四类关键机制：</p>
+<ul>
+<li><strong>任务依赖与并行执行（dependency &amp; parallelism）</strong>：任务间存在 <code>AND</code> 依赖（等所有前置完成）和 <code>OR</code> 分支。对 DAG 做<strong>拓扑排序（topological sort）</strong>得到合法执行顺序，无依赖的节点可以并行（parallel）执行以缩短延迟。调度器（scheduler）负责把就绪任务投递给执行器（executor），聚合并行结果。</li>
+<li><strong>失败重试与回退（retry &amp; fallback）</strong>：LLM 输出不稳定（工具调用解析失败、步骤抛异常），需要设置<strong>重试策略（指数退避 exponential backoff）</strong>；重试仍失败时<strong>回退</strong>——降级到简化方案（如跳过检索直接用模型知识回答、切换更小模型），或把失败信息注入上下文触发 <strong>re-plan（重新规划）</strong>，裁剪掉失败步骤。</li>
+<li><strong>步骤验证（checkpoint）</strong>：每个关键步骤后校验中间产物——调用<strong>验证器（validator）</strong>：规则校验（JSON schema、字段必填）或 LLM 作为评审（judge）打分。校验不通过则回退到该步骤重做，而不是带病继续。</li>
+<li><strong>人类介入（human-in-the-loop，HITL）</strong>：高成本、不可逆或高风险操作（下单、付款、删除）在规划阶段就标记 <strong>审批点（approval point）</strong>，执行到此处挂起，等待人工确认后才放行。</li>
+</ul>
+<p>工程实现上有三类主流方案：</p>
+<ul>
+<li><strong>图状态机（LangGraph）</strong>：LangGraph 把 Agent 流程建模为<strong>图（graph）</strong>，节点是"执行一个步骤/调用一个工具"，边是状态转移，支持条件分支、循环（回退）、检查点（checkpoint）持久化。规划者节点生成计划 → 动态往图上挂执行节点，本质上是用代码图来承载 LLM 动态规划。</li>
+<li><strong>多 Agent 消息总线（message bus）</strong>：多个 Agent 通过共享的消息队列/事件总线通信，Planner 发布任务事件，Executor 订阅并消费，结果以消息回传。与直接函数调用相比，总线实现了<strong>解耦</strong>：Agent 可独立启停、横向扩缩容，也便于审计（每步都有消息留痕）。</li>
+<li><strong>调度器（scheduler）</strong>：负责任务分派、并发控制、超时管理与结果聚合，往往与任务队列（如 Redis/RabbitMQ 实现的队列）配合，支撑"规划一次、并行执行多条子任务"的场景。</li>
+</ul>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>① 规划错误的检测与修正</strong>：LLM 规划会"想当然"——漏步骤、依赖关系搞错、幻觉出不存在的信息来源。应对思路是<strong>规划自检（self-checking）与执行反馈闭环</strong>：让 Planner 输出计划的同时输出"计划理由"，执行后用验证器结果<strong>反哺计划</strong>；更彻底的是<strong>执行中动态修正</strong>——每一步根据实际观察（observation）决定继续原计划还是<strong>换路（reroute）</strong>。这和 ReAct 的本质一脉相承：<strong>计划永远是可推翻的假设，不是圣旨</strong>。</p>
+<p><strong>② 规划成本（planning cost）</strong>：多轮 LLM 调用带来<strong>延迟（latency）与 token 开销</strong>。Plan-and-Execute 比 ReAct 多一次完整的计划生成调用；ToT 的多分支搜索可能让成本翻几倍到几十倍。工程上要做<strong>成本-收益权衡</strong>：简单任务用轻量规划（甚至固定流程），复杂任务才启用动态规划；还可以用<strong>缓存（cache）</strong>复用相似计划、用更便宜的小模型（small model）做规划、规划只做粗粒度再由执行时细化。</p>
+<p><strong>③ 规划 over-engineering（过度规划）</strong>：一个常见反模式是为简单任务也建"规划器 + 多 Agent + 审批流"，结果规划本身的延迟和成本超过直接执行。判断标准很简单：<strong>任务是否需要规划？</strong>——单步可完成的任务直接执行；会变化的中间结果、环境交互类任务才需要动态规划。好的设计是<strong>分级规划</strong>：默认走最短路径，复杂度达标才升级到完整规划管线。</p>
+<p><strong>④ 与简历背景的关联（OrbitQA 项目）</strong>：我在简历中的 OrbitQA 项目采用的就是<strong>规划与执行分离（planning-execution separation）的双层架构</strong>——上层是 <strong>PMO 编排层</strong>，负责把用户问题拆解为子任务并分发给下层；下层是<strong>域 Agent 执行层</strong>，各自领取任务执行并回传结果。这与多 Agent 协作规划中的 planner-executor 模式、以及"编排层集中规划、执行层并行干活"的工程思想高度一致，面试时可以说明：这个架构本质上就是"规划集中化 + 执行并行化 + 结果汇总"的具体落地。细节以简历实际描述为准，不展开编造。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（推荐 4 分钟版本）</strong>：<br />
+1. <strong>定义先行（30 秒）</strong>：一句话给出任务规划的定义——"把复杂目标拆解为有序子任务并调度执行"，同时点出"规划层与执行层分离"这个架构视角。<br />
+2. <strong>范式分层（60 秒）</strong>：按"单 Agent → 多 Agent → 工作流编排"三档递进：ReAct 循环（thought→action→observation）、planner-executor 与任务分解、DAG/状态机。用"从内隐到外显、从动态到确定"的轴来串，显得有体系。<br />
+3. <strong>机制与工程（90 秒）</strong>：讲依赖与并行（拓扑排序）、重试回退（exponential backoff + re-plan）、checkpoint 验证、HITL 审批点；再落到 LangGraph 图状态机、消息总线、调度器。<br />
+4. <strong>拔高收尾（60 秒）</strong>：讲规划成本与 over-engineering 的权衡，再引到自己的 OrbitQA 双层架构（PMO 编排与域 Agent 执行分离），展示"我有实践、有反思"。</p>
+<p><strong>重点得分点</strong>：<br />
+- 说出 ReAct 的 <code>thought → action → observation</code> 循环及"观察回流驱动下一步思考"的细节；<br />
+- 能画出 planner-executor 的任务分派闭环（拆 → 分发 → 回收 → 汇总）；<br />
+- 点出 DAG + 拓扑排序 + 并行执行的技术细节；<br />
+- 提到"重试→回退→re-plan"的递进容错链，这是区分初级和高级回答的关键；<br />
+- 主动谈成本权衡和 over-engineering，展示工程判断力；<br />
+- 最后落到自己项目，形成"理论→实践"闭环。</p>
+<p><strong>常见误区</strong>：<br />
+- ❌ 只背名词（ReAct、LangGraph）说不出原理和取舍；<br />
+- ❌ 把"规划"等同于"写 prompt"，忽略调度、状态、验证等工程机制；<br />
+- ❌ 描述重试时只提"重试"不提"回退"和"重新规划"，容错链路不完整；<br />
+- ❌ 简历项目只敢说"用了多 Agent"，说不出 PMO 与域 Agent 之间如何拆分、如何分发、失败如何处理；<br />
+- ❌ 全程不控制时间，细节铺太开导致收尾仓促。</p>
+<p><strong>时间分配建议</strong>：总时长 3-4 分钟为宜——定义 20%、三大范式 30%、机制与工程 30%、反思与项目 20%。若面试官追问（如"怎么保证计划不幻觉"），重点展开第 4 部分的检测与修正。</p>
+<p><strong>过渡话术</strong>：<br />
+- 进入范式："先给一个框架性的认识，规划在 Agent 系统里可以发生在三个层面——"<br />
+- 进入工程机制："有了范式之后，真正落地时还要解决四个关键机制——依赖、容错、验证和审批。"<br />
+- 进入反思："最后我想聊一个更本质的问题：规划本身是有成本的——"<br />
+- 收尾引项目："其实我在 OrbitQA 项目里就已经在用这个思路了，我们的架构是……"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0183')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0183')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

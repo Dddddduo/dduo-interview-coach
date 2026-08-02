@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据库索引失效的情况有哪些？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0191</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>数据库索引失效的情况有哪些？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">数据库索引失效的情况有哪些？</h1>
+<h1 id="mysql">数据库索引失效的情况有哪些？（MySQL 方向）</h1>
+<h2 id="_2">🧠 联想记忆法</h2>
+<p><strong>口诀：「左模函隐，或范非空，统计排序」</strong>——十个场景压成 12 个字，讲完正好一个不落：</p>
+<table>
+<thead>
+<tr>
+<th>字</th>
+<th>场景</th>
+<th>类别</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>左</td>
+<td>违反最左前缀（Leftmost Prefix）</td>
+<td>结构性失效</td>
+</tr>
+<tr>
+<td>模</td>
+<td>前导模糊 LIKE '%xx'</td>
+<td>结构性失效</td>
+</tr>
+<tr>
+<td>函</td>
+<td>函数/计算作用于索引列（LEFT、num+1=5）</td>
+<td>结构性失效</td>
+</tr>
+<tr>
+<td>隐</td>
+<td>隐式类型转换（Implicit Type Conversion）</td>
+<td>结构性失效</td>
+</tr>
+<tr>
+<td>或</td>
+<td>OR 连接非索引列</td>
+<td>优化器/语义层面</td>
+</tr>
+<tr>
+<td>范</td>
+<td>范围条件（Range）右侧的列</td>
+<td>优化器/语义层面</td>
+</tr>
+<tr>
+<td>非</td>
+<td>NOT IN / NOT EXISTS / !=</td>
+<td>优化器/语义层面</td>
+</tr>
+<tr>
+<td>空</td>
+<td>IS NULL / IS NOT NULL 三值逻辑（Three-Valued Logic）</td>
+<td>优化器/语义层面</td>
+</tr>
+<tr>
+<td>统</td>
+<td>统计信息（Statistics）失真</td>
+<td>成本层面</td>
+</tr>
+<tr>
+<td>排</td>
+<td>排序/分组与索引顺序不符</td>
+<td>成本层面</td>
+</tr>
+</tbody>
+</table>
+<p><strong>记忆故事</strong>：想象你拿着 EXPLAIN 报告像拿着一张路况图——「左模」最爱走最左边的路（最左前缀），可「函隐」这两个路标一出现（函数、隐式转换），导航立刻失灵；「或范」大路一堵车（OR、范围），右侧车道全部作废；「非空」小巷信号差（NOT 系列、IS NULL）；最后还得靠「统计」路况图和「排序」车道线来判断走不走索引。口诀本身就带了两层分类：<strong>前四个是 B+ 树结构上用不了，中间四个是优化器/语义层面用不了，最后两个是成本层面不想用</strong>——这个分类意识就是面试时的最大加分点。</p>
+<h2 id="_3">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p>索引失效（Index Invalidation）的准确含义是：<strong>不是索引"坏了"，而是这一次 SQL 执行没有使用索引</strong>。它分两大类：</p>
+<ol>
+<li><strong>结构性失效</strong>：条件在 B+ 树（B+ Tree）上根本无法做键值定位/范围定位——想用也用不了；</li>
+<li><strong>成本性失效</strong>：索引明明可用，但优化器（Optimizer）用成本模型（Cost Model）估算后认为全表扫描（Full Table Scan）更便宜——能用但不想用。</li>
+</ol>
+<p>判断标准是 EXPLAIN 输出：<code>type</code> 字段从优到劣依次是 <code>system &gt; const &gt; eq_ref &gt; ref &gt; range &gt; index &gt; ALL</code>，当表有索引但 <code>type=ALL</code> 或 <code>key</code> 为 NULL 时，就是"失效"；另外 Extra 列出现 <code>Using filesort</code>（文件排序）、<code>Using temporary</code>（临时表）也提示索引没被有效利用。</p>
+<p>相关术语：回表（二级索引查到主键后再回主键树取整行）、覆盖索引（Covering Index，索引已含所需列，免回表）、索引下推（Index Condition Pushdown，ICP）、选择性（Selectivity，列去重值与总行数之比）。</p>
+<h3 id="2">2. 底层原理</h3>
+<p>B+ 树叶子节点是有序链表，定位方式只有两种：<strong>等值二分定位 + 范围扫描</strong>。因此必须"按照索引定义时的列顺序、从最左列开始、连续地"给出条件，树的键序（key order）才能被利用。这统一解释了所有"结构性失效"：</p>
+<ul>
+<li>条件作用在<strong>变换后的值</strong>上（函数、计算、隐式转换），而树里存的是原始值，键序被打乱，无法二分定位；</li>
+<li>LIKE 前导 <code>%</code>：无法确定起点，只能从第一个叶子扫到最后；</li>
+<li>跳过中间列：键序断档，后续列无法继续参与定位。</li>
+</ul>
+<p>而"成本性失效"的解释在存储引擎层：InnoDB 的二级索引（Secondary Index）叶子节点存的是主键值，走索引 = 索引扫描 + 逐行回表（每次回表都可能是一次随机磁盘 IO）。优化器依据统计信息估算扫描行数，行数占比过大时，全表扫描的顺序读反而更快——注意这里没有硬性阈值，是纯成本估算。</p>
+<p>还有一个必须掌握的底层概念：<strong>三值逻辑</strong>。SQL 中 NULL 参与比较的结果是 UNKNOWN 而不是 TRUE/FALSE，这是 <code>= NULL</code>、<code>NOT IN</code> 含 NULL 这类"语义失效"的根源。</p>
+<h3 id="3">3. 实践应用</h3>
+<p>以下 10 个场景，每个都给出反例 SQL、失效原理（B+ 树层面）、正确写法。</p>
+<p><strong>场景一：违反最左前缀</strong>（设联合索引 <code>idx(a,b,c)</code>）</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 反例：从非最左列开始，或跳过中间列</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">             </span><span class="c1">-- 全表扫</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 只用到 a，c 断档</span>
+</code></pre></div>
+
+<p>原理：树按 (a,b,c) 整体字典序排列。没有 a 的约束时，b 的取值散布在整棵树中，无从定位；a 等值后树内 b 有序，但 c 要依赖 b 才能继续，中间断档后 c 只能靠 ICP 过滤。正确写法：条件必须含最左列，或为新的查询模式单独建 <code>(b,c)</code> 索引。</p>
+<p><strong>场景二：函数 / 计算作用于索引列</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">LEFT</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;张&#39;</span><span class="p">;</span><span class="w">  </span><span class="c1">-- 反例</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">num</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w">           </span><span class="c1">-- 反例</span>
+</code></pre></div>
+
+<p>原理：树里存的是 name 的原始值，<code>LEFT(name,3)</code> 是变换后的值，键序被打乱无法二分；优化器<strong>不会对列做逆运算反解</strong>（列上的表达式不可反转定位）。正确写法：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;张%&#39;</span><span class="p">;</span><span class="w">        </span><span class="c1">-- 改写为可定位的形态</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w">                </span><span class="c1">-- 把计算移到常量侧</span>
+
+<span class="c1">-- MySQL 8.0.13+：函数索引（Functional Index）</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name3</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="p">((</span><span class="k">LEFT</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)));</span>
+
+<span class="c1">-- MySQL 5.7：生成列（Generated Column），VIRTUAL 列即可加索引</span>
+<span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">name3</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="w">  </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="k">LEFT</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">))</span><span class="w"> </span><span class="n">VIRTUAL</span><span class="p">,</span>
+<span class="w">  </span><span class="k">ADD</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name3</span><span class="w"> </span><span class="p">(</span><span class="n">name3</span><span class="p">);</span>
+</code></pre></div>
+
+<p><strong>场景三：隐式类型转换</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 反例：phone 是 VARCHAR 列，却用数字比较</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">phone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">13800138000</span><span class="p">;</span>
+</code></pre></div>
+
+<p>原理：MySQL 的转换规则是<strong>数字优先级高于字符串</strong>，比较时把字符串<strong>列</strong>转成数字（等价于对列做了一次 CAST，即"函数作用于列"），索引失效。同理，两表 join 时字符集/排序规则（collation）不一致（如 utf8 vs utf8mb4），也会在列上发生隐式转换。正确写法：<code>WHERE phone = '13800138000';</code>——原则是<strong>列上零转换</strong>。</p>
+<p><strong>场景四：前导模糊 LIKE '%xx'</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%张%&#39;</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 反例</span>
+</code></pre></div>
+
+<p>原理：树按 name 前缀有序，前导 <code>%</code> 无法确定起点，只能从头扫到尾。缓解方案（MySQL 5.7 起）：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- ① 后缀匹配改写：生成列存 REVERSE(name) 并加索引</span>
+<span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">name_rev</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<span class="w">  </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="n">REVERSE</span><span class="p">(</span><span class="n">name</span><span class="p">))</span><span class="w"> </span><span class="n">VIRTUAL</span><span class="p">,</span>
+<span class="w">  </span><span class="k">ADD</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name_rev</span><span class="w"> </span><span class="p">(</span><span class="n">name_rev</span><span class="p">);</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name_rev</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;张%&#39;</span><span class="p">;</span><span class="w">     </span><span class="c1">-- 反查后缀，走索引</span>
+
+<span class="c1">-- ② 真正的内容检索：FULLTEXT 全文索引（5.6+ InnoDB 支持，5.7 引入 ngram 解析器支持中文分词）</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="p">(</span><span class="s1">&#39;张&#39;</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="k">NATURAL</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="k">MODE</span><span class="p">);</span>
+</code></pre></div>
+
+<p>注意 <code>LIKE 'xx%'</code>（尾部通配）是可以走索引范围扫描的——只有<strong>前导</strong>通配才会失效。</p>
+<p><strong>场景五：OR 连接非索引列</strong>（设仅有 <code>idx(name)</code>）</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;张三&#39;</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 反例</span>
+</code></pre></div>
+
+<p>原理：OR 需要合并两边的结果集，age 上没有索引，无法参与索引合并（index_merge），优化器只能全表扫后逐行过滤。正确写法：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;张三&#39;</span>
+<span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 两侧各自走索引；需要去重时改 UNION</span>
+</code></pre></div>
+
+<p>或者给 age 也建索引，让 MySQL 自动走 index_merge。</p>
+<p><strong>场景六：范围条件右侧的列失效</strong>（设联合索引 <code>idx(a,b)</code>）</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 反例：b 无法参与定位</span>
+</code></pre></div>
+
+<p>原理：a 走范围后命中一段连续区间，但区间内 b 的取值是乱序的（树按 (a,b) 排序，a 每次变化 b 从头开始），b 无法缩小范围，只能靠 ICP 在叶子节点过滤。正确写法：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- ① 等值列放前面，调整索引为 (b,a)</span>
+<span class="c1">-- ② 把范围改写为等值边界（a &gt;= 2 单边条件无法让 b 参与定位，</span>
+<span class="c1">--    必须给出上界 a &lt;= 2 构成等值点，优化器才能按 a = 2 处理，b 才可继续参与）</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+</code></pre></div>
+
+<p><code>BETWEEN</code> 同理；而 <code>a &gt;= 1 AND a &lt;= 1</code> 这种"等值边界"组合，右侧列仍然可用。</p>
+<p><strong>场景七：NOT IN / NOT EXISTS / !=</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">                     </span><span class="c1">-- 反例：常被选为全表扫</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">uid</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">u</span><span class="p">);</span><span class="w">   </span><span class="c1">-- 反例：子查询含 NULL 时恒空</span>
+</code></pre></div>
+
+<p>原理：这一组不是"铁定失效"，而是<strong>优化器选择 + 三值逻辑</strong>的坑：</p>
+<ul>
+<li><code>!=</code> 等价于 <code>col &lt; 1 OR col &gt; 1</code> 两个范围，MySQL 技术上可以走范围扫描，但通常覆盖行数过多、回表成本高，优化器选全表扫；</li>
+<li><code>NOT IN (子查询)</code>：若子查询结果含 NULL，<code>x NOT IN (...)</code> 三值运算结果为 NULL 而非 TRUE，<strong>整条语句返回空结果</strong>——这是语义错误，不只是性能问题；MySQL 会把 NOT IN 子查询改写为 NOT EXISTS（反连接 antijoin）或物化（Materialization），依赖内表索引；</li>
+<li><code>NOT EXISTS</code> 相关子查询：内表关联列必须有索引，否则退化为嵌套循环（Nested Loop）逐行扫描。</li>
+</ul>
+<p>正确写法：<code>!=</code> 场景改用覆盖索引降低回表成本；子查询场景给内表列建索引；NULL 陷阱优先用 <code>NOT EXISTS</code> 或先 <code>WHERE col IS NOT NULL</code> 排除。</p>
+<p><strong>场景八：IS NULL / IS NOT NULL</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 反例（伪失效）：永远查不到</span>
+</code></pre></div>
+
+<p>原理：三值逻辑——NULL 与任何值比较结果为 UNKNOWN，WHERE 只接受 TRUE，所以 <code>= NULL</code> 恒空。<strong>真正的加分点</strong>：<code>name IS NULL</code> 本身是范围条件，<strong>可以走索引</strong>（InnoDB 中 NULL 记录在 B+ 树最左侧）；<code>name IS NOT NULL</code> 也可以走范围，只是当绝大多数行都不为 NULL 时，优化器因成本选全表扫。正确写法：判空一律用 <code>IS NULL / IS NOT NULL</code>，禁止 <code>= NULL</code>；在 <code>NOT IN</code> 场景先加 <code>IS NOT NULL</code> 排除 NULL 行。</p>
+<p><strong>场景九：统计信息与优化器选择</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- 反例：索引存在，但 EXPLAIN 显示 type=ALL，rows 估算巨大</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gender</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;M&#39;</span><span class="p">;</span><span class="w">   </span><span class="c1">-- 选择性约 50% 的列</span>
+</code></pre></div>
+
+<p>原理：成本性失效——非覆盖索引 = 索引扫描 + 大量随机回表；选择性低时估算行数巨大，全表扫描顺序读反而便宜。统计信息过期（大量增删改后未 ANALYZE）也会导致估算偏差。正确写法：</p>
+<div class="highlight"><pre><span></span><code><span class="k">ANALYZE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">t</span><span class="p">;</span><span class="w">                        </span><span class="c1">-- 更新统计信息（8.0 还支持直方图 Histogram）</span>
+<span class="k">EXPLAIN</span><span class="w"> </span><span class="n">FORMAT</span><span class="o">=</span><span class="n">TREE</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="p">...;</span><span class="w">         </span><span class="c1">-- 8.0.16+ 看执行树与成本细节</span>
+<span class="c1">-- 或用 optimizer_trace：SET optimizer_trace=&#39;enabled=on&#39; 后查 information_schema.optimizer_trace</span>
+<span class="c1">-- 治本：把 SELECT 列并入索引构成覆盖索引，消除回表</span>
+</code></pre></div>
+
+<p>这正对应我简历里的案例：线上一个 3 秒多的慢查询，EXPLAIN 显示 <code>type=ALL</code>、rows 几十万，加覆盖索引后变成 <code>index</code> 扫描 + <code>Using index</code>，耗时降到 200ms 左右。注意 <code>force index</code> 只是治标，索引结构变化后可能失效。</p>
+<p><strong>场景十：排序/分组与索引顺序不符</strong>（设联合索引 <code>idx(a,b)</code>）</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w">              </span><span class="c1">-- 反例：filesort</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w">  </span><span class="c1">-- 反例：a 范围后 b 无序，filesort</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w">              </span><span class="c1">-- 反例：需要临时表</span>
+</code></pre></div>
+
+<p>原理：索引天然有序，可以代替排序（避免 filesort）；但 ORDER BY 同样要求满足最左前缀且方向一致（MySQL 8.0 之前不支持混合方向扫描，8.0 起支持 DESC 索引与反向扫描）。正确写法：<code>WHERE a = 1 ORDER BY b</code>（a 等值后 b 有序）可以走索引排序；否则为排序查询单独建 <code>(b)</code> 或 <code>(b,a)</code> 索引，或接受 filesort 并调大 <code>sort_buffer_size</code>。</p>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>(1) 真实世界的"元凶"排序</strong>：线上最常见的是隐式类型转换和函数/计算（常被传参类型不对带出来），其次是违反最左前缀；LIKE 前导 %、NOT 系列这类"教科书案例"反而少见。面试时说出这个排序，会显得有实战感。</p>
+<p><strong>(2) 失效是动态的</strong>：同一个 SQL 今天走索引、明天全表扫——统计信息、数据分布、optimizer_switch 参数都在变。所以调优要"以 EXPLAIN 为准，而不是背结论"。</p>
+<p><strong>(3) 版本演进视角</strong>：5.7 生成列 → 8.0.13 函数索引 → 8.0 直方图、反连接、反向索引扫描，很多"失效"在新版本有了官方解法。这背后本质是"B+ 树键序 vs 查询形态"的匹配问题，版本只是工具。</p>
+<p><strong>(4) 方法论沉淀（EXPLAIN 三板斧）</strong>：看 type（访问方式）、看 key（用了哪个索引）、看 Extra（filesort/temporary/Using index condition/Using index），再结合 rows 估算。我简历里 3s+→200ms 的优化就是按这个流程：先定位 ALL，再判断是结构性还是成本性，最后用覆盖索引收尾。</p>
+<h2 id="_4">🗺️ 回答思路</h2>
+<h3 id="_5">答题逻辑框架（总分总）</h3>
+<ol>
+<li><strong>开场定义（15~20 秒）</strong>：一句话点题——"索引失效不是索引坏了，我分两类答：结构性用不了和成本性不想用"，并带出 EXPLAIN type 的判断标准，展示方法论意识；</li>
+<li><strong>主体按口诀展开（2.5~3 分钟）</strong>：「左模函隐，或范非空，统计排序」。前四个讲 B+ 树结构原理（原理分），中间四个讲优化器与三值逻辑（深度分），最后两个讲成本与排序。每个场景 15~20 秒，<strong>重点讲 3 个</strong>：最左前缀、隐式类型转换、范围右侧列；</li>
+<li><strong>收尾（30 秒~1 分钟）</strong>：用简历案例佐证 + 方法论总结——"判断失效，永远以 EXPLAIN 为准"。</li>
+</ol>
+<h3 id="_6">重点得分点</h3>
+<ul>
+<li><strong>分类意识</strong>（结构失效 vs 成本失效）：大多数候选人不会分，这是最大的差异化；</li>
+<li>每个失效都讲得出 <strong>B+ 树层面的原因</strong>（键序、二分定位、回表）；</li>
+<li><strong>敢于纠错</strong>："IS NULL 其实可以走索引"、"!= 不一定失效"——体现知其然更知其所以然；</li>
+<li>自然带出"解法词"：覆盖索引、ICP、生成列、函数索引、直方图；</li>
+<li>有真实案例（3s+→200ms），哪怕一句话带过，可信度直接拉满。</li>
+</ul>
+<h3 id="_7">常见误区</h3>
+<ul>
+<li>只背场景不会归类，面试官追问"为什么"就卡壳；</li>
+<li>把"优化器选择"说成"一定失效"：!=、NOT IN、IS NOT NULL 都是"看情况"，话说太死会被追问反驳；</li>
+<li>说"IS NULL 完全失效"：这是错误结论，能主动纠正反而是加分；</li>
+<li>建议函数索引不提版本：函数索引是 8.0.13+，5.7 要用生成列，版本意识是亮点；</li>
+<li>全程不讲 EXPLAIN 判断方法：等于只会背题、不会诊断。</li>
+</ul>
+<h3 id="_8">时间分配建议</h3>
+<ul>
+<li>0~30s：定义 + 分类 + EXPLAIN 判断标准；</li>
+<li>30s~3.5min：十个场景（3.5 分钟内讲完，重点三个，其余快速带过）；</li>
+<li>3.5~4.5min：案例 + 方法论收尾；</li>
+<li>全程控制在 4~5 分钟，留 1 分钟给面试官追问（追问大概率是"怎么判断/怎么排查"，正好接住）。</li>
+</ul>
+<h3 id="_9">过渡话术</h3>
+<ul>
+<li>开场："这个问题我分两类来答：一类是结构上就用不了索引，另一类是优化器认为用索引不划算。我先说前者……"</li>
+<li>场景切换："以上四个是 B+ 树结构层面的；下面这几个更隐蔽，是优化器选择和 SQL 语义层面的……"</li>
+<li>收尾："最后说一个判断方法。我之前在项目里用 EXPLAIN 排查过一个 3 秒多的慢查询，定位到 type=ALL 后加覆盖索引，优化到 200ms 左右。所以我的结论是：索引失效没有固定清单，判断标准永远是 EXPLAIN 的成本估算，口诀只是帮我们快速定位嫌疑。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: MySQL / 数据库<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0191')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0191')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

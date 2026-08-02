@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写一段死锁的代码，然后想尽可能多的方法解决死锁 — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0173</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>写一段死锁的代码，然后想尽可能多的方法解决死锁</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">写一段死锁的代码，然后想尽可能多的方法解决死锁</h1>
+<h1 id="_2">写一段死锁的代码，然后想尽可能多的方法解决死锁</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话记死锁定义</strong>：<strong>两个线程互相握着对方要的那把钥匙，谁也不先松手，于是一起卡死。</strong></p>
+<p><strong>四必要条件口诀——「互、持、不、环」→ 谐音"虎持不还"</strong>：一只老虎（互→互斥）手里握着骨头（持→持有并等待）就是不还（不→不可剥夺、还→环→循环等待）给别人，别人也拿不到骨头，就形成了死锁。<strong>破解之道就一句话：四条件缺一不可，打破任意一条，死锁立刻瓦解。</strong></p>
+<p><strong>代码记忆——"ABBA 锁"</strong>：线程 1 拿 A 锁再要 B 锁，线程 2 拿 B 锁再要 A 锁，方向交叉成环，就是最经典的死锁演示（英文字母 A→B、B→A 本身就是"循环等待"的图形化记忆）。</p>
+<p><strong>方法记忆——预防四连</strong>：打破循环等待 → 锁排序（按 id 全局顺序加锁）；打破持有并等待 → 一次性申请所有资源；打破不可剥夺 → tryLock 可剥夺锁；打破互斥 → 无锁化 CAS。<strong>预防是静态设计，避免是运行时判断（银行家算法），检测恢复是事后兜底（jstack / ThreadMXBean）。</strong></p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<h3 id="11-deadlock">1.1 什么是死锁（Deadlock）</h3>
+<p>死锁（Deadlock）指<strong>两个或两个以上的线程在执行过程中，因竞争资源而互相等待对方释放资源，导致所有相关线程永久阻塞、无法继续推进</strong>的现象。典型场景：转账时两个账户互相扣款、数据库事务交叉更新两张表、分布式系统两个服务互相持有对方需要的分布式锁。</p>
+<h3 id="12-coffman-conditions">1.2 死锁四必要条件（Coffman Conditions）逐一分析</h3>
+<p>1971 年 Coffman 等提出死锁必须同时满足的四个条件，<strong>缺一不可</strong>：</p>
+<ol>
+<li><strong>互斥（Mutual Exclusion）</strong>：资源同一时刻只能被一个线程独占使用。比如一把锁只能被一个线程持有。这是锁机制的本质属性，几乎无法打破（只能绕过——用 CAS 乐观锁或读写分离）。</li>
+<li><strong>持有并等待（Hold and Wait）</strong>：线程已持有至少一个资源，在等待获取另一个资源的同时，不释放手中已有的资源。这是死锁的"温床"。</li>
+<li><strong>不可剥夺（No Preemption）</strong>：资源只能由持有者主动释放，其他线程不能强行抢占。synchronized 就属于典型的不可剥夺锁。</li>
+<li><strong>循环等待（Circular Wait）</strong>：存在一条线程等待环：T1 等 T2、T2 等 T3……Tn 等 T1。比如 T1 持有 lock1 等 lock2，T2 持有 lock2 等 lock1。</li>
+</ol>
+<p><strong>逐一分析的意义</strong>：解决死锁不需要同时破坏四个条件，<strong>只要打破其中任何一个</strong>即可，这直接推导出四大类预防策略（见 3.1）。</p>
+<h3 id="13-abba-main">1.3 死锁代码示例：经典 ABBA 交叉加锁（必现，含 main 演示）</h3>
+<p>下面用 <code>CountDownLatch</code> 门闩保证两个线程<strong>同时起跑</strong>，且各自第一把锁互不冲突，因此死锁 100% 必现，而不是"碰运气"：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.CountDownLatch</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">DeadlockDemo</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">lock1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Object</span><span class="p">();</span><span class="w"> </span><span class="c1">// 账户 A 的锁</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">lock2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Object</span><span class="p">();</span><span class="w"> </span><span class="c1">// 账户 B 的锁</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">InterruptedException</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">ready</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span><span class="w"> </span><span class="c1">// 两个线程都&quot;就绪&quot;</span>
+<span class="w">        </span><span class="n">CountDownLatch</span><span class="w"> </span><span class="n">go</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CountDownLatch</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w">    </span><span class="c1">// 同时放行的&quot;发令枪&quot;</span>
+
+<span class="w">        </span><span class="n">Thread</span><span class="w"> </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">ready</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
+<span class="w">                </span><span class="n">go</span><span class="p">.</span><span class="na">await</span><span class="p">();</span><span class="w">                        </span><span class="c1">// 等待发令</span>
+<span class="w">                </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">lock1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">             </span><span class="c1">// 先拿 A</span>
+<span class="w">                    </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;T1 持有 lock1，等待 lock2...&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w">             </span><span class="c1">// 确保 T2 已拿到 lock2</span>
+<span class="w">                    </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">lock2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">         </span><span class="c1">// 再要 B → 死锁</span>
+<span class="w">                        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;T1 转账成功&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span><span class="w"> </span><span class="s">&quot;T1&quot;</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">Thread</span><span class="w"> </span><span class="n">t2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">(()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">ready</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span>
+<span class="w">                </span><span class="n">go</span><span class="p">.</span><span class="na">await</span><span class="p">();</span>
+<span class="w">                </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">lock2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">             </span><span class="c1">// T2 先拿 B（顺序反了）</span>
+<span class="w">                    </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;T2 持有 lock2，等待 lock1...&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span><span class="w">             </span><span class="c1">// 确保 T1 已拿到 lock1</span>
+<span class="w">                    </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">lock1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">         </span><span class="c1">// 再要 A → 形成环</span>
+<span class="w">                        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;T2 转账成功&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">interrupt</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span><span class="w"> </span><span class="s">&quot;T2&quot;</span><span class="p">);</span>
+
+<span class="w">        </span><span class="n">t1</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+<span class="w">        </span><span class="n">t2</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+<span class="w">        </span><span class="n">ready</span><span class="p">.</span><span class="na">await</span><span class="p">();</span><span class="w">    </span><span class="c1">// 主线程等两人就绪</span>
+<span class="w">        </span><span class="n">go</span><span class="p">.</span><span class="na">countDown</span><span class="p">();</span><span class="w">   </span><span class="c1">// 放行：T1 拿 lock1、T2 拿 lock2，互不竞争第一把锁</span>
+<span class="w">        </span><span class="n">t1</span><span class="p">.</span><span class="na">join</span><span class="p">();</span>
+<span class="w">        </span><span class="n">t2</span><span class="p">.</span><span class="na">join</span><span class="p">();</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;程序结束&quot;</span><span class="p">);</span><span class="w">  </span><span class="c1">// 永远不会打印到这一行</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>运行后程序永久卡住。此时另开终端执行 <code>jstack &lt;pid&gt;</code>（pid 用 <code>jps</code> 查），就能看到 JVM 检测到的 <code>Found one Java-level deadlock</code> 以及 <code>waiting to lock</code> / <code>locked</code> 明细——这就是第 3.3 节的检测手段。</p>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>synchronized 的底层</strong>：JVM 中每个对象头部有 Mark Word，记录锁状态；加锁本质是进入对象的 monitor（监视器），编译成 <code>monitorenter</code>/<code>monitorexit</code> 指令。为性能经历了锁升级（Lock Escalation）：偏向锁 → 轻量级锁 → 重量级锁。重量级锁由操作系统互斥量（mutex）实现，阻塞时线程从用户态陷入内核态，通过 <code>park</code>/<code>unpark</code> 挂起唤醒。<strong>关键点：阻塞在 synchronized 上的线程状态是 BLOCKED，且不响应中断——这正是它"不可剥夺、无法超时"的根源。</strong></p>
+<p><strong>ReentrantLock 的底层</strong>：基于 AQS（AbstractQueuedSynchronizer，抽象队列同步器）的 CLH（Craig-Landin-Hagersten）变体队列实现，线程通过 <code>LockSupport.parkNanos</code> 休眠。因为等待状态完全由 JVM/Java 层控制，所以它额外提供了 <code>tryLock(timeout)</code>（带超时的可剥夺尝试）、<code>lockInterruptibly()</code>（可中断获取）——这些是 synchronized 做不到的，也是解决死锁的利器。</p>
+<p><strong>死锁在底层如何形成</strong>：T1 持有 lock1 的 monitor，其线程控制块记录"等待 lock2 的 monitor"；T2 正好反向。两个 monitor 的等待队列互相指向对方的持有者，构成一个有向环，任何一方都不会主动放弃 → 系统资源被永久占用。</p>
+<p><strong>检测的底层原理</strong>：<code>jstack</code> 靠线程 Dump 做<strong>图分析</strong>——把"持有"与"等待"关系画成资源分配图，检测到环就输出 <code>Found one Java-level deadlock</code>。程序化检测用 <code>ThreadMXBean.findDeadlockedThreads()</code>（Java 6 引入），它通过 JVMTI 遍历所有线程的锁等待关系，<strong>比只查 monitor 锁的 <code>findMonitorDeadlockedThreads</code> 更强，能覆盖 java.util.concurrent 包的锁</strong>。</p>
+<p><strong>银行家算法（Banker's Algorithm）底层思想</strong>：Dijkstra 提出的资源分配策略——分配前先"预演"：假设分配后检查系统是否仍处于安全状态（存在安全序列 Safe Sequence，即存在某种顺序让所有线程依次完成），若不安全则拒绝本次分配，让线程等待。</p>
+<h2 id="3">3. 实践应用</h2>
+<h3 id="31-prevention">3.1 预防（Prevention）——静态设计，打破四条件之一</h3>
+<table>
+<thead>
+<tr>
+<th>打破的条件</th>
+<th>手段</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>循环等待</td>
+<td><strong>锁排序/全局顺序加锁</strong>（最常用）</td>
+<td>需要全局一致的顺序约定</td>
+</tr>
+<tr>
+<td>持有并等待</td>
+<td>一次性申请所有资源</td>
+<td>资源利用率低、临界区变大</td>
+</tr>
+<tr>
+<td>不可剥夺</td>
+<td><strong>tryLock 超时 + 释放重试</strong></td>
+<td>可能引入活锁（需随机退避）</td>
+</tr>
+<tr>
+<td>互斥</td>
+<td>无锁化：CAS / 乐观锁</td>
+<td>只能用于简单读改写场景</td>
+</tr>
+</tbody>
+</table>
+<p><strong>① 锁排序（全局顺序加锁）通用实现</strong>——所有线程必须遵守<strong>同一个</strong>加锁顺序，环就永远构造不出来：</p>
+<div class="highlight"><pre><span></span><code><span class="cm">/** 锁排序：所有线程统一&quot;先锁 id 小的，再锁 id 大的&quot; */</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LockOrdering</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Account</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">;</span><span class="w">             </span><span class="c1">// 全局唯一账户 id（用数据库主键，勿用 identityHashCode，可能碰撞）</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Account</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">id</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">transfer</span><span class="p">(</span><span class="n">Account</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">Account</span><span class="w"> </span><span class="kd">to</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 关键：比较 id 决定顺序，而不是简单按参数顺序加锁</span>
+<span class="w">        </span><span class="n">Account</span><span class="w"> </span><span class="n">first</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">from</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="kd">to</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="kd">to</span><span class="p">;</span><span class="w">   </span><span class="c1">// 先锁 id 小的</span>
+<span class="w">        </span><span class="n">Account</span><span class="w"> </span><span class="n">second</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">from</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="kd">to</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="kd">to</span><span class="w">   </span><span class="p">:</span><span class="w"> </span><span class="n">from</span><span class="p">;</span><span class="w"> </span><span class="c1">// 再锁 id 大的</span>
+<span class="w">        </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">first</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">second</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">from</span><span class="p">.</span><span class="na">balance</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">amount</span><span class="p">;</span>
+<span class="w">                </span><span class="kd">to</span><span class="p">.</span><span class="na">balance</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">amount</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>② 一次性申请所有资源</strong>：把"先拿 A 再拿 B"变成"一口气拿到 A、B 两把锁才干活"。现实中可用 <code>Semaphore</code>（信号量）一次 <code>acquire(n)</code> 拿齐 n 个许可，或用数据库的两阶段锁（Two-Phase Locking，2PL：增长阶段只加锁、收缩阶段只解锁）。</p>
+<p><strong>③ 可剥夺锁 tryLock 带超时</strong>——拿不到第二把锁就<strong>释放第一把</strong>（打破"持有并等待"），退避后重试：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.ThreadLocalRandom</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.TimeUnit</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.locks.LockSupport</span><span class="p">;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">java.util.concurrent.locks.ReentrantLock</span><span class="p">;</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">TryLockTransfer</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">ReentrantLock</span><span class="w"> </span><span class="n">lock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ReentrantLock</span><span class="p">();</span>
+
+<span class="w">    </span><span class="cm">/** 拿不到对方的锁就释放自己的锁，随机退避重试；超时返回 false 交给上层回滚 */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">transferTo</span><span class="p">(</span><span class="n">TryLockTransfer</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">final</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">deadline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">System</span><span class="p">.</span><span class="na">nanoTime</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">.</span><span class="na">toNanos</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">System</span><span class="p">.</span><span class="na">nanoTime</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">deadline</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lock</span><span class="p">.</span><span class="na">tryLock</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">                          </span><span class="c1">// 第一把：可尝试获取</span>
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">target</span><span class="p">.</span><span class="na">lock</span><span class="p">.</span><span class="na">tryLock</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">           </span><span class="c1">// 第二把：拿不到就退出</span>
+<span class="w">                        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">Thread</span><span class="p">.</span><span class="na">currentThread</span><span class="p">().</span><span class="na">getName</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot; 转账成功&quot;</span><span class="p">);</span>
+<span class="w">                            </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">                        </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                            </span><span class="n">target</span><span class="p">.</span><span class="na">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span><span class="w">                         </span><span class="c1">// 关键：立刻释放已持有的锁</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// 随机退避：避免两个线程&quot;同时释放、同时重试&quot;互相谦让成活锁</span>
+<span class="w">            </span><span class="n">LockSupport</span><span class="p">.</span><span class="na">parkNanos</span><span class="p">(</span><span class="n">ThreadLocalRandom</span><span class="p">.</span><span class="na">current</span><span class="p">().</span><span class="na">nextLong</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1_000_000L</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">   </span><span class="c1">// 超时失败，上层执行补偿/回滚</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>④ Lock 接口家族</strong>：<code>ReentrantLock</code> 比 synchronized 多了超时、可中断、公平性、多条件队列（Condition），是工程上替代 synchronized 的首选。</p>
+<h3 id="32-avoidance">3.2 避免（Avoidance）——运行时动态判断</h3>
+<ul>
+<li><strong>银行家算法</strong>：为每个线程记录"最大资源需求"，每次分配前检查是否存在安全序列，不存在就不分配。优点是理论完备，缺点是<strong>必须提前知道每个线程的最大需求</strong>，现实中很难满足，所以工程上极少完整实现，但思路常考。</li>
+<li><strong>加锁前预检测（资源分配图判环）</strong>：维护"已持有锁集合"，申请新锁前在图里做一次可达性检查，发现会成环就拒绝或等待。和银行家算法本质同源，都是"先判断、后分配"。</li>
+</ul>
+<h3 id="33-detection-recovery">3.3 检测与恢复（Detection &amp; Recovery）——事后兜底</h3>
+<ul>
+<li><strong>jstack 检测</strong>：<code>jstack -l &lt;pid&gt;</code>（JDK 9+ 也可 <code>jcmd &lt;pid&gt; Thread.print -l</code>）。输出中若出现 <code>Found one Java-level deadlock</code> 并列出循环等待的线程栈，即确认死锁。</li>
+<li><strong>ThreadMXBean 程序化检测</strong>（可内置成监控任务，周期性上报）：</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">ThreadMXBean</span><span class="w"> </span><span class="n">bean</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ManagementFactory</span><span class="p">.</span><span class="na">getThreadMXBean</span><span class="p">();</span>
+<span class="kt">long</span><span class="o">[]</span><span class="w"> </span><span class="n">ids</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bean</span><span class="p">.</span><span class="na">findDeadlockedThreads</span><span class="p">();</span><span class="w">          </span><span class="c1">// null 表示无死锁</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ids</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">ThreadInfo</span><span class="w"> </span><span class="n">info</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">bean</span><span class="p">.</span><span class="na">getThreadInfo</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&quot;死锁线程: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="na">getThreadName</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="s">&quot; 状态: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">info</span><span class="p">.</span><span class="na">getThreadState</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li><strong>恢复手段</strong>：锁超时 + 回滚（即 3.1 的 tryLock 方案，失败返回后做补偿逻辑，如数据库事务回滚）；极端情况下重启进程。数据库（如 MySQL InnoDB）内置死锁检测，检测到环会自动回滚代价较小的事务并报错 1213，这与 JVM 完全不同——<strong>JVM 不会自动恢复死锁</strong>。</li>
+</ul>
+<h3 id="34">3.4 工程手段：用并发工具"化死锁于无形"</h3>
+<ul>
+<li><strong>ConcurrentHashMap</strong>：JDK 8 改为"桶级细粒度锁 + CAS"，不再整表加锁，锁竞争面大幅缩小；</li>
+<li><strong>读写锁（ReentrantReadWriteLock）</strong>：读读共享、写互斥，把"互斥"条件放宽为"写互斥"，减少冲突窗口；</li>
+<li><strong>Semaphore</strong>：限制同时访问资源的线程数，或一次性领取全部许可；</li>
+<li><strong>单线程化 Actor 模型</strong>：如 Akka、Disruptor 无锁环形队列——共享状态封装在单个线程/事件循环内，<strong>根本不共享内存，自然无锁无死锁</strong>；</li>
+<li><strong>无锁编程</strong>：AtomicInteger 等 CAS 原子类，从源头消灭锁。</li>
+</ul>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>死锁 vs 活锁 vs 饥饿——面试高频辨析</strong>：<br />
+- <strong>死锁</strong>：线程永久阻塞（BLOCKED/WAITING），不消耗 CPU；<br />
+- <strong>活锁（Livelock）</strong>：线程<strong>不阻塞但永远做无用功</strong>——比如两个线程 tryLock 失败后同时释放、同时重试，互相谦让成"空转"。解决靠随机退避（random backoff）；<br />
+- <strong>饥饿（Starvation）</strong>：线程始终<strong>得不到锁/CPU</strong>但其他线程一直有进展，如非公平锁（Nonfair Lock）下低优先级线程可能长期等不到锁。解决靠公平锁（Fair Lock）或提高优先级。</p>
+<p><strong>为什么 synchronized 无解而 Lock 有解</strong>：synchronized 阻塞时不响应中断、无超时，是"不可剥夺"的具象化；只有换成 Lock 家族的 <code>tryLock</code>/<code>lockInterruptibly</code> 才能人为干预。</p>
+<p><strong>两点补充认知</strong>：其一，锁排序虽好用，但<strong>要求所有线程自觉遵守同一全局顺序</strong>，一处例外（如代码里的 T2）就前功尽弃，所以团队规范往往比技术方案更关键；其二，银行家算法"最大需求已知"的假设在真实系统里几乎不成立，这也是它停留在教科书的原因——<strong>面试能说出这一点，说明你真懂</strong>。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h3 id="_6">答题逻辑框架（四层递进）</h3>
+<ol>
+<li><strong>定义 + 四必要条件</strong>：先背口诀「互持不环」，给面试官一个清晰的坐标系；</li>
+<li><strong>手写死锁代码</strong>：现场敲 ABBA 示例，强调用 CountDownLatch 保证必现（体现你会"控制实验变量"）；</li>
+<li><strong>四大类解法</strong>：预防（锁排序/tryLock/一次性申请/无锁）→ 避免（银行家算法）→ 检测恢复（jstack、ThreadMXBean）→ 工程替代（并发容器、读写锁、Actor）；</li>
+<li><strong>辨析收尾</strong>：活锁、饥饿对比，把深度拉满。</li>
+</ol>
+<h3 id="_7">重点得分点</h3>
+<ul>
+<li>四条件<strong>逐一对应</strong>破解方案（预防 = 打破条件），而不是零散罗列方法；</li>
+<li>锁排序代码<strong>写对</strong>：先比较 id 再决定加锁顺序，而不是按参数顺序锁；</li>
+<li>会写 <code>jstack</code> 命令 + <code>ThreadMXBean.findDeadlockedThreads()</code>；</li>
+<li>说出 synchronized 与 ReentrantLock 的底层差异（monitor vs AQS + LockSupport）；</li>
+<li>主动提到 tryLock 的<strong>副作用是活锁</strong>，以及随机退避方案——这是加分细节。</li>
+</ul>
+<h3 id="_8">常见误区</h3>
+<ol>
+<li><strong>以为 synchronized 可被 interrupt 打断</strong>：错，阻塞在 synchronized 上的线程不响应中断；<code>InterruptedException</code> 只在 <code>wait/join/sleep</code> 时抛出；</li>
+<li><strong>jstack 用法错误</strong>：jstack 是<strong>事后检测</strong>工具不是预防工具，要加 <code>-l</code> 看完整锁信息；</li>
+<li><strong>混淆死锁/活锁/饥饿</strong>：死锁"卡死不动"、活锁"空转不休"、饥饿"永远轮不到"；</li>
+<li><strong>以为锁排序 = "先锁 A 再锁 B"</strong>：关键是<strong>所有线程必须统一顺序</strong>，T2 反着来立刻死锁；</li>
+<li><strong>以为 tryLock 万能</strong>：会引入活锁和忙等 CPU 空转；</li>
+<li><strong>以为死锁只存在于 synchronized</strong>：任何锁机制（分布式锁、数据库锁）都可能死锁。</li>
+</ol>
+<h3 id="15">时间分配建议（现场约 15 分钟）</h3>
+<ul>
+<li>0–2 分钟：定义 + 四条件口诀，快速建立框架；</li>
+<li>2–7 分钟：写死锁代码 + 解释必现原理；</li>
+<li>7–13 分钟：四类解法，重点写两段代码（锁排序、tryLock）；</li>
+<li>13–14 分钟：检测手段 + 活锁/饥饿辨析；</li>
+<li>14–15 分钟：反问面试官（"您更关注预防策略还是检测恢复？"）。</li>
+</ul>
+<h3 id="_9">过渡话术</h3>
+<ul>
+<li><strong>代码 → 解法</strong>："刚才这段代码形成了经典的循环等待，怎么解？核心思想只有一句：四条件缺一不可，打破任意一个即可，这对应着四类预防手段。"</li>
+<li><strong>预防 → 避免</strong>："预防是静态约束，代价是降低并发度；更进一步，可以在运行时动态判断是否安全，这就是'避免'策略，最经典的是银行家算法。"</li>
+<li><strong>避免 → 检测</strong>："如果代码已经上线、既没预防也没避免，那就只能'检测与恢复'——运维上 jstack 一抓一个准。"</li>
+<li><strong>收尾</strong>："最后补一个高频辨析：活锁是死锁的'近亲'，但本质是空转不是阻塞……"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0173')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0173')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

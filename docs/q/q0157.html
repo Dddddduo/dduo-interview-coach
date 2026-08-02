@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka有看过他的源码吗？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0157</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Kafka有看过他的源码吗？</h1>
+    <div class="tag-row"></div>
+    <h1 id="kafka">Kafka有看过他的源码吗？</h1>
+<h1 id="kafka_1">Kafka有看过他的源码吗？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>核心记忆钩子：一条消息的「旅行」三站九字诀</strong></p>
+<p>Kafka 源码千头万绪，但本质就是一条消息从生产到消费的旅行。记住九个字——<strong>「分攒发、切写推、拉提衡」</strong>，就能把源码主干全部串起来：</p>
+<ul>
+<li><strong>送（Producer 端）</strong>：分 → 攒 → 发。<strong>分区器（Partitioner）</strong>决定消息"寄给谁"（写地址），<strong>累加器（RecordAccumulator）</strong>负责"攒批"（装包裹，凑满 batch 再寄），<strong>发送线程（Sender）</strong>是"快递员"（打包发车）。</li>
+<li><strong>存（Broker 端）</strong>：切 → 写 → 推。日志按 <strong>日志分段（LogSegment）</strong>切段（仓库分格），<strong>顺序写（Sequential Write）+ 页缓存（Page Cache）</strong>落盘（货物贴墙顺放，转得快），<strong>ISR（In-Sync Replicas）</strong>复制 + <strong>HW/LEO</strong> 水位推进（多仓同步、登记可见水位）。</li>
+<li><strong>取（Consumer 端）</strong>：拉 → 提 → 衡。消费者<strong>拉模型（Pull Model）</strong>主动上门取货，取完<strong>位移提交（Offset Commit）</strong>（签回执），消费组变更时<strong>再均衡（Rebalance）</strong>重新分配路线。</li>
+</ul>
+<p><strong>辅助联想</strong>：把整个过程想象成寄快递——"分攒发"是寄件三连，"切写推"是仓库管理，"拉提衡"是收件与售后。九字诀 + 快递比喻，面试时先背这九个字，每一站都能自然展开两三个类名和机制。</p>
+<p><strong>记忆第二钩子（用于开场表态）</strong>：记住一句话——"<strong>30% 深度 + 70% 诚实与读码方法</strong>"。这道题考的从来不是"你读没读完"，而是"你读了什么、怎么读的、读到哪里为止"。这句话既是开场话术，也是避免踩坑的心理锚点。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1-core-concepts">1. 核心概念（Core Concepts）</h3>
+<p>先亮明态度（这也是本题得分的第一步）：<strong>"Kafka 源码我没有逐行读完，但核心链路我完整跟过，我按一条消息从生产到消费的路径讲我看到的实现。"</strong></p>
+<p>Kafka 源码分两大工程：<code>clients</code> 模块（生产端/消费端 API 与实现）和 <code>core</code> 模块（Broker 服务端，Scala 写的核心逻辑）。把握以下核心类，就把握了源码地图：</p>
+<ul>
+<li><strong>Producer 端</strong>：<code>KafkaProducer</code>、<code>Partitioner</code>、<code>RecordAccumulator</code>、<code>Sender</code>、<code>NetworkClient</code>、<code>Metadata</code>。</li>
+<li><strong>Broker 端</strong>：<code>Log</code>、<code>LogSegment</code>、<code>OffsetIndex</code>/<code>TimeIndex</code>（索引文件）、<code>ReplicaManager</code>、<code>Partition</code>（ISR 的载体）、<code>KafkaController</code>（控制器）、<code>LeaderEpochCache</code>。</li>
+<li><strong>Consumer 端</strong>：<code>KafkaConsumer</code>、<code>Fetcher</code>、<code>ConsumerCoordinator</code>/<code>AbstractCoordinator</code>、位移提交相关请求类。</li>
+</ul>
+<p>关键机制术语：<strong>副本同步集合 ISR（In-Sync Replicas）</strong>、<strong>高水位 HW（High Watermark）</strong>、<strong>日志末端偏移 LEO（Log End Offset）</strong>、<strong>零拷贝（Zero-Copy）</strong>、<strong>幂等生产者（Idempotent Producer）</strong>。</p>
+<h3 id="2">2. 底层原理（深入看过的部分）</h3>
+<p><strong>（1）Producer 端：分区器 → 累加器 → 发送线程</strong></p>
+<ul>
+<li><strong>分区器 Partitioner</strong>：<code>DefaultPartitioner.partition()</code> 的逻辑是——有 key 时用 <strong>murmur2 哈希</strong>（不是 md5！）+ 取模，保证相同 key 进同一分区、保持顺序；无 key 时走 <strong>粘性分区（Sticky Partitioning）</strong>（Kafka 2.4 引入）：先随机选一个分区"粘住"，直到该批攒满或 <code>linger.ms</code> 超时再换，避免逐条随机导致的批量被拆散。</li>
+<li><strong>累加器 RecordAccumulator</strong>：核心数据结构是 <code>ConcurrentMap&lt;TopicPartition, Deque&lt;ProducerBatch&gt;&gt;</code>——每个分区一个双端队列（队尾追加、队头发送）。<code>append()</code> 先尝试塞进队尾已有的 <code>ProducerBatch</code>，装不下才新建。底层用 <strong>BufferPool</strong> 池化 ByteBuffer 复用内存，避免频繁 GC——这是 Kafka 高吞吐的一大来源。<code>batch.size</code>、<code>linger.ms</code>、<code>buffer.memory</code> 三个参数全部对应到这里。</li>
+<li><strong>发送线程 Sender</strong>：<code>runOnce()</code> 循环：先检查哪些批次 ready（攒满或超时或内存紧张时强发）→ <code>drain()</code> 取出 → <strong>按 broker 节点聚合</strong>（同一 Node 的请求合并成一次网络调用）→ 交给 <code>NetworkClient.send()</code> 异步发出 → 收到响应后调 <code>completeBatch</code> 触发回调。顺带一提 <code>max.in.flight.requests.per.connection</code> 如果大于 1 且未开幂等，重试时可能乱序——源码里 <code>Sender</code> 对 inflight 请求数的控制一目了然。</li>
+</ul>
+<p><strong>（2）Broker 端：LogSegment、顺序写、页缓存、ISR 与 HW/LEO</strong></p>
+<ul>
+<li><strong>日志分段 LogSegment</strong>：每个分区是一个 <code>Log</code>，按大小（<code>log.segment.bytes</code> 默认 1GB）切成多个 <code>LogSegment</code>。每个 Segment 对应三个文件：<code>.log</code> 数据文件、<code>.index</code> 偏移量索引、<code>.timeindex</code> 时间戳索引。索引是<strong>稀疏索引</strong>（按 <code>log.index.interval.bytes</code> 间隔落一条，记录相对偏移量），查找时先二分索引文件，再定位到数据文件顺序扫描。<code>Log.append()</code> 写最后活跃段（activeSegment），写满即 roll 新段。</li>
+<li><strong>顺序写 + 页缓存</strong>：Kafka 只做追加式顺序写，配合操作系统<strong>页缓存（Page Cache）</strong>承担读压力，消费时用 <strong>sendfile 零拷贝</strong>直接把页缓存数据搬运到网卡，不经过用户态堆内存——这就是"Kafka 为什么快"的源码级答案。注意：默认 <code>log.flush.*</code> 不强制 fsync，刷盘依赖 OS，这也是"副本数 &gt;= 2 才能不丢消息"的根因。</li>
+<li><strong>ISR / HW / LEO</strong>：每个分区有一个 leader 和若干 follower。follower 通过 <strong>FetchRequest</strong> 从 leader 拉数据——这个请求同时充当"复制 + 心跳"双职责。leader 端的 <code>ReplicaManager.maybeIncrementLeaderHW()</code> 计算 <strong>HW = min(ISR 内所有副本的 LEO)</strong>；ISR 中某个 follower 的 LEO 落后 leader 超过 <code>replica.lag.time.max.ms</code> 就被剔除（<code>maybeShrinkIsr</code>），追上后加回（<code>maybeExpandIsr</code>）。HW 就是消费者可见性的分界线——<strong>未推进 HW 的数据消费者不可见</strong>，这是"消息一致性"的关键。</li>
+<li><strong>选举机制</strong>：旧版基于 ZooKeeper——<code>KafkaController</code> 通过 ZooKeeper 临时节点 <code>/controller</code> 竞选出唯一的 controller；分区 leader 选举规则是"<strong>按副本列表顺序找第一个存活且在 ISR 中的副本</strong>"（<code>maybeElectLeader</code>），若 ISR 全不可用且开了 <code>unclean.leader.election.enable</code> 才允许从非 ISR 中选（有丢数据风险）。新版本（KIP-500）的 KRaft 模式用 Raft 协议实现 controller 共识。0.11 起的 <strong>Leader Epoch（KIP-101）</strong>解决 HW 滞后导致的日志截断错乱问题——<code>LeaderEpochCache</code> 存 (epoch, offset) 映射，是高频追问点。</li>
+</ul>
+<p><strong>（3）Consumer 端：拉模型与位移提交</strong></p>
+<ul>
+<li><strong>拉模型（Pull Model）</strong>：<code>KafkaConsumer.poll()</code> 内部由 <code>Fetcher</code> 维护分区读取位置（position），向 broker 发 FetchRequest，broker 端 <code>ReplicaManager.fetchMessages()</code> → <code>Log.read()</code> 返回数据。之所以用 pull 而非 push，是因为 broker 无需跟踪消费状态、消费者自主控制速率和批量大小——这也是 Kafka 能支撑百万级消费者的设计根因。</li>
+<li><strong>位移提交（Offset Commit）</strong>：位移提交请求写入内部主题 <strong><code>__consumer_offsets</code></strong>（默认 50 个分区，按 groupId 哈希路由）。<code>enable.auto.commit</code> + <code>auto.commit.interval.ms</code> 自动提交；手动提交分 <code>commitSync</code>（阻塞、失败重试）和 <code>commitAsync</code>（异步、失败不重试但快）。提交时机错了就会造成"重复消费"或"消息丢失"。</li>
+<li><strong>再均衡（Rebalance）</strong>：<code>AbstractCoordinator</code> 的 joinGroup → syncGroup 两阶段协议，分区分配策略有 range、roundrobin、sticky、cooperative-sticky 四种。<code>max.poll.interval.ms</code> 超时会被判定为"处理太慢"而踢出组、触发 rebalance——很多线上事故的根因都在这里。</li>
+</ul>
+<h3 id="3">3. 实践应用（从源码反推参数与排障）</h3>
+<ul>
+<li><strong>参数调优的"源码依据"</strong>：吞吐与延迟的权衡本质是 <code>RecordAccumulator</code> 的攒批逻辑——<code>batch.size</code> 调大 + <code>linger.ms</code> 适当放宽 = 更高吞吐；<code>buffer.memory</code> 不够时 <code>max.block.ms</code> 会让 <code>send()</code> 阻塞报 <code>TimeoutException</code>。<code>acks=all</code> + <code>min.insync.replicas</code> 组合的安全语义，对应源码里 ISR 数量检查。</li>
+<li><strong>三大经典问题的源码级归因</strong>：丢消息（Producer <code>acks=0/1</code>、消费者自动提交后未处理完就 rebalance）；重复消息（at-least-once 语义 + 幂等生产者用 <strong>PID（Producer ID）+ 序号</strong> 在 broker 端去重，正好解释 <code>enable.idempotence</code> 的原理）；顺序性（只有单分区内有序，key 哈希分区 + 单分区并发数是硬约束）。</li>
+<li><strong>排障切入</strong>：消费堆积查 consumer group lag；rebalance 频繁查 <code>max.poll.interval.ms</code> 与处理时长；这些都能从 <code>ConsumerCoordinator</code> 的日志 WARN 直接定位。</li>
+</ul>
+<h3 id="4">4. 深入思考（没看过的部分：诚实策略 + 路线图）</h3>
+<p><strong>高频源码追问应对</strong>（每问准备 30 秒级回答）："Kafka 为什么快"（顺序写 + 页缓存 + 零拷贝 + 批量 + 分区并行）；"HW 的缺陷"（HW 滞后导致消息不可见，0.11 前有截断错乱问题，KIP-101 leader epoch 修复）；"ISR 与 AR（Assigned Replicas，全量分配副本）区别"（AR 静态、ISR 动态伸缩）；"controller 挂了会怎样"（旧版：ZK 临时节点过期 + 新 controller 从 AR 中按序选 leader；新版：KRaft 自动选主）；"ZK 模式与 KRaft 模式差异"。</p>
+<p><strong>没看过/只了解原理的部分怎么答</strong>——核心话术是"<strong>坦诚 + 原理兜底 + 给出读法</strong>"三连：</p>
+<blockquote>
+<p>"这部分源码我没有细读过，但它的设计原理我了解：大致思路是……如果工作需要我去读它，我会从 X 类（或某条请求链路的入口）切入，顺着调用栈往下追。"</p>
+</blockquote>
+<p><strong>源码阅读路线图</strong>（面试收尾可主动给出）：<br />
+1. 先跑起来 + 官方文档 + 画架构图，建立全局；<br />
+2. 跟 <strong>Producer 全链路</strong>：<code>KafkaProducer.send</code> → <code>doSend</code> → <code>Partitioner</code> → <code>RecordAccumulator.append</code> → <code>Sender</code> 发送——"跟一条消息走一遍"是最高效的读法；<br />
+3. 读 <strong>Broker 存储</strong>：<code>Log.append</code> → Segment 滚动 → 索引二分查找；<br />
+4. 读 <strong>复制与一致性</strong>：<code>ReplicaManager</code>、<code>Partition</code> 的 ISR/HW/LEO；<br />
+5. 读 <strong>Consumer</strong>：<code>Fetcher</code> + 位移提交 + rebalance；<br />
+6. 最后攻坚 <strong>Controller/选举与 KRaft</strong>、网络层 <code>Selector</code>、BufferPool 等并发细节。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（总分总）</strong>：<br />
+- <strong>总（表态）</strong>：先亮出"看过哪些、没看过哪些"的诚实边界，一句话定位自己的源码水平；<br />
+- <strong>分（主线叙事）</strong>：按"一条消息的旅行"组织——Producer 攒批发送 → Broker 存储与副本 → Consumer 拉取与提交，每站只深挖 1-2 个最有把握的细节（如粘性分区、HW 推进、幂等去重），用类名+方法名证明"真读过"；<br />
+- <strong>分（边界）</strong>：主动说出没看过的部分，并用"原理 + 读法"兜底；<br />
+- <strong>总（升华）</strong>：给出自己的源码阅读路线图，展示方法论。</p>
+<p><strong>重点得分点</strong>：<br />
+1. 开场诚实定位（30% 深度 + 70% 诚实，先说看过的，别等面试官拆穿）；<br />
+2. 关键类名、方法名、参数名精确（<code>DefaultPartitioner</code>、<code>RecordAccumulator</code>、<code>maybeIncrementLeaderHW</code>、<code>__consumer_offsets</code>）；<br />
+3. 每个机制都能讲出"为什么这么设计"（pull 而非 push 的动机、稀疏索引的动机）；<br />
+4. 能落到参数与线上实践（batch.size/linger.ms/acks/幂等）；<br />
+5. 收尾给出可执行的阅读路线图，体现"会读源码"而不只是"读过源码"。</p>
+<p><strong>常见误区</strong>：<br />
+- <strong>误区一（致命）</strong>：宣称"全部看过"——面试官必追细节，一个 <code>murmur2</code>、一个"索引是稀疏的"就能戳穿，直接挂掉；<br />
+- <strong>误区二</strong>：只讲概念不讲类名/方法名——听起来像背八股，无法证明读过源码；<br />
+- <strong>误区三</strong>：把自己不熟的部分强行展开——暴露速度比坦诚快十倍；<br />
+- <strong>误区四</strong>：把"了解原理"说成"看过源码"——本题的考察点就是"深度与诚实度"两个维度，概念和源码是两种不同的深度，混为一谈必被追问到哑口。</p>
+<p><strong>时间分配建议</strong>（总时长控制在 3-5 分钟）：<br />
+- 0 秒~30 秒：表态，划定看过/没看过的边界；<br />
+- 30 秒~2 分 30 秒：Producer 链路为主干（攒批、批量、发送），顺带 1 分钟 Broker 存储（顺序写、页缓存、LogSegment）；<br />
+- 2 分 30 秒~3 分 30 秒：ISR/HW/LEO 与选举（深水区亮点，最拉分）；<br />
+- 3 分 30 秒~4 分：Consumer 拉模型与位移提交简讲 + 主动交代没看过的部分；<br />
+- 最后 30 秒：收尾给路线图，把球递回给面试官（"您想细聊哪一段？"）。</p>
+<p><strong>过渡话术</strong>：<br />
+- 开场："说实话，Kafka 源码我没有逐行读完，但核心链路我完整跟过，我按一条消息从生产到消费的路径讲一下我看到的实现。"<br />
+- 深挖前："这里我讲一个我在源码里印象特别深的细节……"<br />
+- 诚实过渡："这块我只读过设计文档、没细看源码，但原理我了解，大致思路是……如果让我去读，我会从 XX 类切入顺着调用栈追。"<br />
+- 收尾："如果要我给这份源码阅读排个路线图，我会先跟 Producer 全链路，再读存储和 ISR，最后啃控制器和 KRaft。"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0157')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0157')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG 的收益通常体现在哪些 badcase 上？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0214</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Agentic RAG 的收益通常体现在哪些 badcase 上？</h1>
+    <div class="tag-row"></div>
+    <h1 id="agentic-rag-badcase">Agentic RAG 的收益通常体现在哪些 badcase 上？</h1>
+<h1 id="agentic-rag-badcase_1">Agentic RAG 的收益通常体现在哪些 badcase 上？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>记忆口诀/联想</strong>：「侦探办案六道坎」——把 <strong>Agentic RAG（智能体检索增强生成）</strong> 想象成一名侦探，而固定 RAG 只是一个只会"跑一趟图书馆"的实习生：</p>
+<ol>
+<li><strong>连环案</strong>——线索藏在多份卷宗里，必须逐案追查（多跳推理，拆子问题逐跳检索）</li>
+<li><strong>模糊供词</strong>——目击者说"就是那家伙"，得先追问澄清（查询不清晰/指代不明）</li>
+<li><strong>无痕现场</strong>——现场没有脚印，得换个角度再搜（首轮检索失败 → 改写重试）</li>
+<li><strong>对账查证</strong>——要对比两家账本，边查边算（聚合计算，检索 + 工具）</li>
+<li><strong>跨省追逃</strong>——线索跨了多个辖区，得协调各分局（跨域组合，路由多知识源）</li>
+<li><strong>冤案复核</strong>——抓错人了，重新验证证据链（验证与纠错，补检重生成）</li>
+</ol>
+<p><strong>记忆原理</strong>：侦探（Agent）vs 实习生的身份对比一听就成立——<strong>agent 的本义就是"代理"、替你做主的人</strong>，而侦探的三个职业特征恰好概括了 Agentic 的三大核心机制：<strong>有工具</strong>（tool use）、<strong>会规划</strong>（planning）、<strong>会复盘</strong>（self-reflection）。六道坎按"办案流程"串成一条叙事链，自带顺序记忆，比死背六个术语好记十倍——面试时你就顺着这条故事线讲，永远不会漏项。</p>
+<p><strong>关联知识</strong>：你已经知道 RAG 的三大经典病灶——<strong>检索不准（recall 不足）、上下文错位（context 混淆）、生成幻觉（hallucination）</strong>；这六道坎就是三大病灶在"复杂查询"上的具体投影。同时挂钩两篇标志性论文：<strong>Self-RAG</strong>（反思标记控制检索时机）和 <strong>CRAG / Corrective RAG</strong>（纠正式 RAG，检索评估器判定后决定修正还是换源重搜），再叠加 OpenAI 对 agent 的经典定义——"让模型自己决定流程的循环（loop）"。已有知识全部接上。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1">1. 核心概念（是什么）</h2>
+<p><strong>一句话定义</strong>：Agentic RAG 是以大语言模型（LLM）为调度中枢，把"检索-增强-生成"从固定单程流水线升级为"感知-决策-行动-反馈"的多轮循环（agentic loop）——由模型自己决定何时检索、检索什么、检索不到怎么办、要不要改写、要不要调用工具。</p>
+<p>对比基准是 <strong>Naive RAG（朴素/固定 RAG）</strong>：给定问题 → 向量检索（vector retrieval）取 top-k → 拼接上下文 → 一次生成 → 结束。整个流程<strong>无状态（stateless）、无规划（no planning）、无反馈（no feedback）</strong>，一锤子买卖。</p>
+<p><strong>为什么面试官爱问这个</strong>：题目问"收益体现在哪些 badcase"，潜台词是"你知不知道 Agentic RAG 不是万能药"。能答出<strong>长尾分布（long-tail distribution）</strong>和<strong>成本模型</strong>的人，才会落到那句关键结论——"收益只在特定场景"，而不是吹成银弹。</p>
+<h2 id="2">2. 底层原理（为什么）</h2>
+<p>固定 RAG 在复杂查询上系统性失败，根因不在组件，而在流程架构。把它拆成三个结构性缺陷：</p>
+<p><strong>缺陷一：无反馈信号，感知不到"没检索到"</strong>。固定 RAG 对检索结果是全盘接受的——top-k 为空、为噪音，它都没有感知能力，只能硬着头皮生成，于是<strong>幻觉（hallucination）</strong>在"无证据可依"时高发。任何组件级优化（加大 top-k、换更好的 embedding 模型）都救不了"该重试却不知重试"的问题。</p>
+<p><strong>缺陷二：无规划，只会一次检索</strong>。复杂问题的信息结构是<strong>图/链（graph/chain）</strong>——"获得 2021 年诺贝尔文学奖的作家，其处女作是什么"需要先查获奖者、再查处女作，中间隔着<strong>桥接实体（bridge entity）</strong>。而一次检索的 top-k 天然落在同一<strong>语义簇（semantic cluster）</strong>里，桥接实体缺失导致断链——这是信息结构问题，不是召回质量问题，top-k 从 5 调到 50 也没用。</p>
+<p><strong>缺陷三：无工具，算不了也合并不了</strong>。"对比 A 和 B 的差异""汇总 12 个月收入"这类问题需要结构化比较和数值计算，LLM 内嵌推理（latent reasoning）做长数值运算不可靠，纯文本拼接又只能做表面合并。</p>
+<p>Agentic 的解法是把流程本身变成可编程的：LLM 作为 <strong>planner（规划器）+ controller（控制器）</strong>，在循环里调用一组工具——<strong>检索器（retriever）、查询改写器（rewriter）、分解器（decomposer）、代码解释器/计算器（code interpreter / calculator）、验证器（verifier）</strong>，每一步的观察结果（observation）都回流到下一步决策。设计哲学一句话：<strong>"失败不该被隐藏，而应该被感知、被修正"</strong>——这正是 agentic loop 相对固定 pipeline 的本质差异。</p>
+<h2 id="3">3. 实践应用（怎么用）</h2>
+<p>六类典型 badcase，每类按"失败形态 → Agentic 解决机制 → 收益预期"展开：</p>
+<h3 id="a-multi-hop-reasoning">a) 多跳推理（multi-hop reasoning）</h3>
+<ul>
+<li><strong>失败形态</strong>：固定 RAG 一次检索只命中一跳，典型回答是"只答出第一跳"或"胡编第二跳"（桥接实体缺失）。</li>
+<li><strong>解决机制</strong>：<strong>子问题分解（sub-question decomposition）</strong>，典型实现 <strong>Self-Ask / Plan-and-Solve</strong>——LLM 把原问题拆成有序子问题，逐跳检索，上一跳的答案作为下一跳的查询词，最后合并推理。</li>
+<li><strong>收益预期</strong>：从"必然答错"到"可答对"。这是 Agentic 收益最大的 badcase 之一，在 <strong>HotpotQA / MultiHop-RAG</strong> 这类多跳数据集上提升显著。</li>
+</ul>
+<h3 id="b-ambiguous-coreference-query">b) 查询不清晰/指代不明（ambiguous / coreference query）</h3>
+<ul>
+<li><strong>失败形态</strong>：<strong>词面不匹配（lexical mismatch）</strong>——用户说"那家店的招牌菜"，系统不知道"那家店"指哪家；口语表达与文档用词完全不同，top-k 召回大量噪音。</li>
+<li><strong>解决机制</strong>：<strong>澄清追问（interactive clarification）</strong>或<strong>查询改写（query rewriting/expansion）</strong>——代表技术 <strong>HyDE（假设性文档嵌入，Hypothetical Document Embeddings）</strong>、<strong>Step-back prompting（后退一步提问）</strong>、同义词扩展。</li>
+<li><strong>收益预期</strong>：从"命中率低、答案泛泛"到"命中正确上下文"。注意部分改写用非 agentic 模块也能做，Agentic 的增量价值在于"先判断要不要改写"，避免所有查询都被改写拖慢。</li>
+</ul>
+<h3 id="c-retrieval-failure-with-existing-knowledge">c) 检索失败但知识可能存在（retrieval failure with existing knowledge）</h3>
+<ul>
+<li><strong>失败形态</strong>：首轮 top-k 为空或相关度极低（<strong>低置信，low-confidence</strong>），固定 RAG 没有失败感知，硬答 → 幻觉高发。</li>
+<li><strong>解决机制</strong>：<strong>置信度评估 + 改写重试（retry with rewritten query）</strong>。代表作 <strong>CRAG</strong>：先由轻量<strong>检索评估器（retrieval evaluator）</strong>给召回结果打分，判定 <strong>Correct / Incorrect / Ambiguous</strong> 三种状态——Incorrect 时丢弃结果、改写查询并换源重搜（如切到 web search），Ambiguous 时混合；<strong>Self-RAG</strong> 则用<strong>反思标记（reflection tokens）</strong>（Retrieve / IsRel / IsSup / IsUse）控制"要不要再检一次"。</li>
+<li><strong>收益预期</strong>：挽回一部分"本可召回但第一次没召回"的问题，显著压制幻觉——在<strong>"硬答"行为</strong>被压住的场景（客服、法务），这是质变。</li>
+</ul>
+<h3 id="d-aggregation-computation">d) 需要聚合计算（aggregation &amp; computation）</h3>
+<ul>
+<li><strong>失败形态</strong>："对比 A 和 B 的差异"通常只命中其中一份文档，或两份文本表面拼接，比较不完整、数值算错。</li>
+<li><strong>解决机制</strong>：<strong>检索 + 工具调用（tool use）</strong>结合——<strong>并行检索（parallel retrieval）</strong>分别取回 A、B 材料，再用代码解释器 / pandas / 计算器做聚合，LLM 最后结构化作答（逐项对比表）。</li>
+<li><strong>收益预期</strong>：从"偏科答案"到"完整、可核对的答案"，体现从"纯文本拼接"到"检索+计算"的范式升级。</li>
+</ul>
+<h3 id="e-cross-domain-composition">e) 跨域组合（cross-domain composition）</h3>
+<ul>
+<li><strong>失败形态</strong>：企业知识分散在多个索引/库（HR 系统、销售系统、Wiki），问题需跨源组合（"某团队 Q3 的离职率与销量"）；固定 RAG 单索引检索根本碰不到另一个域。</li>
+<li><strong>解决机制</strong>：<strong>路由（routing）</strong>——LLM 先判断涉及哪几个知识源，做<strong>多源检索（multi-source retrieval）</strong>再整合，常见<strong>语义路由器（semantic router）</strong>或让模型直接做<strong>工具选择（tool selection）</strong>。</li>
+<li><strong>收益预期</strong>：从"查不到"到"查得全"，且按需路由避免了全源全量检索的成本爆炸。</li>
+</ul>
+<h3 id="f-verification-correction">f) 需要验证与纠错（verification &amp; correction）</h3>
+<ul>
+<li><strong>失败形态</strong>：生成内容引用不存在的片段——<strong>幻觉引用（hallucinated citation）</strong>，把 A 文档的内容安到 B 头上，一追问就破。</li>
+<li><strong>解决机制</strong>：<strong>生成后验证（post-hoc verification）</strong>——对生成句子的引用片段与召回文档做<strong>引文核对（citation check）</strong>，不一致则触发<strong>补检（additional retrieval）</strong>后重生成；CRAG 的 knowledge refinement、Self-RAG 的 IsSup 支持度标记同属此线。</li>
+<li><strong>收益预期</strong>：可溯源答案比例上升、幻觉率下降——在医疗、金融等"能不能上线"就取决于此的场景，这是硬差异。</li>
+</ul>
+<p><strong>落地伪代码</strong>（体现循环骨架）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">agentic_rag</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">budget</span><span class="o">=</span><span class="mi">4000</span><span class="p">):</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;question&quot;</span><span class="p">:</span> <span class="n">question</span><span class="p">,</span> <span class="s2">&quot;contexts&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>                 <span class="c1"># 终止条件1: 最大轮次</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">llm_plan</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>                     <span class="c1"># 决策: 拆解/改写/检索/工具/生成?</span>
+        <span class="k">if</span> <span class="n">plan</span> <span class="o">==</span> <span class="s2">&quot;decompose&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">sq</span> <span class="ow">in</span> <span class="n">llm_decompose</span><span class="p">(</span><span class="n">question</span><span class="p">):</span>     <span class="c1"># 拆子问题逐跳检</span>
+                <span class="n">state</span><span class="p">[</span><span class="s2">&quot;contexts&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">sq</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">plan</span> <span class="o">==</span> <span class="s2">&quot;rewrite&quot;</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;question&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">llm_rewrite</span><span class="p">(</span><span class="n">question</span><span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;contexts&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;question&quot;</span><span class="p">])</span>   <span class="c1"># 改写重试</span>
+        <span class="k">elif</span> <span class="n">plan</span> <span class="o">==</span> <span class="s2">&quot;tool&quot;</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;contexts&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">compute</span><span class="p">(</span><span class="n">tool</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;contexts&quot;</span><span class="p">]))</span>  <span class="c1"># 聚合计算</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;answer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">llm_generate</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">llm_verify</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="s2">&quot;citations_ok&quot;</span><span class="p">]:</span>  <span class="c1"># 引文验证通过</span>
+                <span class="k">break</span>
+            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;contexts&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">retrieve</span><span class="p">(</span><span class="n">llm_extra_query</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>  <span class="c1"># 补检</span>
+    <span class="k">return</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;answer&quot;</span><span class="p">]</span>
+</code></pre></div>
+
+<p><strong>最佳实践</strong>：按成本从低到高分层落地——先加"改写+重试"，再加"分解+路由"，最后上"验证+工具"；每一步必须设<strong>最大迭代轮次（max_iterations）</strong>与 <strong>token 预算（budget）</strong>防死循环；在 agent loop 前加<strong>复杂度路由（query complexity classifier，如 Adaptive RAG）</strong>——简单问题直接走单步，避免全量 agentic 化。</p>
+<h2 id="4">4. 深入思考（注意事项）</h2>
+<p><strong>量化视角：收益为什么只在长尾</strong>。真实查询分布近似<strong>幂律（power law）</strong>：约 60%–80% 是简单单跳问题，固定 RAG 已能答好；15%–25% 是"改写一下就能救"的中等问题（其中一部分非 agentic 模块也能救）；真正需要 agentic 多轮循环的通常只有 <strong>5%–15% 的长尾复杂查询</strong>。于是 Agentic 的收益上限 = 这 5%–15% 的增量，还要扣除它对简单查询的<strong>负收益</strong>（更慢、更贵）。这就是"收益只在特定场景"的量化根源（呼应第 59 题的结论——本题从 badcase 分布给出了机制解释）。正确架构因此是<strong>前置路由 + 按需 agentic</strong>，而不是全面替换。</p>
+<p><strong>如何评估净收益（net benefit）</strong>：<br />
+1. <strong>端到端评测（end-to-end evaluation）</strong>：用业务自己的查询集建评测集，而非只信公开 benchmark；指标可用 <strong>RAGAS</strong> 框架（faithfulness 忠实度、answer relevance 答案相关性、context precision/recall 上下文精确率/召回率），但更该看<strong>业务指标</strong>（客服解决率、转人工率、答案采纳率）；同时维护 <strong>badcase 回归集（regression set）</strong>，每次改动跑 diff——"原来错的救回来多少、原来对的有没有被改坏"。<br />
+2. <strong>成本-效果联合分析（cost-effectiveness analysis）</strong>：算清增量——LLM 调用从 1 次涨到 3–10 次，端到端延迟从秒级涨到 3–5 秒级，token 成本约 <strong>5–20 倍</strong>；画"收益-成本曲线"，用<strong>增量收益（incremental benefit）</strong>决定循环轮数；只有"错误代价 &gt; 多轮成本"的场景（医疗、金融、高价值客服单）才值得全量 agentic。</p>
+<p><strong>哪些 badcase Agentic 也救不了</strong>：第一，<strong>知识库本身缺失（out-of-knowledge-base）</strong>——知识不在库里，任何改写、重试、路由、验证都无解，此时唯一正确的行为是识别出来并<strong>拒答（refusal）</strong>或<strong>升级人工（escalation）</strong>；这是 Agentic RAG 的硬边界，也是面试加分点——好的系统要训练模型"敢说不知道"。第二，<strong>时效性信息（freshness）</strong>且无实时源可接；第三，检索器/embedding 质量本身极差（召回上限太低，重试白搭）；第四，<strong>延迟敏感场景</strong>（实时对话）容不下多轮循环。</p>
+<p><strong>常见误区</strong>：① 把"多轮 agentic"和"长文档"混为一谈——长文档是窗口/切片问题，单步检索也能缓解；② 认为 Agentic 一定更准——简单问题上它是负收益；③ 只谈收益不谈成本——一听就是没做过真实系统；④ 拿公开 benchmark 替代业务评测。</p>
+<p><strong>追问预测</strong>："什么情况下 Agentic RAG 反而更差？"（简单查询的延迟/成本负收益、死循环、知识缺失时）"Self-RAG 和 CRAG 的区别？"（Self-RAG 用模型内反思标记控制检索时机，CRAG 用独立检索评估器判定 Correct/Incorrect/Ambiguous 后修正或换源）"agent loop 的终止条件怎么设计？"（max_steps、置信度阈值、引文可验证性、预算上限）。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（总分总四段）</strong>：<br />
+1. <strong>定位</strong>（30 秒）：一句话——"Agentic RAG 的收益不在日常查询，而在六类固定 RAG 结构性失败的长尾 badcase 上"。<br />
+2. <strong>展开</strong>（约 2.5 分钟）：六类 badcase 严格按"<strong>失败形态 → 解决机制 → 收益预期</strong>"三要素讲，用侦探口诀带节奏（连环案→模糊供词→无痕现场→对账查证→跨省追逃→冤案复核），每类 20–25 秒，只报术语名不及格，讲出失败机制才得分。<br />
+3. <strong>收束量化</strong>（1 分钟）：长尾分布 → 收益上限就是那 5%–15% → 正确姿势是前置路由 + 按需 agentic（呼应第 59 题"收益只在特定场景"）。<br />
+4. <strong>评估与边界</strong>（1 分钟）：端到端评测 + 成本-效果联合分析；知识库缺失救不了 → 学会拒答。</p>
+<p><strong>重点得分点</strong>：<br />
+- 说出"固定 RAG 失败是<strong>流程级</strong>（无规划、无反馈）而非<strong>组件级</strong>（top-k 不够）"——这是深度分水岭；<br />
+- 每类 badcase 能讲出失败机制（桥接实体缺失、词面不匹配、无失败感知、单路召回、无验证），而不是报菜名；<br />
+- 有量化意识：占比、成本 5–20 倍、负收益、防死循环的终止条件；<br />
+- 提到评估手段（RAGAS + 业务指标 + 回归集）和硬边界（知识缺失 → 拒答）。</p>
+<p><strong>常见误区</strong>：背六个名词开始背课文（不讲机制）；断言"Agentic RAG 全面优于固定 RAG"（立刻被追问成本）；六类顺序混乱漏项；不提终止条件/预算（暴露没写过 agent）；只举论文不落地业务。</p>
+<p><strong>时间分配建议</strong>（总计 4–5 分钟）：定义对比 30 秒 → 六类 badcase 2.5 分钟 → 量化与成本 1 分钟 → 评估与边界 1 分钟 → 留 30 秒收尾等追问。宁可砍掉第六类的一半细节，也不可砍掉"量化视角"——那是区分"懂的人"和"背书的人"的关键段落。</p>
+<p><strong>过渡话术</strong>：<br />
+- 定义 → badcase："固定 RAG 的失败其实很有规律，我把它归成六类，每一类都对应一个结构性缺陷——"<br />
+- 具体 → 量化："注意，这六类并不是高频场景——真实流量里它们只占一小段长尾，这恰恰解释了为什么 Agentic 的收益只在特定场景。"<br />
+- 量化 → 评估："所以该不该上 Agentic 不能拍脑袋，要算净收益——端到端增量减去成本增量。"<br />
+- 收尾："最后我想强调边界：知识库里没有的东西，Agentic 也救不了——好的系统应该学会拒答，而不是硬编。"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0214')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0214')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

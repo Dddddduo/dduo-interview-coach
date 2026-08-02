@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>什么时候该用 Prompt、RAG、微调、Workflow、Agent？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0201</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>什么时候该用 Prompt、RAG、微调、Workflow、Agent？</h1>
+    <div class="tag-row"></div>
+    <h1 id="promptragworkflowagent">什么时候该用 Prompt、RAG、微调、Workflow、Agent？</h1>
+<h1 id="promptragworkflowagent_1">什么时候该用 Prompt、RAG、微调、Workflow、Agent？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>一句话记忆</strong>：选工具就像"给员工派活"——先问这个模型（这个人）能不能直接干，干不了再分清楚：是<strong>缺知识</strong>、<strong>缺能力</strong>，还是<strong>不知道怎么干</strong>。</p>
+<p><strong>口诀："先问缺什么，再选补什么"</strong><br />
+- 缺<strong>知识</strong>（事实/实时/私有数据）→ <strong>RAG</strong>（外挂资料库）<br />
+- 缺<strong>能力/风格</strong>（格式、语气、领域术语）→ <strong>微调</strong>（给模型特训）<br />
+- 缺<strong>流程控制</strong> → 流程确定用 <strong>Workflow</strong>（写死的流水线），流程不确定用 <strong>Agent</strong>（自己拍板的智能体）<br />
+- 什么都不缺、任务很简单 → <strong>直接 Prompt</strong>（最便宜，永远先试）</p>
+<p><strong>爬楼记忆法</strong>：把五个词按复杂度排成一排，像爬楼梯：<strong>Prompt（动嘴）→ RAG（带书）→ 微调（特训）→ Workflow（流水线）→ Agent（把流水线交给员工自己管）</strong>。面试现场还能顺手把它画成一张决策树——树的三个节点就是三个问题：① 要不要事实/私有数据？② 模型能力够不够？③ 流程确定吗？</p>
+<h2 id="_2">📖 深度解答</h2>
+<h3 id="1">1. 核心概念（五者分别是什么）</h3>
+<p>这五个工具解决的<strong>不是同一个维度的问题</strong>，这是全题的钥匙：</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>本质</th>
+<th>解决什么问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prompt</strong>（提示工程，Prompt Engineering）</td>
+<td><strong>表达能力挖掘</strong>（capability elicitation）</td>
+<td>模型本来就会，用提示词把它"唤醒"</td>
+</tr>
+<tr>
+<td><strong>RAG</strong>（检索增强生成，Retrieval-Augmented Generation）</td>
+<td><strong>外部知识注入</strong>（external knowledge injection）</td>
+<td>模型不知道的，从外部知识库"查"来</td>
+</tr>
+<tr>
+<td><strong>微调</strong>（Fine-tuning / SFT，Supervised Fine-tuning）</td>
+<td><strong>模型能力/风格定制</strong>（capability &amp; style customization）</td>
+<td>改参数，把行为"烙"进模型</td>
+</tr>
+<tr>
+<td><strong>Workflow</strong>（工作流）</td>
+<td><strong>确定性编排</strong>（deterministic orchestration）</td>
+<td>流程写死，每步干什么人说了算</td>
+</tr>
+<tr>
+<td><strong>Agent</strong>（智能体）</td>
+<td><strong>自主决策循环</strong>（autonomous decision loop）</td>
+<td>模型自己决定下一步：观察→思考→行动</td>
+</tr>
+</tbody>
+</table>
+<p><strong>更本质的切分</strong>：Prompt 和微调解决"模型侧"问题（<strong>会不会</strong>），RAG 解决"知识侧"问题（<strong>知不知道</strong>），Workflow 和 Agent 解决"流程侧"问题（<strong>怎么干</strong>）。想清楚问题落在哪个维度，答案就出来了一半。</p>
+<h3 id="2">2. 底层原理（为什么各有边界）</h3>
+<ul>
+<li><strong>Prompt 的边界</strong>：受限于模型的先验知识（knowledge cutoff，知识截止时间）和上下文窗口（context window）。参数不变，"不会就是不会"——模型训练时没见过的事实，提示词写得再好也是编（即幻觉，hallucination）。所以它只适用于"能力在、知识在"的场景。</li>
+<li><strong>RAG 的原理</strong>：把知识从"参数内"搬到"参数外"（external memory）。生成前先检索（retrieval）再生成（generation），检索质量决定上限——切分策略（chunking）、召回率（recall）、重排（rerank）都会影响最终答案。代价是多了一条检索链路，有额外的时延和系统复杂度。</li>
+<li><strong>微调的原理</strong>：修改权重，把某类行为"特训"进模型。适合"模型没有这个能力或不愿意这么做"的场景（强制输出 JSON、特定产品语气、医学/法律等专业术语）。<strong>注意：微调不能可靠地注入新事实知识——那是 RAG 的职责</strong>。且有灾难性遗忘（catastrophic forgetting）风险、数据标注成本高、迭代周期长。</li>
+<li><strong>Workflow vs Agent 的本质区别（分水岭）</strong>：决策权在<strong>人</strong>还是在<strong>模型</strong>。Workflow 分支写死 → 可控、可测、token 消耗可预估；Agent 运行时自决 → 灵活、上限高，但可能绕圈（loop）、误调工具、token 失控，必须加护栏（guardrails：工具白名单、最大步数、超时熔断）。</li>
+</ul>
+<h3 id="3">3. 实践应用（决策树 + 权衡表 + 演进路径）</h3>
+<h4 id="31">3.1 选择决策树</h4>
+<div class="highlight"><pre><span></span><code>任务来了
+├─ 简单、一次性、模型本身就会（改写/摘要/翻译）→ 直接 Prompt
+├─ 需要事实/实时/私有数据（产品文档问答、查库存的客服）→ RAG
+├─ 能力不足：格式/风格/领域术语不达标（强制 JSON、医疗术语）→ 微调
+└─ 多步骤、多工具：
+    ├─ 流程确定、可枚举（查库存→扣款→发货固定流水线）→ Workflow
+    └─ 流程不确定、需动态决策（根据用户意图决定调哪个接口）→ Agent
+</code></pre></div>
+
+<p>工程上可落成一个"选型决策函数"（体现工程化思维，也方便给团队做兜底规范）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">choose_technique</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">is_simple</span> <span class="ow">and</span> <span class="n">task</span><span class="o">.</span><span class="n">model_already_can_do</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Prompt&quot;</span>                       <span class="c1"># 简单任务，最低成本起步</span>
+    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">needs_facts</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">needs_realtime</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">needs_private_data</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;RAG&quot;</span>                          <span class="c1"># 知识型问题 → 外挂知识</span>
+    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">requires_style</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">requires_format</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">requires_domain_terms</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Fine-tuning&quot;</span>                  <span class="c1"># 能力/风格型 → 行为定制</span>
+    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">workflow_is_deterministic</span><span class="p">:</span>        <span class="c1"># 分支可枚举 → 写死编排</span>
+        <span class="k">return</span> <span class="s2">&quot;Workflow&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Agent&quot;</span>                            <span class="c1"># 意图无法枚举 → 自主决策</span>
+</code></pre></div>
+
+<h4 id="32-">3.2 成本-复杂度-效果 三维度权衡表</h4>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>开发成本</th>
+<th>维护复杂度</th>
+<th>效果上限</th>
+<th>可控性</th>
+<th>典型代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt</td>
+<td>★ 最低</td>
+<td>★ 低（但玄学、靠调）</td>
+<td>★★ 受限于模型</td>
+<td>高</td>
+<td>几乎为零</td>
+</tr>
+<tr>
+<td>RAG</td>
+<td>★★ 中</td>
+<td>★★★（切分/召回/更新）</td>
+<td>★★★★ 知识新、可溯源</td>
+<td>中</td>
+<td>多一跳检索时延</td>
+</tr>
+<tr>
+<td>微调</td>
+<td>★★★★ 高</td>
+<td>★★★★（数据版本/回归）</td>
+<td>★★★★ 行为深度改变</td>
+<td>高</td>
+<td>标注+训练成本</td>
+</tr>
+<tr>
+<td>Workflow</td>
+<td>★★★ 中高</td>
+<td>★★★（多节点难排查）</td>
+<td>★★★ 受限于人写的流程</td>
+<td>★★★★★ 最高</td>
+<td>多轮调用累积</td>
+</tr>
+<tr>
+<td>Agent</td>
+<td>★★★ 中（框架成熟）</td>
+<td>★★★★★ 不可控、难测</td>
+<td>★★★★★ 上限最高</td>
+<td>★ 最低，需护栏</td>
+<td>token 可能失控</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键认知：没有一个方案是免费的</strong>。能说出"成本-复杂度-效果"三角权衡，比只会背定义高一档——这正是面试官想听的工程判断力。</p>
+<h4 id="33">3.3 组合使用与演进路径</h4>
+<p>工程上从来不是"二选一"，而是<strong>叠加演进</strong>：</p>
+<p><strong>先 Prompt → 加 RAG → 复杂了切 Workflow → 再 Agent → 沉淀后固化回 Workflow/微调</strong></p>
+<ol>
+<li><strong>先 Prompt</strong>：MVP 最小可行产品（minimum viable product）验证价值，成本最低，跑通业务闭环；</li>
+<li><strong>加 RAG</strong>：发现需要私有/最新知识，外挂知识库；</li>
+<li><strong>切 Workflow</strong>：步骤变多（检索→筛选→生成→校验），提示词塞不下，拆成多步确定性编排；</li>
+<li><strong>上 Agent</strong>：分支多到写不死（用户意图无法枚举），让模型自己决策路由；</li>
+<li><strong>固化沉淀</strong>：Agent 跑稳定后，把高频路径固化成 Workflow、把固定行为微调进模型——<strong>能确定下来的就不要让它自由发挥</strong>，因为自主决策意味着贵且不可控。</li>
+</ol>
+<p><strong>我的简历实践恰好是第 5 步的最佳注脚</strong>：快手 <strong>OrbitQA 星轨平台</strong>采用 <strong>Agent + Workflow 混合架构</strong>——<strong>PMO 编排（流程确定的部分用 Workflow 写死：任务拆分、分发、状态管理）与域 Agent 执行分离</strong>，各域 Agent 基于 Spring AI 实现 <strong>ReAct 循环</strong>自主调用工具执行流水线。上层编排确定性保证可控可测，下层执行自主性保证灵活。同时我搭建了 <strong>RAG 管线</strong>（段落 500 字符 + 50 重叠切分、PgVector 余弦检索、Query 压缩重写 + 多查询扩展，<strong>召回率提升 55%</strong>），把测试知识注入域 Agent，最终<strong>白盒测试提效 70%</strong>。这就是"Workflow 兜底确定性 + Agent 释放灵活性 + RAG 补知识"的组合打法。</p>
+<h4 id="34">3.4 各手段的典型失败场景与边界</h4>
+<ul>
+<li><strong>Prompt</strong>：幻觉——让模型答训练数据之外的事实；提示词无限堆砌，越长效果越差。边界：知识类问题不能只靠 Prompt。</li>
+<li><strong>RAG</strong>：检索答非所问（召回不足）；切分把语义切断；知识库更新滞后；最隐蔽的是"检索到相似但不正确的文档，模型忠实复述错误答案"。边界：解决不了"模型不会做"的问题。</li>
+<li><strong>微调</strong>：数据少而差，学到噪声；灾难性遗忘；为小问题训练大模型，投入产出比差。<strong>常见误区：以为微调能注入新知识——不能，那是 RAG 的活。</strong></li>
+<li><strong>Workflow</strong>：把不确定流程硬写成 if-else，分支爆炸；多步串联错误累积（error propagation——每步 95% 准确率，10 步后只剩约 60%）；维护地狱。</li>
+<li><strong>Agent</strong>：不可控（绕圈、误调工具、token 失控）；非确定性输出导致难测试；工具权限放大带来安全风险。<strong>边界：流程能确定就别用 Agent——确定性永远更便宜。</strong></li>
+</ul>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>为什么"先简单后复杂"是工程纪律？</strong></p>
+<ul>
+<li><strong>复杂度是负债</strong>（complexity is debt）：Agent 的维护复杂度是 Workflow 的几倍，Workflow 又高于 Prompt。上来就上 Agent，等于用最贵的方案解决可能一个 Prompt 就能解决的问题——这就是过度设计（over-engineering）。</li>
+<li><strong>效果优先于方案</strong>：先用 Prompt 验证"模型能不能做、用户买不买单"，再优化"怎么做"。花两周微调，最后发现产品方向错了，比花两天写 Prompt 验证损失大得多。</li>
+<li><strong>演进路径每一步都有明确触发条件</strong>：加 RAG 的触发条件是"需要知识"，切 Workflow 的触发条件是"步骤太多"，上 Agent 的触发条件是"意图枚举不完"。没有触发条件就不升级，这是纪律。</li>
+</ul>
+<p><strong>评估先行（evaluation-first）是这一切的前提</strong>：<br />
+没有评估，选型就是玄学。动手前先建评估集（eval set）：典型问题 + 期望答案（golden answers），量化指标——准确率、召回率、格式合规率、成本（token 数）、时延。让方案对比用数据说话。我在 OrbitQA 里正是这样做的：在统一评估集上对比切分参数与检索策略（500 字符 + 50 重叠、Query 重写 + 多查询扩展），把召回率量化提升了 55%——<strong>没有评估集，这些优化根本无法归因</strong>。这也是 Harness Engineering 方法论里"质量门控"（quality gate）的核心：每一步产出都要有可验证的标准。</p>
+<p><strong>收尾一句话</strong>：技术选型不是"哪个最好"，而是"哪个够"——用最简单的技术满足需求，把复杂度留给真正需要的地方；而"哪里需要复杂度"，要让评估数据来回答，而不是让架构师的想象来回答。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<h3 id="3-4">答题逻辑框架（现场 3-4 分钟结构）</h3>
+<ol>
+<li><strong>开场定位（10 秒）</strong>：先给本质概括——"这五个工具解决的问题维度不同：Prompt/微调解决'模型行不行'，RAG 解决'模型知不知道'，Workflow/Agent 解决'事情怎么干'。"一句话建立框架感。</li>
+<li><strong>决策树主体（1.5 分钟）</strong>：按"简单→Prompt；知识型→RAG；能力型→微调；流程确定→Workflow；流程不确定→Agent"逐条讲，每条配一个具体场景（如"客服要查实时库存→RAG"）。</li>
+<li><strong>权衡与演进（1 分钟）</strong>：抛出成本-复杂度-效果三维权衡 + 五步演进路径（先 Prompt→加 RAG→切 Workflow→再 Agent→固化回 Workflow/微调），展示工程成熟度。</li>
+<li><strong>个人案例收尾（30 秒）</strong>：OrbitQA 混合架构——PMO 编排（Workflow）+ 域 Agent 执行（ReAct）+ RAG 注入知识，证明不是纸上谈兵。</li>
+<li><strong>升华（10 秒）</strong>：评估先行，用数据说话。</li>
+</ol>
+<h3 id="_4">重点得分点</h3>
+<ul>
+<li>✅ 说出五者<strong>本质定义</strong>（能力挖掘/知识注入/行为定制/确定性编排/自主循环）——区别于背概念的候选人</li>
+<li>✅ 给出<strong>决策树 + 权衡表</strong>——结构化表达是明显的加分项</li>
+<li>✅ 讲<strong>组合与演进</strong>而非"二选一"——体现工程思维</li>
+<li>✅ 点破 <strong>RAG 与微调的分工误区</strong>（微调不注入知识、RAG 不改能力）——区分高手的关键点</li>
+<li>✅ 结合简历项目（OrbitQA 混合架构 + RAG 管线量化数据）——体现真实落地</li>
+<li>✅ 收尾落在"简单优先 + 评估先行"的方法论</li>
+</ul>
+<h3 id="_5">常见误区</h3>
+<ul>
+<li>❌ 把五个工具并列比较"哪个最好"——答偏了，它们解决问题的维度不同</li>
+<li>❌ 说"微调能让模型学会新知识"——错误，注入新知识是 RAG 的职责</li>
+<li>❌ 分不清 Workflow 与 Agent 的本质（决策权在人 vs 在模型）——这是分水岭</li>
+<li>❌ 只背定义没有例子和权衡——面试官要"什么时候用"，不是"是什么"</li>
+<li>❌ 简历有 Agent/RAG 项目却不引用——浪费最大的差异化筹码</li>
+<li>❌ 一上来就说"我们全用 Agent"——暴露没吃过不可控的亏</li>
+</ul>
+<h3 id="_6">时间分配建议</h3>
+<ul>
+<li>🧠 联想记忆法：自用/备查为主，面试现场最多 10 秒带过或直接进入深度解答</li>
+<li>📖 深度解答四层：核心概念 30s → 底层原理 40s → 实践应用（决策树+权衡表+演进+项目）1.5-2min → 深入思考 30s</li>
+<li>🗺️ 回答思路：不逐条念，作为底稿自检；口答总计 <strong>3-4 分钟</strong>，讲不透的部分留给面试官追问——追问往往就是加分题</li>
+</ul>
+<h3 id="_7">过渡话术</h3>
+<ul>
+<li>概念→选择："了解了各自的本质，我们来看怎么选——我习惯用一个决策树，先问三个问题：要不要事实？能力够不够？流程确定吗？"</li>
+<li>方案→权衡："但决策树只是第一步，真正工程上还要看成本-复杂度-效果的三角权衡。"</li>
+<li>理论→实践："这套选择逻辑我在快手 OrbitQA 里有完整实践——它正好是 Agent 和 Workflow 的混合架构。"</li>
+<li>收尾升华："最后我想强调，所有选择的前提是评估先行——没有评估集，'哪个方案好'只能是玄学。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0201')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0201')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

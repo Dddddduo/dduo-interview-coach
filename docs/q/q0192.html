@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>like 查询会不会导致索引失效？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0192</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🗄️ MySQL / 数据库</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>like 查询会不会导致索引失效？</h1>
+    <div class="tag-row"></div>
+    <h1 id="like">like 查询会不会导致索引失效？</h1>
+<h1 id="like_1">like 查询会不会导致索引失效？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>一句话口诀</strong>：「百分号贴<strong>左边</strong>，索引能跑；百分号在<strong>开头</strong>，索引报废。」</p>
+<p><strong>联想场景一（排队点名）</strong>：想象全校学生按姓名<strong>字典序</strong>排成一列长队——这就是 B+ 树叶子节点的有序链表。<br />
+- <code>LIKE '张%'</code>（前缀匹配）：像教官喊"姓张的往前一步"。队伍有序，教官两步定位到第一个"张"，然后顺着队伍把姓张的一路带走——这就是<strong>范围扫描</strong>，走索引。<br />
+- <code>LIKE '%张'</code>（后缀匹配）：像教官喊"名字<strong>最后一个字</strong>是张的出来"。姓什么不知道，教官只能从队头到队尾挨个看名字——这就是<strong>全表扫描</strong>。</p>
+<p><strong>联想场景二（新华字典）</strong>：查"语"字直接翻到拼音 y 打头的页码（前缀匹配，可用）；只记得字里有个"吾"、不知道声母，只能整本字典从头翻（后缀匹配，失效）。</p>
+<p><strong>记忆公式与三招救场</strong>：<br />
+- <code>%</code> 在<strong>前</strong> → 失效；<code>%</code> 在<strong>后</strong> → 可用；<code>%</code> 在<strong>中</strong> → 失效，上"歪招"。<br />
+- 三招打包记：<strong>反</strong>（REVERSE 反转，后缀变前缀）、<strong>倒</strong>（倒排索引/全文索引）、<strong>搬</strong>（搬到 ES）。</p>
+<p><strong>五字诀</strong>：前缀走范围，后缀扫全表，中缀上全文，特技是反转。</p>
+<h1 id="_2">📖 深度解答</h1>
+<h2 id="1">1. 核心概念</h2>
+<p>先纠正一个误区：<strong>索引失效（Index Invalidation）</strong>不是索引被"删除"或"损坏"，而是 <strong>MySQL 优化器（Optimizer）</strong> 在生成执行计划（Execution Plan）时，判断无法利用索引的有序性来缩小扫描范围，于是退而选择<strong>全表扫描（Full Table Scan）</strong>。所以"LIKE 会不会导致索引失效"的答案是：<strong>不能一概而论，关键看通配符 <code>%</code> 的位置</strong>。</p>
+<p>分三种情况（这是本题的灵魂）：</p>
+<table>
+<thead>
+<tr>
+<th>LIKE 写法</th>
+<th>匹配方向</th>
+<th>索引使用</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LIKE 'abc%'</code></td>
+<td>前缀匹配</td>
+<td>✅ 可用（range 范围扫描）</td>
+<td>B+ 树按字典序排列，可定位起点</td>
+</tr>
+<tr>
+<td><code>LIKE '%abc'</code></td>
+<td>后缀匹配</td>
+<td>❌ 失效（全表扫描 ALL）</td>
+<td>首字符不定，无起点可定位</td>
+</tr>
+<tr>
+<td><code>LIKE '%abc%'</code></td>
+<td>中间匹配</td>
+<td>❌ 失效（全表扫描 ALL）</td>
+<td>同后缀，需换全文索引/ES 等方案</td>
+</tr>
+</tbody>
+</table>
+<p>补充细节：<code>LIKE 'abc%def'</code>（前缀固定）同样可用；单字符通配符 <code>_</code> 出现在前缀之后不影响（如 <code>'ab_c%'</code> 前两位固定，可先按 <code>'ab'</code> 范围扫再过滤）；但 <code>LIKE '_bc%'</code> 第一个字符就不确定，无法用索引。另外要记住一条钥匙级的等价关系：<strong><code>LIKE 'abc%'</code> 本质上等价于范围条件 <code>col &gt;= 'abc' AND col &lt; 'abd'</code></strong>。</p>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>（1）B+ 树的"有序性"是索引可用的根基</strong></p>
+<p>InnoDB 的二级索引（Secondary Index）是一棵 <strong>B+ 树（B+ Tree）</strong>：叶子节点按索引列的值<strong>升序排列</strong>，且叶子节点之间通过<strong>双向链表（Doubly Linked List）</strong>串联，形成一条全局有序的链表。索引查找的本质就是"有序查找"：从根节点沿指针<strong>二分下钻</strong>（利用节点内部键值有序），O(log n) 定位到目标叶子，再在叶子内二分定位具体记录。</p>
+<p><strong>（2）前缀匹配的本质是范围查询（Range Query）</strong></p>
+<p><code>WHERE name LIKE 'abc%'</code> 被优化器解析为半开区间 <strong>[abc, abd)</strong> 的范围条件，执行分两步：<br />
+- <strong>定位起点</strong>：从 B+ 树根节点二分下钻，找到第一个以 'abc' 开头的记录；<br />
+- <strong>顺序扫描</strong>：顺着叶子节点的有序链表逐条读取，只要仍以 'abc' 开头就命中，遇到第一个不匹配的记录（下一个键值已是 'abd...'）立即停止。</p>
+<p>整个过程只扫描区间内的记录，天然剪枝掉大量无关数据，所以 EXPLAIN 中 <code>type=range</code>。为什么可行？因为字符按字典序连续排列，<strong>前缀相同的记录在物理上必然聚簇在一起</strong>——这是前缀匹配能走索引的根本原因。</p>
+<p><strong>（3）后缀匹配为什么等于全表扫描</strong></p>
+<p><code>WHERE name LIKE '%abc'</code>：末尾是 'abc'，但<strong>第一个字符任意</strong>。以 'abc' 结尾的字符串在有序链表上是<strong>离散散布</strong>的（比如 "xabc"、"zzabc"、"A123abc" 彼此毫无相邻关系），B+ 树无法给出明确起点，二分定位无从谈起，更不可能利用有序性剪枝。优化器只能从第一条到最后一条<strong>逐行读取判断</strong>，即全表扫描（<code>type=ALL</code>）。<code>%abc%</code> 中间匹配同理，连"前缀区间"都不存在，是后缀问题的加强版。</p>
+<p><strong>（4）一个容易被误解的点</strong>：全表扫描不一定"慢"。优化器是<strong>基于代价的（Cost-Based Optimizer）</strong>，当表很小或索引选择度极低时，走全表反而更快。所以更准确的说法是：不是优化器"故意不用"，而是后缀匹配<strong>客观上没有任何手段能利用索引的有序性</strong>。</p>
+<h2 id="3">3. 实践应用（正确写法与优化手段）</h2>
+<p><strong>（1）前缀索引（Prefix Index）——减小索引体积，服务右模糊</strong></p>
+<p>列很长但只需前缀匹配时，可以只对前 n 个字符建索引：</p>
+<div class="highlight"><pre><span></span><code><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">(</span><span class="mi">10</span><span class="p">));</span>
+</code></pre></div>
+
+<p>n 取多长？用<strong>选择性（Selectivity）</strong>量化——不同值个数占总行数的比例，越接近 1 越好（经验值 ≥ 0.9）：</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="k">LEFT</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">))</span><span class="w">  </span><span class="o">/</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">sel_5</span><span class="p">,</span>
+<span class="w">       </span><span class="k">COUNT</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="k">LEFT</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">sel_10</span>
+<span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="p">;</span>
+</code></pre></div>
+
+<p>注意代价：前缀索引存的是截断值，<strong>不能</strong>用于 ORDER BY / GROUP BY，也<strong>无法</strong>构成覆盖索引（见下）。</p>
+<p><strong>（2）覆盖索引（Covering Index）——避免回表</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name_status</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">);</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;abc%&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<p>此时 EXPLAIN 的 Extra 为 <code>Using index</code>——查询所需列全在索引中，无需<strong>回表（Table Lookup）</strong>，扫描成本进一步降低。</p>
+<p><strong>（3）生成列 + REVERSE 反转——把后缀匹配"变"成前缀匹配（5.7 起）</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span>
+<span class="w">  </span><span class="k">ADD</span><span class="w"> </span><span class="k">COLUMN</span><span class="w"> </span><span class="n">name_rev</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+<span class="w">  </span><span class="k">GENERATED</span><span class="w"> </span><span class="n">ALWAYS</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="n">REVERSE</span><span class="p">(</span><span class="n">name</span><span class="p">))</span><span class="w"> </span><span class="n">STORED</span><span class="p">,</span>
+<span class="w">  </span><span class="k">ADD</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name_rev</span><span class="w"> </span><span class="p">(</span><span class="n">name_rev</span><span class="p">);</span>
+
+<span class="c1">-- 原需求&quot;查后缀为 abc 的记录&quot;：LIKE &#39;%abc&#39; → 反转后变前缀 &#39;cba%&#39;</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name_rev</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="n">CONCAT</span><span class="p">(</span><span class="n">REVERSE</span><span class="p">(</span><span class="s1">&#39;abc&#39;</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39;%&#39;</span><span class="p">);</span>
+</code></pre></div>
+
+<p>写入时生成列（Generated Column）自动计算并同步进索引，查询走 idx_name_rev 的范围扫描，空间换时间，适合"后缀模糊"高频的存量表。MySQL 8.0 更进一步支持<strong>函数索引（Functional Index）</strong>：<code>CREATE INDEX idx ON user ((REVERSE(name)))</code>。</p>
+<p><strong>（4）全文索引（Fulltext Index）与倒排索引（Inverted Index）——应对 <code>%xx%</code> 中缀</strong></p>
+<p><code>%xx%</code> 在 LIKE 语义下无解，但业务上的"包含关键词"通常是分词检索。MySQL 5.7.6+ 内置 <strong>ngram 分词器</strong>，中文可用：</p>
+<div class="highlight"><pre><span></span><code><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">article</span><span class="w"> </span><span class="k">ADD</span><span class="w"> </span><span class="n">FULLTEXT</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">ft_title</span><span class="w"> </span><span class="p">(</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="n">PARSER</span><span class="w"> </span><span class="n">ngram</span><span class="p">;</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">article</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="p">(</span><span class="n">title</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="p">(</span><span class="s1">&#39;+MySQL +索引&#39;</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">MODE</span><span class="p">);</span>
+</code></pre></div>
+
+<p>全文索引底层是<strong>倒排索引（Inverted Index）</strong>——"单词 → 文档位置列表"的映射，与 B+ 树"有序键值 → 范围"的思路完全两回事，天然支持"包含/不包含"匹配。</p>
+<p><strong>（5）实际场景取舍：搜索功能该用 LIKE 还是 ES？</strong></p>
+<ul>
+<li>简单右模糊、低频、数据量可控 → <code>LIKE 'xx%'</code> + 普通/前缀/覆盖索引即可，成本最低；</li>
+<li>中缀模糊、分词、相关性排序、高并发 → <strong>Elasticsearch</strong>（基于 Lucene 倒排索引）才是正解，MySQL 全文索引只适合中量级兜底；</li>
+<li>架构上的职责分离：DB 管精确匹配与范围过滤，ES 管模糊分词，不要互相绑架。</li>
+</ul>
+<p><strong>（6）EXPLAIN 实证：type 的差别</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;张%&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">+----+-------------+-------+-------+---------------+----------+---------+------+------+--------------------------+</span>
+<span class="c">| id | select_type | table | type  | possible_keys | key      | key_len | ref  | rows | Extra                    |</span>
+<span class="nb">+----+-------------+-------+-------+---------------+----------+---------+------+------+--------------------------+</span>
+<span class="c">|  1 | SIMPLE      | user  | range | idx_name      | idx_name | 153     | NULL | 120  | Using index condition    |</span>
+<span class="nb">+----+-------------+-------+-------+---------------+----------+---------+------+------+--------------------------+</span>
+</code></pre></div>
+
+<p><code>type=range</code>：走索引的范围扫描；<code>Using index condition</code> 是 <strong>ICP（Index Condition Pushdown，索引条件下推，5.6+）</strong>，把 LIKE 过滤下推到存储引擎层，减少回表——这是加分细节。</p>
+<div class="highlight"><pre><span></span><code><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%张&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">+----+-------------+-------+------+---------------+------+---------+------+--------+----------+</span>
+<span class="c">| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows   | Extra    |</span>
+<span class="nb">+----+-------------+-------+------+---------------+------+---------+------+--------+----------+</span>
+<span class="c">|  1 | SIMPLE      | user  | ALL  | NULL          | NULL | NULL    | NULL | 100000 | Using where |</span>
+<span class="nb">+----+-------------+-------+------+---------------+------+---------+------+--------+----------+</span>
+</code></pre></div>
+
+<p><code>type=ALL</code>：全表扫描，possible_keys 为 NULL——优化器判定这些索引都无力参与。<code>%张%</code> 同理。</p>
+<div class="highlight"><pre><span></span><code><span class="k">EXPLAIN</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;张%&#39;</span><span class="p">;</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="nb">+----+-------------+-------+-------+---------------+-----------+---------+------+------+-------------+</span>
+<span class="c">| id | select_type | table | type  | possible_keys | key       | key_len | ref  | rows | Extra       |</span>
+<span class="nb">+----+-------------+-------+-------+---------------+-----------+---------+------+------+-------------+</span>
+<span class="c">|  1 | SIMPLE      | user  | range | idx_name      | idx_name  | 153     | NULL | 120  | Using index |</span>
+<span class="nb">+----+-------------+-------+-------+---------------+-----------+---------+------+------+-------------+</span>
+</code></pre></div>
+
+<p><code>Using index</code>：覆盖索引，免回表。补充一个小知识：<code>%xx%</code> 的查询若恰好只涉及索引列，优化器可能退而求其次走<strong>全索引扫描（type=index）</strong>——遍历整个索引而非整张表，比 ALL 略好，但本质仍是全扫。</p>
+<p><strong>简历可引用的实战案例</strong>：线上某搜索接口慢查询 3s+，EXPLAIN 定位到 <code>type=ALL</code>、rows 达 500 万 → 应用层把 <code>LIKE '%关键词'</code> 改写为生成列反转索引、高频字段加前缀索引 → 单次查询降到 200ms 以内。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>（1）字符集与排序规则（Collation）对 LIKE 的影响</strong></p>
+<p>LIKE 的匹配语义由列的排序规则（Collation）决定：<br />
+- <code>utf8mb4_general_ci</code> / <code>utf8mb4_0900_ai_ci</code>（MySQL 8.0 默认）<strong>不区分大小写</strong>：<code>LIKE 'a%'</code> 会命中 'A' 开头的行，扫描区间天然更大；<br />
+- <code>utf8mb4_bin</code> / <code>binary</code> 区分大小写：<code>LIKE 'a%'</code> 只命中小写 'a'，区间更精确；<br />
+- 尾部空格（PAD SPACE / NO PAD）与重音（<code>ai</code> 不区分重音）的处理也随 collation 变化，<code>'abc'</code> 与 <code>'abc '</code> 是否相等要看排序规则。</p>
+<p>这带来一个工程启示：<strong>同一 SQL 在测试库（如 latin1）和生产库（utf8mb4）可能生成不同执行计划</strong>，环境对齐是慢查询排查的第一课。</p>
+<p><strong>（2）函数包裹必然失效，但有新解法</strong></p>
+<p><code>WHERE LEFT(name,3) = 'abc'</code> 对列套了函数，无法利用普通索引（索引里存的是原值）。MySQL 8.0 函数索引可以解决：<code>CREATE INDEX idx ON user ((LEFT(name, 3)))</code>。</p>
+<p><strong>（3）慢查询排查的标准链路</strong></p>
+<p>开启慢查询日志（slow_query_log）→ 捞取超阈值 SQL → <code>EXPLAIN</code> 看 <strong>type / key / rows / Extra</strong> 四要素 → 按"右模糊优先、中缀后缀上反转/全文/ES"对症下药。这也是简历里"EXPLAIN 优化 3s+ → 200ms"的完整叙事。</p>
+<p><strong>（4）面试延伸弹药</strong></p>
+<ul>
+<li>倒排索引 vs B+ 树索引：一个是"单词→位置"的映射，一个是"有序键值→范围"的排序结构；</li>
+<li>ngram 分词与中文全文检索；</li>
+<li>ES 的 <code>match</code>/<code>term</code> 与数据库 LIKE 的定位差异，为什么搜索引擎不放在数据库里。</li>
+</ul>
+<h1 id="_3">🗺️ 回答思路</h1>
+<p><strong>答题逻辑框架（总分总，3~5 分钟）</strong></p>
+<ol>
+<li><strong>定调（30 秒）</strong>：一句话——"不能一概而论，关键看通配符位置"，立刻给出三行对照表；</li>
+<li><strong>分情况（核心，占一半时间）</strong>：'xx%' 可用 → 直接抛原理"它等价于范围查询"；'%xx' 与 '%xx%' 失效 → 讲清楚为什么（无起点、无法利用有序性）；</li>
+<li><strong>上证据</strong>：给两条 EXPLAIN 输出，对比 type 从 range 到 ALL，顺带解释 ICP 和 Using index；</li>
+<li><strong>给方案</strong>：前缀索引（含选择性公式）→ 覆盖索引 → 生成列 + REVERSE → 全文索引/ES → 场景取舍；</li>
+<li><strong>升华收尾</strong>：collation 影响 + 慢查询排查案例，暗示"我实际解决过线上问题"。</li>
+</ol>
+<p><strong>重点得分点（按分值排序）</strong></p>
+<ul>
+<li>主动说出 <strong><code>LIKE 'abc%'</code> ≡ <code>col &gt;= 'abc' AND col &lt; 'abd'</code></strong>（最亮眼的洞察，直接体现深度）；</li>
+<li>用 <strong>B+ 树叶子有序链表</strong>解释"二分定位起点 + 链表顺序扫描"，并点明后缀匹配在链表上离散分布、无起点可言；</li>
+<li>说出<strong>前缀索引选择性公式</strong> <code>COUNT(DISTINCT LEFT(col,n)) / COUNT(*)</code>，且知道前缀索引的代价（不能用于覆盖索引/ORDER BY）；</li>
+<li>提到 <strong>5.7 生成列 + REVERSE</strong>、<strong>8.0 函数索引</strong>、<strong>ngram 全文索引</strong>这些"超纲但真实"的方案；</li>
+<li>结尾给<strong>真实数据</strong>（3s+ → 200ms），增加可信度。</li>
+</ul>
+<p><strong>常见误区</strong></p>
+<ul>
+<li>误区 1：答"LIKE 会让索引失效"——一棒子打死，右模糊明明可用，这是送分题变送命题；</li>
+<li>误区 2：只背结论不解释原理——面试官追问"为什么前缀行、后缀不行"就露馅；</li>
+<li>误区 3：以为"加了索引就不会失效"——<code>%abc%</code> 加再多普通索引也没用；</li>
+<li>误区 4：以为覆盖索引能救 <code>%abc%</code>——它只能免回表，救不了全扫；</li>
+<li>误区 5：一上来就甩 ES——要讲清 LIKE 与 ES 的适用边界和成本差异，体现工程判断力；</li>
+<li>误区 6：忽略 collation——"测试环境能用、生产走全表"这类环境差异是资深工程师才提的点。</li>
+</ul>
+<p><strong>时间分配建议（按 4 分钟回答计）</strong></p>
+<ul>
+<li>0~30s：定调 + 三种情况对照表；</li>
+<li>30s~2min：原理深挖（B+ 树、范围查询本质、后缀为何全扫）——重头戏，宁可多花时间；</li>
+<li>2~3min：优化手段 + EXPLAIN 证据（挑 1~2 条输出讲透即可，不必全念）；</li>
+<li>3~4min：场景取舍 + 简历案例 + 预留追问防御。</li>
+</ul>
+<p><strong>过渡话术</strong></p>
+<ul>
+<li>开场："这个问题不能一概而论，得分三种情况看。先给结论：'xx%' 可用，'%xx' 和 '%xx%' 不可用，原因在 B+ 树的有序性上……"</li>
+<li>转原理："为什么前缀能走索引、后缀不行？这要从 B+ 树叶子节点的有序链表说起……"</li>
+<li>转方案："解决思路就一条主线：要么把模糊查询改造成范围查询，要么换一种索引结构……"</li>
+<li>收尾："关于这一点我线上有个真实案例，EXPLAIN 把一条 3 秒的慢查询优化到了 200 毫秒，如果面试官感兴趣我可以展开讲讲。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: MySQL / 数据库<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0192')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0192')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

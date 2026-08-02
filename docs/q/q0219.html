@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java垃圾回收机制（回收的源头是哪里） — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0219</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Java垃圾回收机制（回收的源头是哪里）</h1>
+    <div class="tag-row"></div>
+    <h1 id="java">Java垃圾回收机制（回收的源头是哪里）</h1>
+<h1 id="java_1">Java垃圾回收机制（回收的源头是哪里）</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p>题眼是"回收的源头"。联想一个比喻：<strong>城市环卫系统</strong>。垃圾回收就像环卫工人扫街，但工人不是满城乱扫，而是从固定的"源头锚点"出发，沿着引用链（Reference Chain）这条"路"去标记和回收。<strong>GC Roots 就是这些源头锚点</strong>。</p>
+<p><strong>口诀："栈、静、JNI、线程、锁"</strong>——五个源头：<br />
+- <strong>栈</strong>：虚拟机栈（VM Stack）栈帧局部变量表引用的对象（正在执行的代码手里摸得到的）<br />
+- <strong>静</strong>：静态变量、常量池（Constant Pool）常量引用的对象<br />
+- <strong>JNI</strong>：本地方法栈（Native Method Stack）中的 JNI 引用（全局引用算根，局部引用不算）<br />
+- <strong>线程</strong>：活跃线程（Active Thread）对象本身<br />
+- <strong>锁</strong>：synchronized 加锁的 monitor 对象</p>
+<p><strong>三色标记（Tri-color Marking）</strong>联想红绿灯：白色 = 还没查到（可能要回收）；灰色 = 正在查（自己活着、引用还没查完，"灰头土脸干到一半"）；黑色 = 查完了（确定存活，"盖棺定论"）。</p>
+<p><strong>分代收集</strong>联想职场：新生代（Young Generation）像"新人期"——来得多、死得快，用复制（Copying）搬家式清理；老年代（Old Generation）像"老员工"——活得久，用标记-清除/整理（Mark-Sweep/Mark-Compact）。三个区记作"<strong>Eden 生，Survivor 存，放不下就晋升（Promotion）</strong>"。</p>
+<p><strong>收集器演进</strong>：Serial（单线程）→ Parallel（多线程）→ CMS（并发标记清除）→ G1（分区+可预测停顿）→ ZGC（染色指针+读屏障），一条"停顿越来越短"的进化线。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p>先破题："回收的源头"问的不是垃圾从哪产生，而是<strong>判定垃圾从哪个起点开始</strong>。Java 的<strong>垃圾回收（Garbage Collection, GC）</strong>由 JVM 自动完成，而判定对象是否为垃圾的权威算法是<strong>可达性分析（Reachability Analysis）</strong>：从一组固定的起点——<strong>GC Roots（根对象）</strong>——出发，沿引用链向下遍历，<strong>能到达的对象存活，不可到达的就是垃圾</strong>。因此，<strong>GC Roots 就是"回收的源头"</strong>，一切可达性分析都从它开始，一个对象只要能到达任意 GC Root，就绝不被回收。</p>
+<p>GC Roots 的具体集合（答全答准是得分关键）：</p>
+<ol>
+<li><strong>虚拟机栈</strong>中栈帧（Stack Frame）的<strong>局部变量表（Local Variable Table）</strong>引用的对象——当前正在执行的方法里被局部变量直接引用的对象；</li>
+<li><strong>静态变量 / 常量</strong>引用的对象：方法区（JDK8 起为元空间 Metaspace）中 static 属性指向的对象、常量池中的字符串常量等；</li>
+<li><strong>JNI 引用</strong>：本地方法栈中的 JNI（Java Native Interface）引用，细分为<strong>全局引用（Global Reference）</strong>——跨 native 调用存活，算 GC Root；<strong>局部引用（Local Reference）</strong>——仅当前调用存活，不算根；</li>
+<li><strong>活跃线程（Active Thread）</strong>本身（线程对象）；</li>
+<li><strong>synchronized 加锁的 monitor 对象</strong>；</li>
+<li>JVM 内部引用：基本类型对应的 Class 对象、常驻异常对象（如 NullPointerException）、系统类加载器等。</li>
+</ol>
+<p>关键认知：<strong>GC Roots 必须在栈上、静态区或 JNI 中，堆（Heap）内对象不能作为其他堆内对象的根</strong>——否则循环引用永远切不断，分析就退化成引用计数法了。这是高频误区。</p>
+<p>配套概念：<br />
+- <strong>引用类型（Reference Type）</strong>：强引用（Strong Reference，OOM 也不回收）、软引用（SoftReference，内存不足才回收）、弱引用（WeakReference，下次 GC 必回收）、虚引用（PhantomReference，仅跟踪回收事件）。<br />
+- <strong>finalize 机制与"自救"</strong>：对象被判不可达后，若覆写了 finalize() 且未被调用过，会进入 F-Queue 等待 Finalizer 线程执行；此时若在 finalize() 中把自己重新挂到某个 GC Root 上，就能<strong>自救（Self-rescue）</strong>逃过本轮回。但 finalize() 只执行一次、执行时机不保证，Java 9 已标记废弃（Deprecated），生产代码绝不能依赖它。</p>
+<h2 id="2">2. 底层原理</h2>
+<h3 id="vs">判定算法：引用计数 vs 可达性分析</h3>
+<p><strong>引用计数法（Reference Counting）</strong>：每个对象维护计数器，被引用 +1、失效 -1，归零即回收。致命缺陷是<strong>无法解决循环引用（Circular Reference）</strong>——A、B 互指但外部无引用时，计数永不归零，形成泄漏。HotSpot 等主流 JVM 均放弃引用计数，采用可达性分析。</p>
+<h3 id="tri-color-marking">三色标记法（Tri-color Marking）</h3>
+<p>并发标记（Concurrent Marking）时标记线程与用户线程（Mutator）并行，将对象分为三色：<br />
+- <strong>白色（White）</strong>：未访问；标记结束仍为白色者即垃圾；<br />
+- <strong>灰色（Gray）</strong>：自身已访问（存活），但引用字段尚未全部扫描；<br />
+- <strong>黑色（Black）</strong>：自身与全部引用都已扫描完毕，确定存活。</p>
+<p>并发导致的致命问题是<strong>漏标（Lost Object）</strong>：黑色对象新增指向白色对象的引用，同时原引用链被切断，导致存活对象被误判回收。解决办法二选一：<br />
+- <strong>增量更新（Incremental Update）</strong>：CMS 采用，用写屏障（Write Barrier）记录黑色对象新增的引用，<strong>重新标记（Remark）</strong>阶段再扫一遍；<br />
+- <strong>原始快照（SATB, Snapshot At The Beginning）</strong>：G1 采用，记录被删除的引用，保证标记起始快照中存活的对象不漏标，代价是产生更多<strong>浮动垃圾（Floating Garbage）</strong>（本轮误活、下轮再收，无害）。</p>
+<h3 id="generational-collection">分代收集理论（Generational Collection）</h3>
+<p>基于<strong>弱分代假说（Weak Generational Hypothesis）</strong>：绝大多数对象朝生夕灭。堆划分为：<br />
+- <strong>新生代</strong>：Eden + 两个 Survivor（S0/S1，from/to 轮流）。采用<strong>复制算法（Copying）</strong>：Eden 满触发 <strong>Minor GC</strong>，存活对象一次性复制到空的 Survivor，复制即清理+整理，无碎片、代价正比于存活对象数（新生代存活率约 10%，非常便宜）。对象每熬过一次 Minor GC 年龄 +1，达到阈值（默认 15，可 -XX:MaxTenuringThreshold 调整）或触发<strong>动态年龄判断</strong>（Survivor 中同年龄对象总和超 Survivor 一半时，该年龄及以上直接晋升）即<strong>晋升（Promotion）</strong>到老年代；大对象走 -XX:PretenureSizeThreshold 直接进老年代，避免频繁复制。<br />
+- <strong>老年代</strong>：存活率高，复制不划算，采用<strong>标记-清除（Mark-Sweep）</strong>（无移动但产生内存碎片）或<strong>标记-整理（Mark-Compact）</strong>（移动存活对象消除碎片，有移动开销）。<strong>注意误区：老年代绝不使用复制算法。</strong></p>
+<h2 id="3">3. 实践应用</h2>
+<h3 id="collector">主要收集器（Collector）</h3>
+<table>
+<thead>
+<tr>
+<th>收集器</th>
+<th>要点</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Serial</td>
+<td>单线程，全程 STW（Stop The World，停顿所有用户线程）</td>
+<td>客户端、小堆</td>
+</tr>
+<tr>
+<td>Parallel Scavenge</td>
+<td>多线程，吞吐量优先（-XX:+UseParallelGC）</td>
+<td>服务端批量计算</td>
+</tr>
+<tr>
+<td>CMS（Concurrent Mark Sweep）</td>
+<td>四阶段：初始标记（STW）→ 并发标记 → 重新标记（STW）→ 并发清除；低延迟，但产生内存碎片、<strong>并发失败（Concurrent Mode Failure）</strong>时退化为 Serial Old 全停顿</td>
+<td>JDK8 时代低延迟主流</td>
+</tr>
+<tr>
+<td>G1（Garbage First）</td>
+<td>Region 分区 + <strong>RSet（Remembered Set）记忆集</strong>记录跨区引用 + Mixed GC（新生代+部分老年代）+ 可预测停顿模型（-XX:MaxGCPauseMillis）；JDK9 起默认</td>
+<td>大堆、通用默认</td>
+</tr>
+<tr>
+<td>ZGC（JDK15+）</td>
+<td><strong>染色指针（Colored Pointer）+ 读屏障（Load Barrier）</strong>，停顿毫秒级且与堆大小无关</td>
+<td>超大堆、超低延迟</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3">触发时机</h3>
+<ul>
+<li><strong>Minor GC</strong>：Eden 满即触发，只回收新生代（含部分跨代引用处理）；</li>
+<li><strong>Major GC / Full GC</strong>：老年代空间不足、元空间不足、大对象分配失败等触发，Full GC 全堆回收、停顿大；</li>
+<li><strong>空间分配担保（Space Allocation Guarantee）</strong>：Minor GC 前检查老年代最大连续空间是否足够容纳新生代全部对象，不足则不再冒险（JDK6 Update24 后 -XX:HandlePromotionFailure 开关移除），直接升级为 Full GC；</li>
+<li>常用参数：-Xms/-Xmx（堆初始/最大）、-Xmn（新生代大小）、-XX:SurvivorRatio（Eden 与 Survivor 比例）、-XX:MaxTenuringThreshold、-XX:MaxGCPauseMillis、-XX:ParallelGCThreads。</li>
+</ul>
+<h3 id="_4">工程实践</h3>
+<ul>
+<li><strong>GC 日志</strong>：JDK9+ 用 -Xlog:gc<em>（旧版 -XX:+PrintGCDetails）输出各代回收前后容量、停顿时长、晋升信息；可用 </em><em>jstat -gcutil</em>* 实时观察各代使用率曲线；</li>
+<li><strong>停顿优化</strong>：区分吞吐量优先与延迟优先；调优新生代比例、晋升阈值；警惕大对象——G1 中超过 Region 一半的大对象进 Humongous Region，容易引发 Full GC；</li>
+<li><strong>内存泄漏（Memory Leak）排查</strong>：典型场景——静态集合只增不减、未关闭的流/连接、ThreadLocal 未 remove、监听器未反注册。排查流程：jps 定位进程 → <strong>jmap</strong> 导出堆转储（Heap Dump）→ <strong>MAT（Memory Analyzer Tool）</strong> 看 Dominator Tree 与 Leak Suspects；结合 jstat 确认老年代持续上涨（泄漏）而非偶发 Full GC（参数问题）；</li>
+<li><strong>System.gc() 误区</strong>：它只是向 JVM"建议"Full GC，不保证立即执行（可被 -XX:+DisableExplicitGC 直接忽略），显式调用徒增停顿，生产应禁用。</li>
+</ul>
+<h2 id="4">4. 深入思考</h2>
+<ol>
+<li><strong>为什么 GC Roots 限定在"栈+静态区+JNI"，而不含堆内引用？</strong> 因为根的语义是"程序当前可直接访问的活入口"：栈帧局部变量代表正在执行代码能摸到的对象，静态变量代表全局入口，JNI 代表 native 代码持有。把堆内对象当根，循环引用永切不断，可达性分析就退化成引用计数法了。</li>
+<li><strong>并发标记的本质取舍</strong>：增量更新与 SATB 之争，本质是"容忍漏标风险"与"容忍浮动垃圾"的权衡；写屏障 + 记忆集把标记工作打散进用户线程的执行间隙，以工程复杂度换停顿时间。</li>
+<li><strong>为什么新生代复制、老年代清除/整理？</strong> 复制开销与存活对象数成正比：新生代存活率低所以便宜；老年代存活率高，复制不划算，只能在碎片（CMS 选清除）与移动成本（G1 选局部整理）间权衡。</li>
+<li><strong>GC 演进主线是停顿（Pause）</strong>：从全停顿到并发，从不可预测到可预测，本质是"与用户线程并发程度"的不断提高；ZGC 的染色指针把对象状态信息编码进 64 位指针本身，从而在读屏障处即时判断可达性，把停顿压到亚毫秒。</li>
+<li><strong>与内存模型呼应</strong>：栈帧线程私有，故局部变量天然线程安全；对象在堆中共享，故 GC 需要"根"这个全局视角来判定谁还活着。</li>
+</ol>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h2 id="5">答题逻辑框架（建议 5 分钟口述）</h2>
+<ol>
+<li><strong>破题（10 秒）</strong>："回收的源头 = GC Roots，即可达性分析的起点"，一句话先给答案；</li>
+<li><strong>枚举根（30 秒）</strong>：背口诀"栈、静、JNI、线程、锁"，顺带点出 JNI 全局/局部引用的区别，展示颗粒度；</li>
+<li><strong>判定算法（1 分半）</strong>：引用计数缺陷（循环引用）vs 可达性分析 → 三色标记（白灰黑）+ 漏标问题 + 增量更新/SATB 两种解法；</li>
+<li><strong>分代与收集器（2 分钟）</strong>：新生代复制算法（Eden/S0/S1、晋升、动态年龄判断）→ 老年代标记清除/整理 → 收集器演进一张表（重点 CMS 四阶段与缺点、G1 的 Region/RSet/Mixed GC）；</li>
+<li><strong>触发与实践（1 分钟）</strong>：Minor/Major/Full GC、空间分配担保、GC 日志 + MAT 排查泄漏，最后主动纠正两个误区收尾。</li>
+</ol>
+<h2 id="_6">重点得分点</h2>
+<ol>
+<li><strong>GC Roots 清单答全</strong>（含 JNI 全局/局部区分、synchronized 锁对象）——这是题眼，漏一条都扣分；</li>
+<li>引用计数循环引用缺陷 + 可达性分析对比；</li>
+<li>三色标记白灰黑语义 + 漏标危害 + 增量更新/SATB 区别；</li>
+<li>三种基础算法（复制/清除/整理）与两代区域的匹配关系；</li>
+<li>CMS 四阶段及"并发失败"、G1 的 RSet/可预测停顿模型；</li>
+<li><strong>主动纠错</strong>（老年代不用复制算法、GC Roots 不含堆内对象、System.gc() 不保证执行）——主动澄清误区是明显加分项。</li>
+</ol>
+<h2 id="_7">常见误区</h2>
+<ul>
+<li>把"源头"答成"对象从哪里分配"（Eden 区）——方向答错，零分题；</li>
+<li>说 GC Roots 包含堆内被引用的对象——根必须在栈/静态区/JNI；</li>
+<li>说老年代用复制算法；</li>
+<li>说 System.gc() 立即执行 Full GC；</li>
+<li>混淆 Major GC 与 Full GC（Major 一般指老年代回收，Full 是全堆）；</li>
+<li>依赖 finalize() 做资源释放——不保证时机，Java 9 已废弃。</li>
+</ul>
+<h2 id="_8">时间分配建议</h2>
+<ul>
+<li>记忆法/破题：≤30 秒；</li>
+<li>核心概念（GC Roots + 判定算法）：2 分钟，占 40%——本题命门；</li>
+<li>分代与收集器：2 分钟；</li>
+<li>触发时机 + 实践 + 深入思考：1 分钟；</li>
+<li>总时长控制在 5 分钟内，预留被追问空间（面试官大概率追问：漏标怎么解决？CMS 和 G1 怎么选？停顿怎么优化？）。</li>
+</ul>
+<h2 id="_9">过渡话术</h2>
+<ul>
+<li>判定算法 → 分代："搞清楚了'源头'，我们再看'路径'——对象从出生到回收要经过哪些区域，这就引出了分代收集。"</li>
+<li>分代 → 收集器："有了区域划分，就要有不同打扫策略的收集器，我们按停顿时间这个维度看它们的演进。"</li>
+<li>收集器 → 实践："原理讲完落到工程上，我们一般通过 GC 日志和堆转储来验证和调优。"</li>
+<li>收尾："总结一下：GC 的源头是 GC Roots，判定靠可达性分析，回收靠分代算法，演进目标是更短的停顿。整条链路最容易错的认知是'根在堆里'——记住'根不在堆里'，就抓住了本质。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0219')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0219')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

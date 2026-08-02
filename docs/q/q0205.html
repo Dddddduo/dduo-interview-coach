@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token 和上下文窗口是什么？它们在工程上意味着什么？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0205</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Token 和上下文窗口是什么？它们在工程上意味着什么？</h1>
+    <div class="tag-row"></div>
+    <h1 id="token">Token 和上下文窗口是什么？它们在工程上意味着什么？</h1>
+<h1 id="token_1">Token 和上下文窗口是什么？它们在工程上意味着什么？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>1. 一句话锚点："Token 是模型的硬币，窗口是模型的桌子"</strong><br />
+模型不认识"字"，只认 token（硬币）；一次请求能摆上桌的东西（输入）加上端上来的菜（输出）总量封顶——这就是上下文窗口（context window）。钱按硬币数收，菜盘子也占桌子，所以<strong>输出也占窗口</strong>。</p>
+<p><strong>2. 数字口诀："1≈0.75，中英差两倍"</strong><br />
+英文 1 个 token ≈ 0.75 个单词、约 4 个字符；中文 1 个字 ≈ 1~2 个 token（常见 0.6~2 个）。所以"1 万字的文档"绝不是 1 万 token，估预算时先乘 1.5~2。</p>
+<p><strong>3. 情景故事记忆："火车票事件"</strong><br />
+面试官问"为什么窗口 128k 还答不好？"——不是窗口小，是<strong>信息塞错了位置</strong>：中间的信息最容易丢（Lost in the Middle，"迷失在中间"）。记住这个画面：长文档的黄金信息放中间 = 主动丢分。</p>
+<p><strong>4. 工程四维口诀："钱、慢、质、约"</strong><br />
+- <strong>钱</strong>：token 即计费单位，输入/输出/缓存三个单价不同；<br />
+- <strong>慢</strong>：prefill 阶段延迟随输入 token 线性增长；<br />
+- <strong>质</strong>：窗口内信息量决定答案质量，量大≠质好；<br />
+- <strong>约</strong>：Prompt 长度、RAG 检索预算、多轮历史管理全部被窗口"约"束。</p>
+<p><strong>5. 公式记忆：<code>input + max_tokens ≤ 窗口</code></strong><br />
+这是全题唯一必须背下来的公式——输出预算不是独立的，是窗口减去输入后的"余额"。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>Token（词元/令牌）</strong>：模型的最小文本处理单元，是分词器（tokenizer）的产物。主流大模型使用 BPE（Byte Pair Encoding，字节对编码）等子词（subword）分词算法：先把文本按字节拆碎，再反复合并出现频率最高的相邻字节对，逐步"长"出一张有固定大小的词表（vocabulary）。分词时，文本被切成词表里能查到的碎片序列，每个碎片就是一个 token，再映射为向量喂给模型。</p>
+<p>它<strong>不是"字"，也不是"单词"</strong>：<br />
+- 同一个英文单词可能被切成多个 token，如 <code>unhappiness</code> → <code>un</code> + <code>happiness</code>（两段，甚至可能是 <code>un</code>+<code>happi</code>+<code>ness</code> 三段，取决于词表）；<br />
+- 一个"词"可能被拆开，如 <code>deep</code>+<code>learning</code> 是两词四 token；<br />
+- 中文没有空格天然分界，一字常占 1~2 个 token，常用字可能整字成 token，生僻字会被切成偏旁甚至 UTF-8 字节级碎片。</p>
+<p>所以千万不要用"字数"或"单词数"估算 token 数——这是工程上最常见的翻车点。</p>
+<p><strong>上下文窗口（context window）</strong>：一次请求（request）中模型能"看到"的最大 token 数，<strong>包含输入和输出两部分</strong>。可以理解为模型单次推理的"工作内存"：窗口内的一切它都看得到，窗口外的一切它完全不知道（不是"选择性忽略"，而是物理上送不进去，超出部分 API 会直接报错或截断）。术语上，各家 API 用 max context / context length / max input tokens 表示窗口上限，用 max_tokens 表示输出上限。</p>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>为什么必须有 token 这个概念？</strong> 神经网络的输入是定长维度的向量序列，词表大小是有限的（常见 32k~128k 个条目）。直接拿"字符"或"单词"做最小单位都行不通：字符级序列太长、语义太碎；单词级词表永远覆盖不了新词、拼写变体、多语言。子词切分是折中方案：常用词整词成 token，生僻词退化为片段，任何文本都能被有限词表完整表示，这正是 BPE 的产物。</p>
+<p><strong>为什么窗口有物理上限？</strong> Transformer 的自注意力（self-attention）计算复杂度随序列长度呈 O(n²) 增长，每多一个 token，KV 缓存（KV cache）都要多占显存、注意力矩阵都要多算一轮。窗口不是"想开多大开多大"，是算力、显存、延迟三者的工程折中——这也是为什么窗口从 GPT-3 的 2k 涨到今天的 1M，经历了近十年的硬件和算法迭代。</p>
+<p><strong>为什么延迟随输入线性增长？</strong> 推理分两段：prefill（预填充）阶段——所有输入 token 并行计算一次，生成 KV 缓存，延迟近似随输入 token 数<strong>线性增长</strong>，直接决定首 token 延迟（TTFT，time to first token）；decode（解码）阶段——逐 token 自回归生成。所以"把 10 万字文档全塞进 prompt"和"只塞检索出的 2 千字"相比，前者每轮都要付出十倍级别的 prefill 等待。</p>
+<h2 id="3">3. 实践应用（工程意义）</h2>
+<p><strong>a) 成本——token 即计费单位。</strong> 所有大模型 API 都按 token 计费，且<strong>输入（input tokens）、输出（output tokens）、缓存读取（cache read）是三个不同单价</strong>：输出通常约为输入的 3~5 倍（以 Claude 为例：Opus 5 为 $5/1M 输入、$25/1M 输出；Sonnet 5 为 $3/$15；Haiku 4.5 为 $1/$5），命中提示缓存（prompt caching）的读取价约为原价的 1/10，缓存写入价约为 1.25~2 倍。对 RAG（Retrieval-Augmented Generation，检索增强生成）应用，输入成本常占 90% 以上——每次请求重复携带的系统提示和检索片段，是多轮对话下成本失控的主因。</p>
+<p><strong>b) 延迟——prefill 随输入线性增长。</strong> 上文已述，输入越长，TTFT 越慢；把检索预算、上下文长度作为 SLA（服务等级协议）指标来监控是工程必修课。对流式（streaming）体验尤其致命：用户看到第一个字的时间几乎完全由输入长度决定。</p>
+<p><strong>c) 质量——窗口大 ≠ 效果好。</strong> 著名的 "Lost in the Middle" 研究（Liu et al., 2023）发现：模型对长上下文中<strong>头部和尾部</strong>信息的利用明显好于<strong>中间部分</strong>，且上下文越长、中间信息的命中率下降越明显。加上模型对无关噪声的敏感，<strong>塞进去的 token 不是免费的信息，而是付费的干扰</strong>。RAG 的哲学正在于此：检索的目标不是"填满窗口"，而是"把最相关的几百个 token 放到正确的位置"。</p>
+<p><strong>d) 设计约束——整个系统都被窗口框定。</strong><br />
+- <strong>Prompt 设计</strong>：system prompt 要精炼，长指令模板要审计 token 数；<br />
+- <strong>RAG 检索预算</strong>：top-k 和片段长度必须换算成 token 预算（如"每请求上下文 ≤ 6k token"，而不是"取 10 条"）；<br />
+- <strong>多轮历史管理</strong>：会话历史必须滑动窗口截断或压缩摘要，否则聊到第 30 轮必然超窗；<br />
+- <strong>输出预算</strong>：见下一点。</p>
+<p><strong>输出 token 也占窗口（max_tokens 与窗口的关系）。</strong> 这是最容易被忽略的一点：<code>max_tokens</code>（本次输出上限）必须满足 <code>输入 tokens + max_tokens ≤ 窗口大小</code>，否则请求直接失败（400）。换句话说，<strong>窗口是输入与输出共享的总池子</strong>：输入塞到 95%，输出就只剩 5% 的空间。工程上要在"喂够上下文"和"留足输出余量"之间分配；API 响应里 <code>stop_reason</code>（停止原因）也分两种：<code>max_tokens</code>（输出预算到顶）与 <code>model_context_window_exceeded</code>（窗口整体耗尽），排查时必须区分。</p>
+<p><strong>不同模型的窗口与价格差异。</strong> 窗口档位本身就是模型选型参数：早期 GPT-4 为 8k/32k，主流模型已到 128k（GPT-4o 级），再到 200k（Claude 3.5 系），旗舰已至 1M（Claude 4 系列、Gemini 系）。价格随能力和窗口档位分化明显——同系模型中，大窗口版本单价更高；不同供应商间，旗舰模型可达 $10+/1M 输入。工程选型逻辑是：<strong>按任务的真实上下文需求选窗口，而不是越大越好</strong>——单文档问答选 200k 够用即可，多文档综述、超长代码仓库才值得为 1M 付溢价。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>工程实践四件套（这是本题的加分纵深）：</strong></p>
+<ol>
+<li><strong>Token 记账</strong>：所有请求记录 <code>usage</code> 字段（input/output/cache 三类 token），按模型单价换算成成本指标，建立每用户/每功能/每对话的成本看板；估算用官方 <code>count_tokens</code> 接口按目标模型实测——<strong>不要用 tiktoken 等第三方估算器估算 Claude 类模型</strong>，会系统性少算 15~20%。</li>
+<li><strong>预算分配</strong>：给 system prompt、检索上下文、历史、输出各设 token 上限（如 2k/6k/8k/4k），超限走降级路径而不是硬塞。</li>
+<li><strong>超长截断策略</strong>（可联动"超长文本处理"类题目）：<strong>永远不要中间截断</strong>——恰好丢掉 Lost in the Middle 最易失守的信息；优先保头保尾（指令和最新结论），或做摘要压缩（先 summarize 再送）、滑动窗口、基于相关度/关键词的语义裁剪；RAG 场景则回到检索端解决问题：更好的分块与重排序（rerank）比更大的窗口更省钱、更有效。</li>
+<li><strong>缓存意识</strong>：多轮对话把不变的部分（system prompt、固定文档）放在前缀并打缓存标记，把变化的部分（当前问题）放在末尾——这是窗口时代最重要的降本杠杆之一。</li>
+</ol>
+<p><strong>本质洞察</strong>：窗口解决的是"模型能看多少"，而答案质量取决于"模型看的是什么"。窗口从 2k 涨到 1M，验证了"更大的注意力"的价值，但也用 Lost in the Middle 证明了注意力有衰减曲线——<strong>信息工程（检索、裁剪、排序、压缩）永远比容量军备竞赛更划算</strong>。面试时点出这一层，能把这题从"概念题"抬升到"架构题"。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<h2 id="35">答题逻辑框架（总分总，约 3~5 分钟）</h2>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>内容</th>
+<th>建议时长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开场定义</td>
+<td>一句话给 token 和窗口下定义 + "不是字不是词"的澄清 + 公式 <code>input + max_tokens ≤ 窗口</code></td>
+<td>30~45 秒</td>
+</tr>
+<tr>
+<td>底层原理</td>
+<td>为什么有 token（有限词表/子词折中）+ 为什么窗口有上限（O(n²) 注意力 + KV 缓存）+ prefill 线性延迟</td>
+<td>45~60 秒</td>
+</tr>
+<tr>
+<td>工程四维</td>
+<td>钱（三种单价）→ 慢（TTFT）→ 质（Lost in the Middle）→ 约（prompt/RAG/历史/输出预算）</td>
+<td>2 分钟，核心</td>
+</tr>
+<tr>
+<td>实践纵深</td>
+<td>token 记账、预算分配、截断策略、缓存；顺带提模型窗口档位与价格差异</td>
+<td>60~90 秒</td>
+</tr>
+<tr>
+<td>误区收尾</td>
+<td>两个大误区 + 一句升华（信息工程 &gt; 容量军备）</td>
+<td>30 秒</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">重点得分点（按性价比排序）</h2>
+<ol>
+<li><strong>"token ≠ 字 ≠ 词，是分词器产物"</strong>——第一句话就建立专业感；</li>
+<li><strong>"窗口 = 输入 + 输出，输出也占窗口"</strong> + 给出公式——很多人漏这层，这是区分度最高的点；</li>
+<li><strong>"窗口大 ≠ 效果好"</strong> + 说出 Lost in the Middle 这个词——比单纯背概念高一个档次；</li>
+<li><strong>四维工程影响成体系（成本/延迟/质量/约束）</strong>——展示工程思维而非背书；</li>
+<li><strong>能报出具体数字</strong>：如"输出单价约为输入 3~5 倍""缓存读取约 1/10 价""英文 1 token≈0.75 词、中文一字≈1~2 token"——数字是可信度的来源；</li>
+<li><strong>截断策略具体化</strong>："绝不中间截断、保头保尾、摘要压缩、RAG 端解决"。</li>
+</ol>
+<h2 id="_5">常见误区（自己答题时避免，也可以主动"排雷"给面试官看）</h2>
+<ul>
+<li>❌ 以为"窗口 = 字数"：用字数估算 token，中文偏差 1.5~2 倍；</li>
+<li>❌ 以为大窗口可以无脑塞：又贵又慢又掉质量（Lost in the Middle），还会挤占输出空间导致 max_tokens 截断；</li>
+<li>❌ 只算输入成本、漏算输出和缓存成本；</li>
+<li>❌ 混淆 <code>max_tokens</code>（输出上限）和窗口（总池子），或混淆 <code>max_tokens</code> 与 <code>model_context_window_exceeded</code> 两种停止原因；</li>
+<li>❌ 用第三方估算器（如 tiktoken）估所有模型的 token 数——tokenizer 是模型相关的。</li>
+</ul>
+<h2 id="_6">时间分配建议</h2>
+<p>若面试官只给了 3 分钟：砍掉"实践纵深"里的记账细节，保留四维框架 + Lost in the Middle + 公式。若给了 5 分钟以上：展开一个真实的 RAG 成本案例（如"检索 10 条 × 800 字 vs 3 条 × 300 字"的成本与质量对比），这比罗列知识点更有说服力。</p>
+<h2 id="_7">过渡话术（可背诵）</h2>
+<ul>
+<li><strong>定义 → 原理</strong>："刚才说的是它是什么，我接着解释它为什么被设计成这样——这要从 Transformer 的注意力机制说起……"</li>
+<li><strong>原理 → 工程</strong>："理解了原理，我们看它给工程带来什么约束。我认为有四个维度，成本、延迟、质量和设计约束……"</li>
+<li><strong>四维 → 实践</strong>："落实到具体项目里，我会做三件事：token 记账、预算分配和超长截断策略……"</li>
+<li><strong>收尾升华</strong>："最后我想强调的是，窗口解决的是模型能看多少，而答案质量取决于它看的是什么——所以信息工程（检索、裁剪、排序）比单纯扩大窗口更值得投入。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0205')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0205')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

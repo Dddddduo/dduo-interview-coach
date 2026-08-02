@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Calling 是怎么设计的？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0182</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>Function Calling 是怎么设计的？</h1>
+    <div class="tag-row"></div>
+    <h1 id="function-calling">Function Calling 是怎么设计的？</h1>
+<h1 id="function-calling_1">Function Calling 是怎么设计的？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>核心口诀："一张菜单，两句话点单，三笔回账，四道保险"。</strong></p>
+<p>把 Function Calling 想象成给 AI 配一个"点外卖"的完整流程，一次记住全链路：</p>
+<ol>
+<li><strong>菜单（Schema 函数声明）</strong>：把每个工具写成菜单项——菜名（<code>name</code> 函数名）、口味介绍（<code>description</code> 描述）、可选配料（<code>parameters</code> 参数 JSON Schema）。模型看菜单，不进后厨。</li>
+<li><strong>点单（tool_call 工具调用指令）</strong>：模型只输出一张"小票"——点了哪道菜（<code>function.name</code>）、要什么配料（<code>function.arguments</code> 参数 JSON）。<strong>关键记忆锚点：模型只点菜，永远不做饭</strong>——执行权 100% 在应用侧。</li>
+<li><strong>回账（结果回填）</strong>：应用执行完把"菜品"（工具结果）端回给模型（<code>role: "tool"</code> 消息，带 <code>tool_call_id</code> 对账），模型尝一口再决定继续点还是上齐了（输出最终答案）。</li>
+<li><strong>四道保险（工程护栏）</strong>：后厨白名单（工具注册与权限）、验单（参数校验）、限时（超时与最大步数）、防投毒（工具输出当数据不当指令）。</li>
+</ol>
+<p>第二个联想钩子，区分两个高频混淆概念：<strong>ReAct（Reasoning+Acting，思考-行动-观察循环）是"工作流程"，Function Calling 是流程里"行动"这一步的"标准协议"</strong>。FC ⊂ ReAct 的一个动作，但 FC 也可独立用于单步任务。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p><strong>Function Calling（函数调用，业界也常称 Tool Calling 工具调用）</strong>是 LLM（Large Language Model，大语言模型）应用层的一项能力与协议：把可执行的外部工具以结构化声明暴露给模型，模型<strong>不真正执行任何函数</strong>，而是输出一段结构化 JSON——<code>tool_call</code>（工具调用指令），包含函数名（<code>function.name</code>）与参数（<code>function.arguments</code>，本身是 JSON 字符串）。真正执行发生在应用程序侧，执行结果再以消息形式回填给模型，驱动多轮推理直至给出最终答案。</p>
+<p>三个必须讲透的本质点：</p>
+<ul>
+<li><strong>决策与执行分离</strong>：模型是"决策者"，只负责把自然语言翻译成结构化的动作指令；应用是"执行者"。这是 Function Calling 区别于"让模型直接输出文本再正则解析"的根本优势——输出受约束（可校验、可并行、可回滚），而不是靠字符串匹配猜。</li>
+<li><strong>它解决什么问题</strong>：模型知识有截止日期、没有实时数据、无法操作外部系统（数据库、HTTP API、内部服务）。Function Calling 就是把 LLM 的"大脑"接到应用的"手脚"上。</li>
+<li><strong>与 ReAct 的关系</strong>：ReAct（思考-行动-观察循环，源于 Yao et al., 2022）是 Agent 的经典范式——Thought（思考）→ Action（行动）→ Observation（观察）循环往复。Function Calling 是其中 <strong>Action 一步的工程化实现</strong>：用受控的 JSON 协议替代自由文本动作，让"行动"可解析、可校验、可并行。因此，一个基于 Function Calling 的多轮 Agent 循环，本质上就是一个 ReAct 循环。</li>
+</ul>
+<h2 id="2">2. 底层原理</h2>
+<p><strong>能力来源（训练层）</strong>：模型的函数调用能力来自专门的指令微调（instruction tuning）——训练数据里包含大量"给定 tools 声明 → 输出对应 JSON 调用"的样本，模型从而学会理解 Schema 并产出合规的 JSON。Schema 在推理时本质上是注入 System Message 的一段结构化描述文本。</p>
+<p><strong>生成机制（推理层）</strong>：底层仍是 next-token prediction（下一个词预测），模型自回归地"写"出 JSON。工程上为提高可靠性，部分推理引擎会对函数名做受约束解码（constrained decoding）或对参数部分做 JSON grammar 约束，保证产物可解析；即使如此，解析失败仍需兜底（重试或回传错误让模型修正）。</p>
+<p><strong>消息协议（协议层）</strong>——这是面试必画的时序图：</p>
+<div class="highlight"><pre><span></span><code><span class="n">user</span><span class="p">(</span><span class="err">问题</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">model</span><span class="w"> </span><span class="err">返回</span><span class="w"> </span><span class="n">assistant</span><span class="w"> </span><span class="err">消息</span><span class="p">(</span><span class="err">含</span><span class="w"> </span><span class="n">tool_calls</span><span class="p">)</span>
+<span class="err">→</span><span class="w"> </span><span class="err">应用解析并执行函数</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">追加</span><span class="w"> </span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;tool&quot;</span><span class="w"> </span><span class="err">消息</span><span class="p">(</span><span class="err">带</span><span class="w"> </span><span class="n">tool_call_id</span><span class="err">，</span><span class="n">OpenAI</span><span class="w"> </span><span class="err">风格</span><span class="p">)</span>
+<span class="err">→</span><span class="w"> </span><span class="err">模型看到结果继续生成</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">直至输出无</span><span class="w"> </span><span class="n">tool_calls</span><span class="w"> </span><span class="err">的最终答案</span>
+</code></pre></div>
+
+<p>Claude 协议略有差异（<code>tool_use</code> / <code>tool_result</code> content block），但循环语义一致：<strong>每执行一次工具，对话里就多两条消息（assistant 的调用 + tool 的回执），上下文随之增长</strong>——这也是 Agent 长任务容易爆上下文的根源。</p>
+<h2 id="3">3. 实践应用</h2>
+<p>设计一个完整的 Function Calling 系统，六个要点缺一不可：</p>
+<p><strong>(a) 函数声明 Schema</strong>：<code>name</code>（唯一函数名）+ <code>description</code>（语义描述——<strong>决定模型选工具准确率的关键因素</strong>）+ <code>parameters</code>（JSON Schema：类型、必填、<code>additionalProperties: false</code> 拒绝多余参数）。描述写得像"说明书"而非"字段列表"，效果天差地别。</p>
+<p><strong>(b) 工具注册与权限</strong>：工具采用注册制而非模型自由调用——应用侧维护注册表 + 白名单；敏感工具（删数据、发消息、支付）必须加权限校验或人工二次确认。</p>
+<p><strong>(c) 参数校验与反序列化</strong>：<code>arguments</code> 是 JSON 字符串，需反序列化 + 按 Schema 校验（类型、必填、枚举、长度），非法参数直接拒绝并回传结构化错误，而不是带着脏数据执行。</p>
+<p><strong>(d) 执行结果回填</strong>：工具输出转字符串，以 <code>tool</code> 角色消息带 <code>tool_call_id</code> 回填，继续多轮。回填内容要裁剪（工具输出可能很大，做摘要/截断防爆上下文）。</p>
+<p><strong>(e) 异常处理</strong>：工具抛异常时不裸传堆栈，回传结构化 error；支持重试（注意幂等性）或降级（切换备用工具、或坦诚告知用户失败）。</p>
+<p>代码示例一（OpenAI 风格，完整循环）：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
+
+<span class="c1"># ===== 1. 函数声明 Schema：给模型的&quot;菜单&quot;（模型只读不执行）=====</span>
+<span class="n">tools</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;function&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;query_weather&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;查询指定城市的实时天气。&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;city&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;城市名，如 北京&quot;</span><span class="p">}</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;additionalProperties&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+<span class="p">]</span>
+
+<span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;北京今天天气怎么样？&quot;</span><span class="p">}]</span>
+
+<span class="c1"># ===== 2. ReAct 式循环：思考 -&gt; 行动 -&gt; 观察 -&gt; 再思考 =====</span>
+<span class="n">MAX_STEPS</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># 死循环防护：最大步数限制</span>
+<span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MAX_STEPS</span><span class="p">):</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span>
+    <span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
+    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>          <span class="c1"># assistant 消息可能携带 tool_calls</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>        <span class="c1"># 模型不再&quot;点单&quot; -&gt; 输出最终答案</span>
+        <span class="k">break</span>
+
+    <span class="k">for</span> <span class="n">tc</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>     <span class="c1"># 支持并行：一次返回多个 tool_call</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tc</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>  <span class="c1"># 反序列化</span>
+            <span class="k">assert</span> <span class="s2">&quot;city&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">,</span> <span class="s2">&quot;缺少必填参数&quot;</span>       <span class="c1"># 参数校验</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">real_query_weather</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span> <span class="c1"># 白名单内才执行</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span>                <span class="c1"># 异常兜底回传</span>
+
+        <span class="c1"># ===== 3. 结果回填：tool 消息携带 tool_call_id 继续多轮 =====</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;tool&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tool_call_id&quot;</span><span class="p">:</span> <span class="n">tc</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="p">})</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>  <span class="c1"># 最终自然语言回答</span>
+</code></pre></div>
+
+<p>代码示例二（Spring AI 风格，对应简历背景）：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// ===== 1. @Tool 注解声明：Spring AI 根据方法签名自动生成 JSON Schema =====</span>
+<span class="nd">@Component</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">WeatherTools</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Tool</span><span class="p">(</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;查询指定城市的实时天气&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">queryWeather</span><span class="p">(</span><span class="nd">@ToolParam</span><span class="p">(</span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;城市名，如 北京&quot;</span><span class="p">)</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">city</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">weatherService</span><span class="p">.</span><span class="na">getWeather</span><span class="p">(</span><span class="n">city</span><span class="p">);</span><span class="w">  </span><span class="c1">// 真实执行只发生在这里</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// ===== 2. 工具注册（白名单）+ 构建带记忆的 ChatClient =====</span>
+<span class="n">ChatClient</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ChatClient</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">chatModel</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">defaultTools</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">WeatherTools</span><span class="p">())</span>
+<span class="w">        </span><span class="p">.</span><span class="na">defaultAdvisors</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">MessageChatMemoryAdvisor</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">InMemoryChatMemory</span><span class="p">()))</span>
+<span class="w">        </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+
+<span class="c1">// ===== 3. 一次调用即一个完整 ReAct 循环 =====</span>
+<span class="c1">// 内部 ToolCallingManager 自动完成：解析 tool_call -&gt; 反射执行 -&gt; 结果回填 -&gt; 继续追问</span>
+<span class="n">String</span><span class="w"> </span><span class="n">answer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client</span><span class="p">.</span><span class="na">prompt</span><span class="p">(</span><span class="s">&quot;北京今天天气怎么样？&quot;</span><span class="p">).</span><span class="na">call</span><span class="p">().</span><span class="na">content</span><span class="p">();</span>
+</code></pre></div>
+
+<p>（注：Spring AI 各小版本 API 略有差异，面试中讲清"注解声明 + 自动生成 Schema + 循环引擎"三层即可。）</p>
+<p>我简历中 OrbitQA 的"域 Agent 基于 Spring AI 实现 ReAct 循环自主调用工具执行流水线"，本质就是上面这套：域 Agent 只注册本域工具，天然形成<strong>工具分组 + 白名单</strong>，Spring AI 的 ToolCallingManager 充当循环引擎（仅作背景，不展开细节）。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>工程化细节（按面试高频程度排序）：</strong></p>
+<ul>
+<li><strong>工具数量太多时如何选工具</strong>：几十个工具全塞进 Prompt 既烧 Token 又稀释注意力。三种策略：① <strong>few-shot 工具选择</strong>——在提示词里给出"什么场景该调哪个工具"的示例，利用上下文学习；② <strong>工具分组（namespace 化）</strong>——按领域拆成多个域 Agent，每个 Agent 只暴露自己的小工具集；③ <strong>工具检索路由</strong>——对工具描述做向量检索，动态注入 Top-K 个候选工具。</li>
+<li><strong>并行工具调用</strong>：OpenAI 支持一条回复返回多个 <code>tool_calls</code>，可批量查询合并往返；并行时每个参数独立校验，且要注意总上下文开销。</li>
+<li><strong>流式输出工具调用</strong>：流式下 <code>tool_call</code> 是增量分片到达的（arguments 被切成 delta），需<strong>累积拼接 JSON 字符串</strong>，等 <code>finish_reason</code> 为 <code>tool_calls</code> 的事件后再统一执行，不能边收边执行。</li>
+<li><strong>工具调用超时</strong>：单次执行设超时（如 5s），超时返回错误或走缓存；循环整体设最大步数（5~10 步）并限制单轮总 Token，防止"死循环烧钱"。</li>
+</ul>
+<p><strong>安全（与"Prompt 注入防御"联动）：</strong> ① 工具白名单——注册制，杜绝模型自由发明调用；② 参数注入校验——<strong>工具的输出是"不可信数据"而非"指令"</strong>：攻击者可能让网页/数据库内容携带"忽略之前的指令"等注入文本，绝不能把工具结果当 System 指令回传，只能作为 Observation 数据给模型参考，同时做好输出侧敏感信息过滤。</p>
+<p><strong>常见坑（每个都要能对应解法）：</strong></p>
+<ol>
+<li><strong>幻觉函数名</strong>：模型可能编造不存在的工具 → 注册表校验，未知名工具回传"unknown tool"错误让它重选。</li>
+<li><strong>参数类型错误/缺参</strong>：Schema 校验不通过 → 把校验错误信息回传给模型，它通常能自纠（一次重试窗口）。</li>
+<li><strong>死循环</strong>：工具反复返回异常或模型反复调同一工具 → 最大步数 + 相似调用去重 + 熔断。</li>
+<li><strong>arguments 解析失败</strong>（被截断/非合法 JSON）→ 容错解析 + 提示重发。</li>
+</ol>
+<p><strong>延伸视野</strong>：Function Calling 是"协议"，而 <strong>MCP（Model Context Protocol，模型上下文协议）</strong> 是"工具分发的开放标准"——解决多 Agent、多客户端场景下工具注册、发现、调用的标准化问题，值得作为收尾的进阶话题。</p>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（3-5 分钟口头回答）</strong></p>
+<ol>
+<li><strong>一句话定性（30s）</strong>："Function Calling 的本质是——模型输出结构化调用意图 JSON（tool_call，含函数名与参数），应用负责执行并回填结果。模型只决策，不执行。"</li>
+<li><strong>协议层（1.5min）</strong>：讲消息时序 <code>user → assistant(tool_calls) → tool(回执) → assistant(答案)</code>，并点明与 ReAct 的关系：FC 是 ReAct 循环中 Action 一步的标准化实现。</li>
+<li><strong>工程层（1.5min）</strong>：Schema 声明 → 注册白名单 → 参数校验 → 结果回填 → 异常兜底；附代码演示。</li>
+<li><strong>升华层（1min）</strong>：工具选择、并行、流式、超时、最大步数 + 安全（白名单/参数注入/输出当数据）+ 一个真实踩过的坑。</li>
+<li><strong>收尾（30s）</strong>：绑定简历 OrbitQA + 延伸 MCP。</li>
+</ol>
+<p><strong>重点得分点（面试官 checklist）</strong></p>
+<ul>
+<li>第一性原理讲对：<strong>模型不执行函数，只输出 JSON</strong>——这是最大的区分点。</li>
+<li>能画出完整消息时序图并解释 <code>tool_call_id</code> 关联机制。</li>
+<li>现场能写/复述 schema 和调用循环（双风格代码是超预期加分项）。</li>
+<li>工程广度的四个关键词：工具选择、并行调用、流式拼接、最大步数。</li>
+<li>安全意识：白名单 + 参数校验 + "工具输出是不可信数据"的 Prompt 注入联动。</li>
+<li>概念辨析：FC 与 ReAct 的关系一句话讲清。</li>
+</ul>
+<p><strong>常见误区（别踩）</strong></p>
+<ul>
+<li>❌ 说成"模型执行函数"——执行永远在应用侧，讲错直接崩。</li>
+<li>❌ 只讲"调 API"不提消息协议与多轮回填，显得只会用库。</li>
+<li>❌ 把 FC 和 ReAct 混为一谈——一个是协议/一步，一个是循环范式。</li>
+<li>❌ 忽略 <code>description</code> 的价值——它是选工具准确率的关键，也是工程细节的体现。</li>
+<li>❌ 只谈功能不谈安全与死循环治理，暴露工程经验不足。</li>
+</ul>
+<p><strong>时间分配建议</strong>：定性 30s（10%）→ 概念+原理 1.5min（35%）→ 实践+代码 1.5min（35%）→ 工程化+安全+坑 1min（20%），全程控制在 4 分钟左右留出追问空间。</p>
+<p><strong>过渡话术（背下来直接用）</strong></p>
+<ul>
+<li>开场："先给一个最直观的理解——模型不会真的执行你的函数，它只是输出一张'调用小票'，执行的是我们的应用。"</li>
+<li>从原理到实践："说完了协议层，再看工程上真正会踩的坑，我按'声明-注册-校验-回填-兜底'五个要点展开。"</li>
+<li>从实践到升华："再拔高一层，当工具数量多起来，'选哪个工具'就比'怎么调用'更关键，常用三招：few-shot、分组、检索。"</li>
+<li>收尾："回到我简历里的 OrbitQA，域 Agent 的做法正是把'工具分组 + 白名单 + ReAct 循环'落到 Spring AI 上；再往前看，MCP 正在把这些协议标准化，这也是我最近在跟进的方向。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0182')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0182')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

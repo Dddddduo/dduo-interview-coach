@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你怎么设计降级策略？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0209</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>你怎么设计降级策略？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">你怎么设计降级策略？</h1>
+<h1 id="_2">你怎么设计降级策略？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一句话本质</strong>：降级（degradation）= 系统部分失效时"保核心、砍次要"，是可用性设计（availability design）的一环——<strong>不是消灭故障，而是管理故障的影响面</strong>。</p>
+<p><strong>一个生活场景锚定</strong>：把降级想成"停电应急"——主电源 → 备用发电机 → UPS 电池 → 蜡烛。主模型挂了换备用模型，备用挂了换小模型，小模型也挂就用模板答案（蜡烛虽弱，屋里不会全黑）。这个链条和"模型层降级链"一一对应，面试时能顺口讲出画面感。</p>
+<p><strong>两套口诀串联全局</strong>：<br />
+- 降级四层："<strong>模、检、功、容</strong>"——模型层、检索层、功能层、容量层，从上往下数，顺序即降级优先级。<br />
+- 触发三开关："<strong>检、人、水</strong>"——故障检测（超时/错误率/熔断器）、人工开关（可灰度可回滚）、资源水位（成本/配额告警）。</p>
+<p><strong>一条递进链</strong>：超时（timeout）→ 重试（retry）→ 熔断（circuit breaker）→ 降级。像层层收网：先给一次机会，再保护下游，最后换替代方案。把这四个词按顺序背下来，深入思考环节的升华就有了。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念</h2>
+<p>降级（degradation）是指在系统部分组件失效、资源紧张或外部依赖不可用时，<strong>主动牺牲非核心功能或部分体验，保证核心功能仍可用的设计手段</strong>。它属于可用性设计的一部分：可用性公式 <code>可用性 = MTBF / (MTBF + MTTR)</code>，降级做的不是提高 MTBF（平均无故障时间），而是<strong>把"故障期间的完全不可用"变成"降级可用"</strong>，从用户视角缩小故障窗口的体感。</p>
+<p>在 LLM 工程里，降级是刚需而非锦上添花，原因有三：<br />
+- <strong>强外部依赖</strong>：大模型能力来自第三方 API（OpenAI、Anthropic 等），你无法控制对方的故障、限流、内容审核拒绝，单点依赖风险天然高；<br />
+- <strong>高时延高成本</strong>：模型调用动辄数秒、成本按 token 计费，瞬时流量洪峰下极易触发配额（quota）与成本告警；<br />
+- <strong>Agent 架构复杂</strong>：检索、工具调用、多轮记忆任一环节故障，都可能让整体对话不可用。</p>
+<p>所以 LLM 应用上线前，<strong>降级链（fallback chain）设计是架构评审的必考题</strong>。</p>
+<h2 id="2">2. 底层原理</h2>
+<p>降级的本质是把"不确定性封装为确定性"：<strong>把对第三方的强依赖，改造成一条带优先级的候选序列</strong>。核心决策模型是三要素：</p>
+<p><strong>降级决策 = 触发信号 × 降级动作 × 恢复路径</strong></p>
+<p><strong>触发信号（三开关）</strong>：<br />
+- 故障检测：超时（timeout）、错误率（error rate）超过阈值、熔断器（circuit breaker）处于打开（open）状态——这是自动化触发；<br />
+- 人工开关：通过配置中心/特性开关（feature flag）人工下发，支持灰度（gray release）与秒级回滚（rollback），用于主动降级或兜底自动检测失灵的情况；<br />
+- 资源水位：成本、配额（quota）、并发水位告警触发，属于"被动牺牲体验换稳定性"。</p>
+<p><strong>降级动作</strong>：按层级选择替代方案（详见实践应用）。</p>
+<p><strong>恢复路径</strong>：健康检查（health check）+ 自动恢复（automatic recovery），故障解除后分级回迁，而非一次性全部恢复。</p>
+<p><strong>两个底层设计思想</strong>：<br />
+- <strong>业务分级</strong>：核心链路（如支付、鉴权）绝不降级甚至要物理隔离，非核心链路（如摘要、推荐）直接砍掉——降级的粒度先按业务分，再按功能分；<br />
+- <strong>降级点粒度</strong>：按功能维度（feature dimension）降级，而非全局一刀切——"搜索挂了只降检索层，对话功能照常"，避免雪崩式全站降级。</p>
+<h2 id="3">3. 实践应用</h2>
+<h3 id="_5">降级四层（"模检功容"）</h3>
+<p><strong>a) 模型层降级（Model Tier）</strong>：主模型（旗舰大模型）→ 备用模型（备选供应商）→ 小模型（轻量/本地模型）→ 规则引擎（rule engine）/模板答案（template answer）。注意降级到小模型时要同步调整提示词（prompt）、温度（temperature）等参数，小模型对复杂指令理解弱。</p>
+<p><strong>b) 检索层降级（Retrieval Tier）</strong>：向量库（vector DB）故障 → 关键词检索（keyword search，如 BM25）→ 缓存结果（cached results）→ 无检索直接生成（generation-only，依赖模型内部知识）。RAG 场景下检索挂了不代表生成必须停。</p>
+<p><strong>c) 功能层降级（Function Tier）</strong>：Agent 自主决策 → 半自动（每一步人工确认）→ 人工兜底（human-in-the-loop）；多轮对话（multi-turn）→ 单轮（single-turn，砍掉记忆）；联网检索 → 离线知识库。</p>
+<p><strong>d) 容量层降级（Capacity Tier）</strong>：限流（rate limiting）→ 排队（queueing）→ 拒绝并提示稍后再试（reject with friendly retry hint）。这是面对流量洪峰的最后防线。</p>
+<h3 id="_6">设计四原则（"度观复雅"）</h3>
+<ol>
+<li><strong>降级点粒度</strong>：按功能维度而非全局；</li>
+<li><strong>降级可观测（observability）</strong>：降级日志（degradation log）、指标（metric）、响应标识（如响应头 <code>X-Degraded: tier-3</code>），让线上排查一秒钟定位"当前哪一级在兜底"；</li>
+<li><strong>降级可恢复</strong>：健康检查 + 自动恢复，配合熔断器的半开（half-open）状态试探下游；</li>
+<li><strong>优雅降级（graceful degradation）</strong>：返回旧缓存（stale cache）或友好提示文案，绝不裸抛 500。</li>
+</ol>
+<h3 id="llm-api">具体案例：LLM API 故障时的多级降级链（代码骨架）</h3>
+<p>以 Python 为例，一个带触发、链路、可观测、恢复的降级路由器：</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LLMFallbackRouter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;多级降级链：主模型 → 备用模型 → 小模型 → 模板兜底&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tiers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Tier</span><span class="p">(</span><span class="s2">&quot;claude-main&quot;</span><span class="p">,</span>  <span class="n">timeout</span><span class="o">=</span><span class="mf">3.0</span><span class="p">),</span>   <span class="c1"># 主模型</span>
+            <span class="n">Tier</span><span class="p">(</span><span class="s2">&quot;gpt-backup&quot;</span><span class="p">,</span>   <span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>   <span class="c1"># 备用模型</span>
+            <span class="n">Tier</span><span class="p">(</span><span class="s2">&quot;local-7b&quot;</span><span class="p">,</span>     <span class="n">timeout</span><span class="o">=</span><span class="mf">8.0</span><span class="p">),</span>   <span class="c1"># 本地小模型</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">breaker</span> <span class="o">=</span> <span class="n">CircuitBreaker</span><span class="p">(</span><span class="n">failure_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">open_seconds</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual_switch</span> <span class="o">=</span> <span class="n">FeatureFlag</span><span class="p">(</span><span class="s2">&quot;degradation.manual&quot;</span><span class="p">,</span> <span class="n">gray_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">user_id</span><span class="p">):</span>
+        <span class="c1"># 触发信号1：人工开关（可灰度、可回滚），命中直接走兜底</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manual_switch</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">user_id</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;manual&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tier</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiers</span><span class="p">:</span>
+            <span class="c1"># 触发信号2：熔断器状态 + 配额水位</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">breaker</span><span class="o">.</span><span class="n">is_open</span><span class="p">(</span><span class="n">tier</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">quota_ok</span><span class="p">(</span><span class="n">tier</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tier</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">tier</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TimeoutError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">breaker</span><span class="o">.</span><span class="n">record_failure</span><span class="p">(</span><span class="n">tier</span><span class="p">)</span>          <span class="c1"># 超时计数，为熔断积累数据</span>
+                <span class="n">log_degradation</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">tier</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;timeout&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>                                   <span class="c1"># 进入下一级</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;template&quot;</span><span class="p">)</span>      <span class="c1"># 全链路失败</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+        <span class="c1"># 优雅降级：先查旧缓存，再无则模板答案，绝不裸报错</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">get_or_template</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="s2">&quot;当前 AI 服务繁忙，已为您提供基础回答&quot;</span><span class="p">)</span>
+        <span class="n">resp</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;X-Degraded&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">level</span>                  <span class="c1"># 降级标识，可观测</span>
+        <span class="k">return</span> <span class="n">resp</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">health_recover</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>   <span class="c1"># 定时任务：探活成功后自动恢复主链路</span>
+        <span class="k">for</span> <span class="n">tier</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiers</span><span class="p">:</span>
+            <span class="n">tier</span><span class="o">.</span><span class="n">probe</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">breaker</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">tier</span><span class="p">)</span>
+</code></pre></div>
+
+<p>要点：超时→记录→下一级；熔断器过滤掉持续故障的供应商，避免每次请求都白等；<code>X-Degraded</code> 标识让监控和排查有抓手；探活成功后逐级回迁，完成"可恢复"闭环。</p>
+<h2 id="4">4. 深入思考</h2>
+<p><strong>降级与熔断/限流/重试的关系——一条递进链</strong>：超时（timeout）→ 重试（retry）→ 熔断（circuit breaker）→ 降级（degradation）。重试解决瞬时抖动（注意重试需有退避策略 backoff，否则是雪崩放大器）；熔断解决持续故障——它负责"保护下游别再被打"；降级解决"能力缺失时的替代方案"。而限流是"入口处控制流量"，与降级互补：限流挡住超量请求，降级处理能力不足。面试时主动画出这条递进链，是明显的加分点。</p>
+<p><strong>降级体验的兜底文案</strong>：三要素——<strong>明确告知 + 安抚 + 给出路</strong>。"AI 服务繁忙，已切换为基础模式，回答可能简化，请稍后重试体验完整功能"，远好过"系统错误"四个字。且线上文案要区分用户侧（友好）与运维侧（带 <code>X-Degraded</code> 标识）。</p>
+<p><strong>业务分级</strong>：核心链路绝不降级（支付、登录等要的是隔离而非降级），非核心链路直接砍。判断标准是"降级收益 vs 体验损失"——砍一个推荐栏几乎无感，砍掉订单确认就是事故。</p>
+<p><strong>两个更深的点</strong>：一是降级策略本身需要演练，通过故障注入（fault injection）/混沌工程（chaos engineering）验证链路真的能兜住；二是 LLM 场景的特殊性——降级不只是"换模型"，提示词、参数、工具集、上下文长度都要随层级联动调整，否则小模型配长系统提示词反而更慢更差。</p>
+<h2 id="_7">🗺️ 回答思路</h2>
+<h2 id="5">答题逻辑框架（总分总，5 步走）</h2>
+<ol>
+<li><strong>一句话定义</strong>：降级是可用性设计的一部分，核心是"保核心、砍次要"（30 秒定调）；</li>
+<li><strong>四层展开</strong>："模检功容"——模型层、检索层、功能层、容量层，每层一句话说清链尾（60–90 秒，占大头）；</li>
+<li><strong>触发与原则</strong>：三开关（检人水）+ 四原则（度观复雅），收拢回设计理念；</li>
+<li><strong>代码案例</strong>：给出降级链骨架，突出"触发信号 × 降级动作 × 恢复路径"；</li>
+<li><strong>升华</strong>：递进链（超时→重试→熔断→降级）+ 业务分级，体现全局视野。</li>
+</ol>
+<h2 id="_8">重点得分点</h2>
+<ul>
+<li><strong>分层意识</strong>（模型/检索/功能/容量四层）——大多数人只说"换备用模型"，分层的回答直接拉开差距；</li>
+<li><strong>可观测 + 可恢复</strong>——面试官最怕听到只降级不恢复的"裸降级"，<code>X-Degraded</code> 标识和健康检查是亮点；</li>
+<li><strong>代码骨架落地</strong>——能写出含熔断、降级标识、优雅兜底的骨架，证明是真做过而非背概念；</li>
+<li><strong>业务分级与递进链</strong>——把降级放进熔断/限流/重试的体系里讲，体现架构全局观。</li>
+</ul>
+<h2 id="_9">常见误区</h2>
+<ul>
+<li>把降级和熔断混为一谈——熔断是"保护"，降级是"替代"，先说清关系再展开；</li>
+<li>只谈模型层、忽略检索/功能/容量层——RAG 和 Agent 场景下这些更常被考；</li>
+<li>降级没有恢复路径——只降不升等于慢性死亡，自动恢复必须提；</li>
+<li>全局一刀切降级——必须强调按功能维度/业务分级；</li>
+<li>兜底直接报错——优雅降级（旧缓存/友好文案）是体验底线。</li>
+</ul>
+<h2 id="35">时间分配建议（3–5 分钟）</h2>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>用时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定义本质</td>
+<td>~30 秒</td>
+</tr>
+<tr>
+<td>四层降级（模检功容）</td>
+<td>60–90 秒</td>
+</tr>
+<tr>
+<td>触发三开关 + 设计四原则</td>
+<td>~60 秒</td>
+</tr>
+<tr>
+<td>代码案例</td>
+<td>60–90 秒</td>
+</tr>
+<tr>
+<td>深入思考（递进链/业务分级）</td>
+<td>30–60 秒</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_10">过渡话术</h2>
+<ul>
+<li>开篇："降级本质上不是修复故障，而是管理故障的影响面——我一般从四个层级来设计降级策略。"</li>
+<li>切入触发："有了分层还不够，关键是明确什么时候触发降级，我总结为三个信号：故障检测、人工开关、资源水位。"</li>
+<li>切入原则："设计降级链我有四个坚持：粒度、可观测、可恢复、优雅，缺一不可。"</li>
+<li>引出案例："给您看一个我们线上 LLM 路由器的降级骨架，主模型挂了会自动走到备用模型、小模型、最后模板兜底。"</li>
+<li>收尾升华："最后想补充一点：降级要放在超时→重试→熔断→降级这条递进链里看，它和限流、熔断各司其职；同时按业务分级，核心链路绝不降级，非核心直接砍。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0209')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0209')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

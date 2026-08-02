@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>什么是全双工，什么是半双工？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0172</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">🌍 计算机网络</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>什么是全双工，什么是半双工？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">什么是全双工，什么是半双工？</h1>
+<h1 id="_2">什么是全双工，什么是半双工？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>一条公路，三种形态。</strong></p>
+<p>想象一条连接两座城市的公路：<br />
+- <strong>单工（Simplex）</strong>：单行道。车永远只能从 A 城开往 B 城，反向不通行。就像<strong>广播电台</strong>，信号永远只从发射塔流向收音机。<br />
+- <strong>半双工（Half-duplex）</strong>：双向单车道窄桥。两个方向都能走，但同一时刻桥上只允许一个方向的车——桥头放一个"交通信号灯"轮流放行。就像<strong>对讲机</strong>，"按住说话（Push to Talk, PTT）"才能讲，松手才能听，两个人同时说话只会互相盖住对方。<br />
+- <strong>全双工（Full-duplex）</strong>：双向多车道高速公路。两个方向各有独立车道，A 到 B 的车和 B 到 A 的车<strong>同时</strong>飞驰，互不干扰。就像<strong>打电话</strong>，你说我听、我说你听是同时发生的。</p>
+<p><strong>三字口诀</strong>：单一条（单向一条道），半轮流（轮流放行），全并行（双向并行）。</p>
+<p><strong>英文钩子</strong>："half-duplex" 是只用到双工（duplex，双向）能力的一半——要么发、要么收；"full-duplex" 是完整发挥——同时收发。记不住时想想"半=轮流、全=同时"就够了。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p>三种通信模式描述的是<strong>数据传输方向性</strong>，判定标准只有一个：<strong>同一时刻能否双向传输</strong>。</p>
+<ul>
+<li><strong>单工（Simplex）</strong>：数据传输方向固定，永远单向。发送方只能发，接收方只能收，角色不可互换。典型例子：<strong>广播（Radio/TV Broadcast）</strong>、电视遥控器、温湿度传感器上报数据给单片机。</li>
+<li><strong>半双工（Half-duplex）</strong>：通信双方<strong>都能收、也能发</strong>，但<strong>同一时刻只能有一个方向</strong>在传输，需要"轮流"。典型例子：<strong>对讲机（Walkie-talkie）</strong>、RS-485 总线、早期共享式以太网（Hub + CSMA/CD）。</li>
+<li><strong>全双工（Full-duplex）</strong>：通信双方<strong>同一时刻既可以发送又可以接收</strong>，双向数据流互不阻塞。典型例子：<strong>电话（Telephone）</strong>、现代以太网（双绞线各自独立收发）、TCP 连接、WebSocket。</li>
+</ul>
+<p><strong>区分难点</strong>：单工与半双工的关键区别是"能否反向"——广播不能反着回答你，但对讲机可以；半双工与全双工的关键区别是"能否同时"——对讲机同一时刻只有一个人能讲话，电话可以两人同时说。</p>
+<h3 id="2">2. 底层原理</h3>
+<p>三种模式的本质差异在<strong>物理层信道组织方式</strong>：<strong>独立信道 vs 共享信道分时切换</strong>。</p>
+<p><strong>单工</strong>：只需一条单向信道，实现最省。广播发射塔占用一个频段持续发射，收音机只需要接收电路，没有接收方向上的任何冲突问题。</p>
+<p><strong>半双工</strong>：<strong>多个方向共享同一条物理信道</strong>（一根线、一个频段、一束光），因此必须通过<strong>介质访问控制（Media Access Control, MAC）</strong>来仲裁"此刻归谁用"，并引入<strong>收发切换开销</strong>：<br />
+- <strong>RS-485</strong>：一对双绞线上挂多个节点，谁要发送谁就使能自己的驱动器（Driver Enable），发送完立刻释放，其他节点才能回话——本质上就是"占总线，轮流讲"。<br />
+- <strong>早期以太网</strong>：所有节点共享一条同轴电缆或经集线器（Hub）共享一段介质，采用 <strong>CSMA/CD（Carrier Sense Multiple Access with Collision Detection，载波侦听多路访问/冲突检测）</strong>：先听后发、边发边听，一旦检测到冲突（Collision）就随机退避（Exponential Backoff）后重传。所有共享这段介质的节点构成一个<strong>冲突域（Collision Domain）</strong>，负载越高冲突越多，有效吞吐急剧下降。<br />
+- <strong>对讲机/无线半双工</strong>：同一频率无法边发边收（自身发射会淹没接收），必须收发切换（Turnaround Time），PTT 按键就是手动切换开关。</p>
+<p><strong>全双工</strong>：<strong>为每个方向分配独立的物理信道</strong>，收发彻底解耦：<br />
+- <strong>现代以太网（双绞线，Twisted Pair）</strong>：以 100BASE-TX 为例，4 对线中 <strong>1 对专门发送（TX）、1 对专门接收（RX）</strong>，两个方向数据流物理上互不接触，自然不需要 CSMA/CD，也没有冲突域——这就是"全双工为什么需要双绞线独立线对"的根本原因。<br />
+- <strong>光纤（Optical Fiber）</strong>：要么用两芯光纤各走一个方向，要么用<strong>波分复用（Wavelength Division Multiplexing, WDM）</strong>在同一根光纤上以不同波长同时收发。<br />
+- <strong>无线蜂窝网络</strong>：<strong>FDD（Frequency Division Duplexing，频分双工）</strong>用上行/下行两个独立频段实现同时收发；而 <strong>TDD（Time Division Duplexing，时分双工）</strong>上下行分时使用同一频段，本质是"无线侧的半双工"。<br />
+- <strong>UART（Universal Asynchronous Receiver/Transmitter，通用异步收发器）</strong>：物理上 TX 引脚与 RX 引脚完全独立，因此<strong>硬件天然支持全双工</strong>；但如果传输介质只有一根线（如 1-Wire、I2C 的 SDA），或协议规定分时通信（如 RS-485 总线仲裁），则表现为半双工。</p>
+<p><strong>一句话总结原理</strong>：半双工是"一条路，轮流用"，靠协议调度避免碰撞；全双工是"两条路，各走各的"，靠物理信道隔离消除碰撞。</p>
+<h3 id="3">3. 实践应用</h3>
+<p><strong>工程应用矩阵</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>典型场景</th>
+<th>物理实现</th>
+<th>代价/特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单工</td>
+<td>广播、红外遥控、传感器上报</td>
+<td>一条单向信道</td>
+<td>最省资源，无法应答</td>
+</tr>
+<tr>
+<td>半双工</td>
+<td>对讲机、RS-485 工业总线、Hub 以太网、Wi-Fi（CSMA/CA）</td>
+<td>共享介质 + 介质访问控制</td>
+<td>需切换时间，有冲突域，吞吐受限</td>
+</tr>
+<tr>
+<td>全双工</td>
+<td>电话、双绞线以太网（Switch 组网）、光纤骨干、TCP/WebSocket</td>
+<td>独立收发信道</td>
+<td>需双倍资源（线对/频段），双向线速</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键工程案例拆解</strong>：</p>
+<ul>
+<li><strong>以太网 Hub vs Switch</strong>：Hub 是把所有端口物理上"并"到一段共享介质，天然半双工、有冲突域；交换机（Switch）把每个端口做成<strong>点对点（Point-to-Point）全双工链路</strong>，端口间数据流互相隔离，冲突域缩小到"只剩一个端口"，CSMA/CD 因此被彻底边缘化——这也是为什么现代网卡/交换机都强制全双工，半双工以太网如今只在兼容性模式中出现。</li>
+<li><strong>HTTP vs WebSocket</strong>：<strong>HTTP/1.1 是"请求-响应"语义</strong>——客户端发请求后必须等响应，同一连接上双方不会同时主动发数据，这是<strong>应用层协议语义上的半双工</strong>（也有人叫请求响应式单工/半双工）。而 <strong>WebSocket</strong> 在 TCP 之上提供<strong>应用层全双工</strong>：客户端和服务端可以随时同时互发消息（如聊天、行情推送），但底层传输仍依赖 TCP 的全双工能力。</li>
+<li><strong>TCP 是全双工的</strong>：TCP 连接建立后，双方各维护<strong>独立的发送缓冲区和接收缓冲区</strong>，两条方向相反的字节流同时流动，各自有独立的序号（Sequence Number）与确认（Acknowledgment），确认报文还可以<strong>捎带（Piggyback）</strong>在反向数据里，双向互不阻塞。</li>
+</ul>
+<h3 id="4">4. 深入思考</h3>
+<p><strong>第一层：分层看待"双工"</strong>。全双工/半双工首先是<strong>物理层</strong>关于信道组织方式的事实，但工程上人们常把它引申到<strong>协议语义</strong>层面：TCP 是全双工协议，HTTP/1.1 却在应用层呈现请求-响应（半双工）语义，WebSocket 又回到全双工语义。面试时主动讲清"物理层能力 vs 协议层语义"这个分层视角，是加分点。</p>
+<p><strong>第二层：全双工是"昂贵"的</strong>。全双工需要为反向方向单独配置信道资源（多一对线、多一根纤、多一个频段），这是物理成本；半双工省资源、能挂多节点（RS-485 总线拓扑），但付出的是切换时间和冲突仲裁的代价。工程选型的本质是<strong>资源成本与吞吐效率的权衡</strong>。</p>
+<p><strong>第三层：几个值得提前准备的追问</strong>：<br />
+- <strong>为什么 TCP 能全双工？</strong> 因为底层物理链路提供了独立双向信道（双绞线两对线/光纤双纤），且 TCP 协议本身为两个方向各自维护独立的字节流、序号和确认机制。<br />
+- <strong>为什么半双工会产生冲突域？</strong> 因为共享介质上多个节点同时发送会互相叠加破坏（冲突），冲突域就是"一次只能有一个节点成功发送"的介质范围；全双工点对点链路中只有一台对端，收发信道分离，冲突不可能发生。<br />
+- <strong>CSMA/CD 为什么被淘汰？</strong> 不是机制错了，而是共享介质拓扑被交换机全双工点对点替代，冲突的前提"共享介质"消失了。<br />
+- <strong>无线为什么普遍半双工？</strong> 同一频率上收发会自我干扰，除非用 FDD 分离频段——这也解释了 4G/5G 为什么有 TDD/FDD 之分。</p>
+<p><strong>第四层：对业务性能的影响</strong>。半双工在低负载下问题不大，高负载时冲突/退避使有效吞吐骤降；全双工双向可同时达到线速（Line Rate），这正是数据中心普遍要求全双工的原因。回答收尾时可以提一句"从 Hub 到 Switch 的演进史，就是冲突域不断缩小的历史"，把知识点串成一条技术史脉络。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h3 id="_6">答题逻辑框架</h3>
+<p><strong>定义 → 原理 → 例子 → 影响</strong>（四步框架）：<br />
+1. <strong>定义</strong>：一句话点出判定标准——"按同一时刻能否双向传输区分"，给出三种模式的英文对照。<br />
+2. <strong>原理</strong>：落到物理层——单工一条单向信道；半双工共享信道+分时仲裁（CSMA/CD、PTT）；全双工独立信道（双绞线两对线、FDD）。<br />
+3. <strong>例子</strong>：对讲机（半双工）、电话/现代以太网（全双工）、广播（单工），再补 UART、RS-485、Hub/Switch、HTTP/WebSocket/TCP 的分层例子。<br />
+4. <strong>影响</strong>：冲突域、吞吐差异、资源成本，落到"为什么工程上从半双工走向全双工"。</p>
+<h3 id="_7">重点得分点</h3>
+<ol>
+<li>判定标准表述准确："<strong>同一时刻</strong>"三个字是灵魂，很多人只答"双向传输"而漏了"同时"。</li>
+<li>能讲清物理实现差异：独立信道 vs 共享信道切换，提到双绞线独立线对、CSMA/CD、冲突域。</li>
+<li>有分层视角：区分物理层全双工与 HTTP 应用层请求-响应语义，这是拉开差距的地方。</li>
+<li>应用矩阵丰富：UART 可全双工、RS-485 半双工、Hub 半双工/Switch 全双工、TCP/WebSocket 全双工、HTTP/1.1 半双工语义——例子越具体越显功底。</li>
+<li>收尾有高度：从"Hub→Switch 演进=冲突域消失"或"成本与效率权衡"升华。</li>
+</ol>
+<h3 id="_8">常见误区</h3>
+<ul>
+<li>❌ 把对讲机说成"单工"——对讲机可收可发，只是不能同时，是<strong>半双工</strong>；广播才是单工。</li>
+<li>❌ 说"UART 是半双工"——UART 的 TX/RX 引脚独立，硬件<strong>支持全双工</strong>；半双工与否取决于总线/协议（RS-485、I2C、1-Wire 才是半双工）。</li>
+<li>❌ 混淆协议语义与物理能力——说"TCP 是请求响应的"或"HTTP 是全双工的"都不准确，要分层说明。</li>
+<li>❌ 只说"全双工就是能同时收发"却解释不了<strong>为什么能</strong>——必须落到"独立物理信道"。</li>
+<li>❌ 忘了点名冲突域与 CSMA/CD 的关系——这是半双工的核心代价。</li>
+</ul>
+<h3 id="23">时间分配建议（总计 2~3 分钟）</h3>
+<ul>
+<li><strong>0~30 秒</strong>：定义三模式 + 判定标准（"同一时刻能否双向"），给对讲机/电话两个例子。</li>
+<li><strong>30 秒~1.5 分钟</strong>：原理——共享信道 vs 独立信道，讲 CSMA/CD、冲突域、双绞线两对线、UART 原理。</li>
+<li><strong>1.5~2.5 分钟</strong>：应用矩阵 + 分层视角（Hub/Switch、HTTP/WebSocket/TCP）。</li>
+<li><strong>最后 30 秒</strong>：总结影响与演进趋势，留一个"您想让我展开哪个方向？"的收口。</li>
+</ul>
+<h3 id="_9">过渡话术</h3>
+<ul>
+<li>定义→原理："刚才说的是'是什么'，其实这三种模式最本质的差异在物理实现——也就是<strong>信道怎么组织</strong>。"</li>
+<li>原理→应用："理解了信道组织方式，我们再看工程上怎么用——这里有一张应用矩阵。"</li>
+<li>应用→收尾："最后从工程演进的角度总结一句：从 Hub 到 Switch 的历史，就是冲突域不断缩小、通信从半双工走向全双工的历史。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: 计算机网络<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0172')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0172')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

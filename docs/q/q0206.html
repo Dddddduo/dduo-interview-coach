@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1个汉字、1个英文单词大概是多少 token，为什么不能死记一个固定值？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0206</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>1个汉字、1个英文单词大概是多少 token，为什么不能死记一个固定值？</h1>
+    <div class="tag-row"></div>
+    <h1 id="11-token">1个汉字、1个英文单词大概是多少 token，为什么不能死记一个固定值？</h1>
+<h1 id="11-token_1">1个汉字、1个英文单词大概是多少 token，为什么不能死记一个固定值？</h1>
+<h2 id="_1">🧠 联想记忆法</h2>
+<p><strong>一句话口诀</strong>：「英文 4 字符 1 块砖，中文 1 字 1~2 块砖；GPT 偏费、Claude 偏省。」</p>
+<p><strong>必须背下来的 3 个数字锚点</strong>：<br />
+1. <strong>英文：4 字符 ≈ 1 token，1 个单词 ≈ 1.3~1.5 token</strong>（官方口径约 0.75 词/token）。记「单词一点三」。<br />
+2. <strong>中文：1 个汉字 ≈ 1~2 token</strong>。常用字 1 个、生僻字 2~3 个；Claude 平均约 0.6~1.5（纯中文实测约 1.08），GPT 系约 1~2。<br />
+3. <strong>生活化锚点</strong>：一页 A4 中文（约 800 字）≈ 1000~1600 token；一篇 1000 词的英文 ≈ 1300~1500 token。</p>
+<p><strong>类比记忆</strong>：token 像「乐高积木」。英文单词是 3~4 块小积木拼的，中文常用字是 1 块标准砖，生僻字是 2 块拼的，长数字串是一块一个数字。关键在于——<strong>同一句话在不同厂商的「乐高套装」里，拼法完全不同</strong>（Claude 套装、GPT 套装、Llama 套装各有各的说明书），所以「1 字=几 token」从来不是一个固定值。</p>
+<h2 id="_2">📖 深度解答</h2>
+<h2 id="1-token">1. 核心概念（Token 到底是什么，经验值是多少）</h2>
+<p><strong>Token（词元/令牌）</strong> 是 LLM（大语言模型）处理文本的最小单位：文本先被<strong>分词器（Tokenizer）</strong>切分成 token 序列，再映射为词表中的 id 喂给模型。<strong>Token 不是字数、也不是词数</strong>——它是一个「编码产物」，取决于分词器的规则。</p>
+<p><strong>业界经验值（记住这张表）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>文本类型</th>
+<th>经验系数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>英文 1 单词</td>
+<td>≈ 1.3~1.5 token</td>
+<td>官方口径约 0.75 词/token</td>
+</tr>
+<tr>
+<td>英文 4 字符</td>
+<td>≈ 1 token</td>
+<td>最常用的估算规则</td>
+</tr>
+<tr>
+<td>中文 1 汉字</td>
+<td>≈ 1~2 token</td>
+<td>Claude 约 0.6~1.5，GPT 系约 1~2</td>
+</tr>
+<tr>
+<td>中文生僻字</td>
+<td>2~3 token</td>
+<td>词表中频率低，被拆得更碎</td>
+</tr>
+</tbody>
+</table>
+<p><strong>几个关键实测校准点</strong>（避免背错）：<br />
+- <strong>GPT-4/GPT-3.5 时代的 cl100k_base</strong>（约 10 万词表）：中文基本「一字一 token」，如「你好」= 2 token；这段中文比英文贵约 4 倍，俗称「中文税」。<br />
+- <strong>GPT-4o/GPT-5 的 o200k_base</strong>（约 20 万词表）：专为多语言压缩设计，中文反而更省——同一段中文比 cl100k 少约 30% token，常见词可直接合并，如「你好」「世界」在 o200k 里各 1 token。<br />
+- <strong>Claude 系</strong>：纯中文实测约 1 字 ≈ 1.08 token（「你好」= 2 token）；中文内容比等义英文多花 1.11~1.64 倍 token。所以 200k 上下文窗口里，中文实际容量约为 6~9 折（1/1.64≈0.61、1/1.11≈0.90）。</p>
+<h2 id="2">2. 底层原理（为什么不能死记一个固定值）</h2>
+<p>死记固定值在「单模型、纯中文或纯英文」场景下勉强够用，但它是<strong>对分词器的偷懒近似</strong>。下面五个原因任何一个都会让固定值失效：</p>
+<p><strong>a) 分词器不同——算法与词表大小都不同。</strong><br />
+主流分词算法有三类：<strong>BPE（字节对编码，Byte Pair Encoding）</strong>、<strong>SentencePiece</strong>（以 Unicode 码点为输入，空格用 <code>▁</code> 占位符表示）、<strong>WordPiece</strong>（BERT 用，<code>##</code> 前缀）。即使同为 BPE，GPT 系是<strong>字节级 BPE</strong>（Byte-level BPE，永不出现 OOV 未知词），Claude 是 SentencePiece 风格。词表大小从 Llama 2 的 32k、Llama 3 的 128k，到 cl100k 的约 100k、o200k 的约 200k 各不相同。<strong>词表越大，常见词越能整词命中，token 越省</strong>——这是 o200k 中文优于 cl100k 的根本原因。</p>
+<p><strong>b) 字符频率不同——同一语言内部也不均匀。</strong><br />
+BPE 的合并是<strong>频率驱动</strong>的贪心过程：高频片段先被合并。所以常用字/常用词（「我们」「中国」）常能 1 token 拿下，生僻字（「龘」「燚」）只能拆成 2~3 个 token。<strong>同一句话换成罕见用词，token 数立刻变化</strong>——固定值管不了这个。</p>
+<p><strong>c) 数字、代码、特殊符号的规则差异巨大。</strong><br />
+cl100k 与 o200k 对长数字串都按<strong>3 位一组切分</strong>（如 "1234567890" 两编码器均 ≈ 4 token），不同模型对数字、代码的切法差异依然很大。代码里，常见标识符可能整词 1 token，但驼峰命名、下划线、缩进空白的切法各模型不同。emoji 更是重灾区，GPT 系一个 emoji 可占 1~3+ token。<strong>代码/数字占比一变，你的系数就失效</strong>。</p>
+<p><strong>d) 空格与标点也占 token。</strong><br />
+GPT 系有「词首空格约定」：空格通常和后面的词拼成一个 token，行首缩进、中文全角标点、换行符都各占 1 token 左右。<strong>纯文字系数没算上标点密度差异</strong>（技术文档 vs 对话 vs 诗），偏差自然来。</p>
+<p><strong>e) 多语言混排——1+1 ≠ 2。</strong><br />
+中英混排时，token 不是「中文部分 + 英文部分」的简单相加，跨语言的边界如何合并取决于分词器的预分词规则。混入 URL、代码、表情符号时偏差更大。而中文优先的模型（Qwen、DeepSeek）能把「人工智能」整词压成 1 token，GPT-4/cl100k 却要拆 4~6 个——<strong>同一句话在不同模型间 token 数差几倍都不奇怪</strong>。</p>
+<p><strong>一句话本质</strong>：token 数是「分词器 × 词表 × 语料」三者共同作用的产物，固定值 = 用平均数假装三个变量都不变，自然不可靠。</p>
+<h2 id="3">3. 实践应用（工程上怎么用）</h2>
+<p>工程原则是<strong>「粗估用系数、关键路径用精算」</strong>——经验值负责估算量级，官方 tokenizer 负责最终裁决。</p>
+<p><strong>① 上下文预算（Context Budget）</strong>：窗口 200k 不等于可用 200k。预算公式 = 窗口大小 − 预留输出 token − 系统提示词 − few-shot 示例 − 每轮对话历史。中文场景按<strong>字符数 × 1.5~2</strong> 粗估占用量，还要意识到中文实际容量约为窗口的 6~9 成。<strong>② 成本预测</strong>：成本 = 预估 token 数 × 单价（按 1M token 计）。中文负载建议直接按「字数 × 1.5 × 保险系数 1.2~1.5」打预算，因为估算误差在价格上会被放大。<strong>③ 截断策略</strong>：必须<strong>按 token 边界截断</strong>（编码→切片→解码），按字符截断会切坏多字节字符和 emoji；RAG 长上下文常用「middle-out 截断」保首尾。</p>
+<p><strong>④ 精确统计工具——官方 tokenizer</strong>。OpenAI 系用 <code>tiktoken</code>（本地离线，不花钱不调 API）：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">tiktoken</span>
+
+<span class="c1"># 按模型取编码器：gpt-4o -&gt; o200k_base（约 20 万词表）；gpt-4 -&gt; cl100k_base（约 10 万词表）</span>
+<span class="n">enc</span> <span class="o">=</span> <span class="n">tiktoken</span><span class="o">.</span><span class="n">encoding_for_model</span><span class="p">(</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">)</span>
+<span class="c1"># enc = tiktoken.get_encoding(&quot;cl100k_base&quot;)</span>
+
+<span class="n">samples</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;英文&quot;</span><span class="p">:</span> <span class="s2">&quot;This is an English sentence with several words.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;中文&quot;</span><span class="p">:</span> <span class="s2">&quot;你好，世界。这是一个中文测试句子。&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;代码&quot;</span><span class="p">:</span> <span class="s2">&quot;def fib(n): return n if n &lt; 2 else fib(n-1) + fib(n-2)&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;数字&quot;</span><span class="p">:</span> <span class="s2">&quot;20260802&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">max_tokens</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># 截断阈值（按 token 边界安全截断，而不是按字符截断）</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">samples</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s2"> 字符 -&gt; </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="si">}</span><span class="s2"> tokens&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  前 8 个 token:&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">enc</span><span class="o">.</span><span class="n">decode</span><span class="p">([</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">[:</span><span class="mi">8</span><span class="p">]])</span>
+    <span class="n">truncated</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[:</span><span class="n">max_tokens</span><span class="p">])</span>   <span class="c1"># 对每个样本分别演示截断</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  截断到 </span><span class="si">{</span><span class="n">max_tokens</span><span class="si">}</span><span class="s2"> tokens:&quot;</span><span class="p">,</span> <span class="n">truncated</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Claude 系可用官方 <strong>count_tokens API</strong>：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">anthropic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Anthropic</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">Anthropic</span><span class="p">()</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-sonnet-4-5&quot;</span><span class="p">,</span>
+    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;你好，请帮我统计这段文本。&quot;</span><span class="p">}],</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">input_tokens</span><span class="p">)</span>  <span class="c1"># 官方精确值</span>
+</code></pre></div>
+
+<p><strong>⑤ 构建本地估算工具</strong>：生产环境不要每次线上调 API 数 token。做法：离线用官方 tokenizer 在<strong>代表性语料采样集</strong>（覆盖中英、代码、标点密度分布）上批量打点，拟合出本业务的字符→token 系数（如「中文 1.5、英文 0.25/字符、混合文本 1.2」），做成本地函数或服务；线上粗估用它，关键路径（如预算已用 90%）再触发精算。<strong>⑥ 别忘了特殊 token（Special Tokens）</strong>：chat 模板的 <code>&lt;|im_start|&gt;</code>、BOS/EOS（如 Llama 的 <code>&lt;s&gt;</code>）各占 1 token，多轮对话历史拼接时会被反复计入——粗估时常被漏掉的隐性开销。</p>
+<h2 id="4">4. 深入思考（加分项）</h2>
+<ul>
+<li><strong>分词器本质是频率统计的产物，与语义无关</strong>：BPE 的合并只看共现频率，不看词义，所以才有「中文税」这种语言不公平——英语优先的模型把中文拆到近单字粒度，而 Qwen、DeepSeek 这类中文优先模型的词表让中文整词命中。<strong>同样的文本，选对模型 = 省 30% 的上下文和成本</strong>，这在多语言产品里是真金白银。</li>
+<li><strong>词表大小是权衡而非越大越好</strong>：词表越大压缩率越高，但 embedding 层参数和显存随之膨胀，OOV 场景也未必更好——o200k 对代码就没占到便宜。做垂直领域（法律、医疗）时可以考虑领域词合并，这本身就是一种「token 压缩」优化。</li>
+<li><strong>方法论升维</strong>：面试官真正想听的收尾——<strong>任何固定系数都只是「先验」，必须用「经验值 + 保险系数 + 关键路径精算」三段式</strong>：先按系数打预算量级，再乘 1.2~1.5 的冗余，最后在链路的关键点（截断、计费、窗口上限）用官方 tokenizer 精确裁决。这套方法论比任何数字都值钱，因为它能迁移到任何新模型。</li>
+</ul>
+<h2 id="_3">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架</strong>（结论先行 → 经验值 → 原因 → 实践 → 收尾）：<br />
+1. <strong>结论先行（10 秒）</strong>：「token 不是字数，没有固定值；但业界有经验系数：英文 1 词 ≈ 1.3~1.5 token（4 字符 ≈ 1 token），中文 1 字 ≈ 1~2 token，Claude 约 0.6~1.5、GPT 系约 1~2。」<br />
+2. <strong>背出 2~3 个实测差异点</strong>（o200k 中文比 cl100k 省 30%、Claude 纯中文约 1.08 token/字），展示你不是只背口诀。<br />
+3. <strong>展开「为什么不能固定」的 5 个原因</strong>——这是得分核心区。<br />
+4. <strong>讲工程落地</strong>：上下文预算、成本预测、按 token 截断 + tiktoken 一行代码。<br />
+5. <strong>方法论收尾</strong>：「经验值 + 保险系数 + 精算」。</p>
+<p><strong>重点得分点</strong>：<br />
+- 说出官方口径「4 字符 ≈ 1 token、0.75 词/token」；<br />
+- 出现 <strong>BPE / SentencePiece / 词表大小 / 字节级 BPE</strong> 等名词并能解释一句；<br />
+- 明确「<strong>tokenizer 是随模型绑定的，同一文本不能跨模型迁移统计</strong>」；<br />
+- 给「字符数 × 1.5 × 保险系数」的具体工程做法 + 代码；<br />
+- 提到特殊 token 和 chat 模板开销——这是大多数人会漏的细节。</p>
+<p><strong>常见误区</strong>：<br />
+- 只背数字不讲原因，被追问「为什么 GPT-4 和 GPT-4o 不一样」直接崩；<br />
+- 说「GPT 的 tokenizer」不区分 cl100k/o200k——面试官会认为你只知道皮毛；<br />
+- 把「token」和「字数/词数」混为一谈，或按字符数直接截断；<br />
+- 忽略标点、空格、emoji、特殊 token 的隐性开销。</p>
+<p><strong>时间分配建议</strong>（按 5 分钟口答）：0~40 秒结论与经验值 → 40 秒~2 分钟底层原因（5 点讲 3~4 点）→ 2~3.5 分钟工程应用与代码 → 3.5~4.5 分钟常见坑与方法论收尾 → 留 30 秒给面试官追问。若只有 3 分钟：原因压成 2 点（分词器差异 + 频率差异），代码口头描述即可。</p>
+<p><strong>过渡话术</strong>（可直接套用）：<br />
+- 经验值 → 原理：「这些经验值背后其实是由分词器决定的，而分词器恰恰是固定值最大的敌人。」<br />
+- 原理 → 实践：「那工程上到底怎么用？我的原则就八个字——粗估用系数，关键路径用精算。」<br />
+- 收尾升华：「所以回到题目本身：token 数是分词器的编码结果，不是字数；任何固定值都只是特定分词器在特定语料上的近似，用对方法论比背对数字重要得多。」</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0206')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0206')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

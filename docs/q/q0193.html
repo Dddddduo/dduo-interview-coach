@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 系统如何评测？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0193</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>RAG 系统如何评测？</h1>
+    <div class="tag-row"></div>
+    <h1 id="rag">RAG 系统如何评测？</h1>
+<h1 id="rag_1">RAG 系统如何评测？</h1>
+<h2 id="must-be-first">🧠 联想记忆法（Must Be First）</h2>
+<p><strong>记忆口诀</strong>：「<strong>拆 → 测 → 评 → 闭</strong>」四步走，指标记住「<strong>三五三一</strong>」：<strong>三</strong>层评测、<strong>五</strong>个检索指标、<strong>三</strong>类生成指标、<strong>一</strong>个闭环。</p>
+<p><strong>场景联想</strong>：把 RAG 系统想象成一家「<strong>餐厅</strong>」——<br />
+- <strong>检索层 = 仓库找食材</strong>：考的是「找得全不全」（Recall）、「找得准不准」（Precision），食材库再大，找错了一样白搭；<br />
+- <strong>生成层 = 厨师做菜</strong>：考「是否照着菜谱做」（忠实度 faithfulness）、「菜好不好吃」（相关性 relevance）、「是否少加乱加料」（无幻觉率 hallucination rate）、「能不能说清用的是哪块食材」（引用准确率）；<br />
+- <strong>端到端 = 顾客整体体验</strong>：菜端上桌好不好，但出问题必须回到「仓库找料」还是「厨房做菜」去找根因——这就是<strong>分层评测</strong>的哲学。</p>
+<p><strong>记忆原理</strong>：把抽象的指标具象成「找货—做菜—试吃」三段业务流，每段对应一个动作词（找、做、吃），顺着场景就能把指标逐个「捡」起来，不会漏。</p>
+<p><strong>关联知识</strong>：你在 OrbitQA 上做过的「召回率提升 55%」——回想一下当时的量化口径，正是先固定评测集（Evaluate set）、用 Recall 类指标单测检索层、再回归生成层的过程。把「已经做过的」与「面试要讲的」锚定在一起，讲出来就自带真实感。</p>
+<h2 id="_1">📖 深度解答</h2>
+<h2 id="1">1. 核心概念（是什么）</h2>
+<p><strong>RAG 评测</strong>（RAG Evaluation）是指通过<strong>量化指标</strong>（metrics）与<strong>系统化方法</strong>（methods），对 RAG 系统「检索—增强—生成」全链路的检索质量、生成质量与整体效果进行度量的过程。</p>
+<p>一句话定义：<strong>评测的本质是把「不确定性」变成「可比较的数字」，从而驱动改进。</strong></p>
+<p><strong>为什么它难？</strong> 与普通 LLM 评测不同，RAG 有三个特有难点：<br />
+1. <strong>答案开放性</strong>：多数问题没有唯一标准答案，同一语义有无数种合法表达，精确匹配（Exact Match）天然失效；<br />
+2. <strong>误差叠加</strong>：检索错误与生成错误会<strong>级联传播</strong>——检索层捞错文档，生成层再强也「巧妇难为无米之炊」，端到端指标差时无法定位是「没找到」还是「没答对」；<br />
+3. <strong>证据维度</strong>：RAG 多了普通 LLM 没有的「证据可核验性」——不仅要答对，还要<strong>答得有出处</strong>（grounded）。</p>
+<p><strong>分层评测思想</strong>（layered evaluation）是本题的纲领：<br />
+- <strong>检索层评测</strong>（retrieval evaluation）：把「检索器 + 向量库」单独拿出来，用标准数据集测「找得对不对」；<br />
+- <strong>生成层评测</strong>（generation evaluation）：固定检索结果（给定 golden context 或固定 top-k 上下文），单独测「答得好不好」，从而<strong>隔离变量</strong>；<br />
+- <strong>端到端评测</strong>（end-to-end evaluation）：全链路跑真实用户 Query，测最终用户体验。</p>
+<p>这就是「<strong>分层 + 端到端结合</strong>」：分层用于<strong>定位</strong>，端到端用于<strong>验收</strong>。</p>
+<h2 id="2">2. 底层原理（为什么）</h2>
+<h3 id="21">2.1 为什么必须分层？—— 错误溯源原理</h3>
+<p>假设端到端正确率只有 60%，如果不分层，你永远不知道这 40% 的错误里：有多少是检索没捞到证据（retrieval miss），有多少是证据在但生成没用对（generation miss）。分层评测的本质是<strong>控制变量法</strong>：<br />
+- 测检索层：<strong>检索器 + 评测集 Query + 人工标注的 golden chunks</strong>，不经过 LLM；<br />
+- 测生成层：<strong>固定 golden context 喂给生成器</strong>，绕过检索器——如果生成层指标也低，说明是「做菜」的问题；反之，问题在「找货」。</p>
+<p>这也是我在 OrbitQA 平台上实践过的路径：先建基线评测集，量化检索层，再回归验证生成层。</p>
+<h3 id="22-retrieval-metrics">2.2 检索层指标（Retrieval Metrics）的数学原理</h3>
+<p>设 Query 为 q，标注的相关文档集合为 R（relevant set），检索器返回 top-k 文档为 A（k 个）。</p>
+<ul>
+<li><strong>召回率 @k</strong>（Recall@k）：top-k 中相关文档数 ÷ 全部相关文档数。<br />
+  Recall@k = |R ∩ A_k| / |R|<br />
+  度量「<strong>找得全不全</strong>」。QA 场景中它是<strong>漏斗上游指标</strong>——漏检率直接封顶系统上限。</li>
+<li><strong>精确率 @k</strong>（Precision@k）：top-k 中相关文档数 ÷ k。<br />
+  Precision@k = |R ∩ A_k| / k<br />
+  度量「<strong>找得准不准</strong>」，对 Token 预算（context window 成本）敏感。</li>
+<li><strong>命中率</strong>（Hit Rate）：k 个候选里至少有一个相关文档的 Query 占比。它是 Recall@k 的「0/1 简化版」，适合快速冒烟（smoke test）与线上监控。</li>
+<li><strong>MRR</strong>（Mean Reciprocal Rank，平均倒数排名）：MRR = (1/Q)Σ(1/rank_q)，其中 rank_q 是第一个相关文档在结果列表中的排名。它强调「<strong>第一个正确答案的位置</strong>」——在「检索即问答」（retrieve-and-read）场景里，首个命中位置决定生成质量上限。</li>
+<li><strong>NDCG@k</strong>（Normalized Discounted Cumulative Gain，归一化折损累计增益）：DCG@k = Σ(2^rel_i − 1)/log₂(i+1)，NDCG@k = DCG@k/IDCG@k，rel_i 是第 i 位文档的分级相关性（如 0/1/2/3 四级）。它是唯一支持<strong>分级相关性</strong>与<strong>位置折损</strong>的指标，衡量「排序整体质量」。</li>
+</ul>
+<p>设计哲学：这些指标全部是<strong>排名导向</strong>的（rank-based），因为检索器输出的是排序列表而非布尔结果；选择口径时——<strong>QA 场景优先 Recall@k 与 MRR，重排（rerank）调优场景优先 NDCG，线上监控优先 Hit Rate</strong>。</p>
+<h3 id="23-generation-metrics">2.3 生成层指标（Generation Metrics）的底层机制</h3>
+<ul>
+<li><strong>忠实度 / 有据性</strong>（Faithfulness / Groundedness）：答案中的每个陈述（claim）是否都能被检索证据支持。机制是「<strong>拆句 → 核证</strong>」：把答案拆成原子断言，用 NLI 模型或 LLM 判断每个断言与证据的蕴含关系（entailment）。Faithfulness = 被证据支持的 claim 数 / 总 claim 数。这是 RAG 与普通 LLM 评测<strong>最大的分水岭</strong>——它测的是「是否忠于证据」，而非「是否答对」。</li>
+<li><strong>相关性</strong>（Relevance）：答案与 Query 的相关程度（答非所问即低分），通常用 LLM-as-judge 打分。</li>
+<li><strong>答案正确性</strong>（Correctness）：EM 精确匹配（Exact Match）、F1（token 集合精确率与召回率的调和平均）、ROUGE（n-gram 召回导向）、BLEU（n-gram 精度导向）。这些基于字符串的指标对<strong>同义改写零容忍</strong>（EM=0 但语义正确），所以只能当「下限检查」，不能当真相。</li>
+<li><strong>无幻觉率</strong>（Hallucination-free Rate）：不含证据外信息的答案占比，与 Faithfulness 互补。</li>
+<li><strong>引用准确率</strong>（Citation Accuracy）：回答引用的每条证据与对应 claim 是否真正对齐（claim 能否支撑该 citation），防止「引用挂羊头卖狗肉」——这也是现代 RAG 系统的硬指标。</li>
+</ul>
+<h3 id="24-evaluation-methods">2.4 评测方法（Evaluation Methods）的机制对比</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>机制</th>
+<th>成本</th>
+<th>质量</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>人工评测（Human Eval）</td>
+<td>标注集 + 双人标注，算一致性（Cohen's Kappa）</td>
+<td>高</td>
+<td>最高（黄金标准）</td>
+<td>小样本精评、judge 校准</td>
+</tr>
+<tr>
+<td>LLM-as-judge</td>
+<td>打分制（pointwise 1-5）或成对对比（pairwise）</td>
+<td>低</td>
+<td>中高</td>
+<td>规模化评测</td>
+</tr>
+<tr>
+<td>规则 / 正则（Rule-based）</td>
+<td>硬校验：引用格式、链接可访问、数量正确、敏感词</td>
+<td>极低</td>
+<td>确定</td>
+<td>可机械判定的维度</td>
+</tr>
+<tr>
+<td>回归流水线（Regression）</td>
+<td>固定测试集 + CI 触发 + 指标 Diff</td>
+<td>低</td>
+<td>稳定</td>
+<td>每次迭代的门禁</td>
+</tr>
+</tbody>
+</table>
+<p>LLM-as-judge 的<strong>三大偏差</strong>必须防：<br />
+1. <strong>位置偏差</strong>（Position Bias）：成对对比时偏爱先出现的答案 → 解决：交换顺序评两次取平均，或随机打乱位置；<br />
+2. <strong>自偏好</strong>（Self-preference）：judge 偏爱与自己同族的模型输出 → 解决：用第三方模型作 judge + 参考标准答案（reference-grounded scoring）；<br />
+3. <strong>冗长偏差</strong>（Verbosity Bias）：偏爱更长答案 → 解决：prompt 中显式要求「同等质量下短者得分高」。<br />
+校准手段：抽 100 条让 LLM-judge 与人工标注对比，算一致性（Cohen's Kappa ≥ 0.7 才可上线）。</p>
+<h2 id="3">3. 实践应用（怎么用）</h2>
+<h3 id="31-41-rag">3.1 评测集构建（可联动第 41 题「RAG 评测数据集怎么建」）</h3>
+<p>三层标注结构，一份数据同时支撑分层评测：<br />
+- <strong>Query 层</strong>：从线上日志采集真实用户问题 + 专家构造的难例（多跳、歧义、时效性）；<br />
+- <strong>证据层</strong>：人工标注每个 Query 的 golden chunks（用于 Recall@k 等检索指标）；<br />
+- <strong>答案层</strong>：专家撰写 golden answer 并标注 claim → citation 对应关系（用于 EM/F1/忠实度/引用准确率）。</p>
+<p><strong>关键铁律：评测集必须与知识库隔离</strong>——golden chunk 若被索引进向量库，Recall@k 会虚高到 1.0，这就是「评测集泄漏」（data leakage）。</p>
+<h3 id="32-1python">3.2 代码示例 1：检索层指标评测（Python）</h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_retrieval</span><span class="p">(</span><span class="n">retrieved</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">goldens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">k_list</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;retrieved: 每条 query 的检索结果（按序）；goldens: 每条 query 的相关文档集合&quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">k_list</span><span class="p">:</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ret</span><span class="p">,</span> <span class="n">gold</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">retrieved</span><span class="p">,</span> <span class="n">goldens</span><span class="p">):</span>
+            <span class="n">top_k</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">rel</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">top_k</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">gold</span>
+            <span class="n">hits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rel</span><span class="p">))</span>
+        <span class="n">res</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;recall@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hits</span><span class="p">,</span> <span class="n">goldens</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">goldens</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;precision@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="n">k</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">goldens</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;hit_rate@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">h</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">goldens</span><span class="p">)</span>
+    <span class="c1"># MRR</span>
+    <span class="n">mrr</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">next</span><span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">gold</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ret</span><span class="p">,</span> <span class="n">gold</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">retrieved</span><span class="p">,</span> <span class="n">goldens</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">goldens</span><span class="p">)</span>
+    <span class="n">res</span><span class="p">[</span><span class="s2">&quot;mrr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mrr</span>
+    <span class="k">return</span> <span class="n">res</span>
+</code></pre></div>
+
+<h3 id="33-2llm-as-judge">3.3 代码示例 2：LLM-as-judge（打分制 + 位置偏差缓解）</h3>
+<div class="highlight"><pre><span></span><code><span class="n">JUDGE_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;你是评测员。请判断答案是否忠于【证据】且回答了【问题】。</span>
+<span class="s2">评分维度：faithfulness(1-5)、relevance(1-5)。证据不支持的陈述扣分。</span>
+<span class="s2">问题：</span><span class="si">{question}</span>
+<span class="s2">证据：</span><span class="si">{context}</span>
+<span class="s2">答案：</span><span class="si">{answer}</span>
+<span class="s2">仅输出 JSON：{{&quot;faithfulness&quot;: x, &quot;relevance&quot;: y}}&quot;&quot;&quot;</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pairwise_judge</span><span class="p">(</span><span class="n">judge_llm</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ans_a</span><span class="p">,</span> <span class="n">ans_b</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;成对对比 + 交换位置消偏：A vs B 和 B vs A 各评一次，取平均&quot;&quot;&quot;</span>
+    <span class="n">votes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">ans_a</span><span class="p">,</span> <span class="n">ans_b</span><span class="p">),</span> <span class="p">(</span><span class="n">ans_b</span><span class="p">,</span> <span class="n">ans_a</span><span class="p">)]:</span>  <span class="c1"># 位置互换</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">judge_llm</span><span class="o">.</span><span class="n">compare</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">first</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">second</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>  <span class="c1"># 返回 &quot;A&quot; / &quot;B&quot; / &quot;TIE&quot;</span>
+        <span class="n">votes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;B&quot;</span> <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="s2">&quot;A&quot;</span> <span class="k">else</span> <span class="s2">&quot;A&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">ans_a</span><span class="p">,</span> <span class="n">ans_b</span><span class="p">)</span> <span class="k">else</span> <span class="n">r</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">votes</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="n">votes</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>  <span class="c1"># 多数票</span>
+</code></pre></div>
+
+<h3 id="34-3ci-github-actions">3.4 代码示例 3：CI 回归门禁（GitHub Actions 思路）</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># ci/eval.yml —— 每次 PR 合并前必须过评测门禁</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python eval/run_suite.py --set regression --output report.json</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python eval/assert_gate.py report.json \</span>
+<span class="w">       </span><span class="l l-Scalar l-Scalar-Plain">--threshold faithfulness=0.85 --delta recall@10 &gt;= -0.02</span>
+</code></pre></div>
+
+<p>门禁语义：<strong>核心指标设绝对值底线，其余指标设相对回归红线</strong>（新改动不得让 Recall@10 掉超过 2 个百分点），并用固定 seed + 温度 0 + 固定模型版本保证<strong>可复现</strong>（reproducibility）。</p>
+<h3 id="35-orbitqa">3.5 项目落地案例（OrbitQA，可如实引用）</h3>
+<p>我在快手 OrbitQA 平台上的 RAG 管线正是「先建评测、再优化」的样本：固定评测集后，对<strong>检索层</strong>量化基线 → 引入 <strong>Query 压缩重写 + 多查询扩展</strong>（multi-query expansion）与 PgVector 余弦检索调优 → <strong>召回率提升 55%</strong>（同一评测集、Recall 口径），随后回归验证<strong>生成层忠实度未回退</strong>。这 55% 之所以可信，正因为它来自固定评测集 + 分层口径，而不是拍脑袋的观感——面试时可以用这段经历证明你「会量化、懂闭环」。</p>
+<h2 id="4">4. 深入思考（注意事项）</h2>
+<ol>
+<li><strong>误区一：只跑端到端指标</strong>。端到端 60 分无法定位瓶颈；正确姿势是「端到端定体验、分层定病灶」。OrbitQA 的经验是召回率提升 55% 必须单独在检索层才能量化——混合链路上这个数字会被生成噪声稀释。</li>
+<li><strong>误区二：评测集泄漏</strong>。golden chunk 进向量库 / 测试 Query 出现在训练语料，指标全部虚高。隔离 + 定期抽查泄漏。</li>
+<li><strong>误区三：LLM-as-judge 无校准</strong>。不消位置偏差、不设参考答案、不做 Kappa 一致性校验的 judge 分数，只能算「近似信号」，不能进发布门禁。</li>
+<li><strong>边界情况</strong>：多跳问题（multi-hop）——单个证据无法支撑答案，检索指标需按「链式命中」而非单文档命中统计；知识冲突（knowledge conflict）——旧文档与新文档矛盾，忠实度与正确性会打架——需引入<strong>时效性优先级</strong>策略并单独评测；流式回答与拒绝回答（refusal）——无 claims 可拆时 faithfulness 需定义为「不强行作答」；引用缺失——「答对了但没引用」在检索场景同样要扣分（citation accuracy=0）。</li>
+<li><strong>线上与离线结合</strong>：离线指标（offline metrics）无法捕捉用户体验，需配合线上灰度 A/B（采纳率、追问率、满意度），「离线评测管回归，线上指标管真理」。</li>
+<li><strong>可复现性</strong>：LLM 是随机的，温度、seed、模型版本、Prompt 版本都要纳入版本管理，否则两次评测结果不可比——这是工程化评测与学术评测的分水岭。</li>
+<li><strong>与 Agent 评测的延伸</strong>：RAG 评测是 Agent 评测的子集与基础——Agent 场景追加「工具调用正确率」「规划成功率」「多轮状态保持」，面试官很可能顺着追问，提前备好这一层。</li>
+</ol>
+<h2 id="_2">🗺️ 回答思路</h2>
+<h2 id="_3">答题逻辑框架（总分总 + 漏斗递进）</h2>
+<ol>
+<li><strong>一句话定义</strong>：评测 = 用分层指标把「不确定性」变成「可比较的数字」；</li>
+<li><strong>纲领</strong>：亮出分层评测思想（检索层 / 生成层 / 端到端），说明「分层定位 + 端到端验收」；</li>
+<li><strong>检索层</strong>：五个指标（Recall@k、Precision@k、Hit Rate、MRR、NDCG）逐一带公式与适用场景；</li>
+<li><strong>生成层</strong>：忠实度 / 相关性 / 正确性（EM、F1、ROUGE、BLEU）/ 无幻觉率 / 引用准确率，强调「证据维度是 RAG 评测的灵魂」；</li>
+<li><strong>评测方法</strong>：人工（标注集 + Kappa）→ LLM-as-judge（三类偏差与消解）→ 规则正则 → 回归流水线门禁；</li>
+<li><strong>工程化闭环</strong>：评测集隔离、CI 集成、可复现、badcase 反哺（评测集持续扩充）；</li>
+<li><strong>收尾</strong>：用 OrbitQA「召回率提升 55%」案例证明你真正跑过完整闭环。</li>
+</ol>
+<h2 id="_4">重点得分点</h2>
+<ul>
+<li><strong>分层思想先出口</strong>：一上来就分检索/生成/端到端，立刻区别于背指标的候选人（最高分项）；</li>
+<li><strong>公式不离嘴</strong>：随口写出 Recall@k、MRR、NDCG 的公式，证明懂数学原理而非背名词；</li>
+<li><strong>讲出「为什么分层」</strong>：误差溯源、控制变量——这是深度分界线；</li>
+<li><strong>LLM-as-judge 的偏差防御</strong>：位置偏差、自偏好、冗长偏差 + 交换位置消偏——体现「评测的评测」意识；</li>
+<li><strong>工程化四件套</strong>：隔离、CI、可复现、badcase 闭环——体现生产级工程思维；</li>
+<li><strong>量化案例</strong>：召回率提升 55% 且强调「同一评测集、口径可复现」，让面试官信服。</li>
+</ul>
+<h2 id="_5">常见误区</h2>
+<ul>
+<li>❌ 把 RAG 评测等同于「LLM 问答准确率」，完全没提忠实度与引用——丢掉了 RAG 的灵魂维度；</li>
+<li>❌ 罗列指标却不讲适用场景与选择逻辑（如 QA 场景为何重 Recall）；</li>
+<li>❌ 只吹 LLM-as-judge 不提偏差与校准，暴露纸上谈兵；</li>
+<li>❌ 无脑说「多测几个指标」，没有分层、没有闭环、没有量化案例。</li>
+</ul>
+<h2 id="4-5">时间分配建议（总计约 4-5 分钟）</h2>
+<ul>
+<li><strong>0-40s</strong>：定义 + 分层评测思想（抛出纲领，给全篇定调）；</li>
+<li><strong>40s-2min</strong>：检索层五指标 + 公式（节奏最快处，展示记忆密度）；</li>
+<li><strong>2-3min</strong>：生成层指标 + LLM-as-judge 方法（信息量最大，讲慢讲透）；</li>
+<li><strong>3-4min</strong>：评测集构建 + 工程化闭环 + CI 门禁；</li>
+<li><strong>4-4.5min</strong>：OrbitQA 案例收尾（召回率提升 55%），落到「我做过的量化闭环」。</li>
+</ul>
+<h2 id="_6">过渡话术</h2>
+<ul>
+<li>进入分层：「<strong>要评测，先拆解</strong>——检索和生成是两个完全不同的质量维度，必须分开测才能定位瓶颈。」</li>
+<li>检索 → 生成：「找得对不等于答得好，接下来看证据到答案这一步。」</li>
+<li>指标 → 方法：「指标是尺子，方法是用尺子的人——同样一把尺，不同量法误差天差地别。」</li>
+<li>方法 → 工程化：「评测不闭环等于白测——指标必须进 CI、badcase 必须反哺数据集。」</li>
+<li>收尾案例：「这套流程我在 OrbitQA 完整跑通过：同一评测集下，Query 重写 + 多查询扩展让检索层召回率提升 55%，且生成层忠实度无回退。」</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0193')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0193')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

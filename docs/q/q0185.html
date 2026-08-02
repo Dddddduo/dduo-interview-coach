@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工具调用的安全控制是怎么实现的？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0185</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>工具调用的安全控制是怎么实现的？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">工具调用的安全控制是怎么实现的？</h1>
+<h1 id="_2">工具调用的安全控制是怎么实现的？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>记忆锚点：把 Agent 的工具调用想象成"进银行保险柜"，过五道关卡——认 → 验 → 控 → 审 → 记。</strong></p>
+<ol>
+<li><strong>认（认证与授权 Authentication &amp; Authorization）</strong>：刷门禁卡才能进——谁能碰哪把锁（工具级 ACL 访问控制列表）、卡是谁的（用户身份传递 Identity Propagation）、你是哪层楼的人（租户隔离 Tenant Isolation）。</li>
+<li><strong>验（输入校验 Input Validation）</strong>：验钞机验钱——参数类型/范围/正则/枚举白名单，专拦假钞（注入过滤：路径穿越 Path Traversal、SQL 注入 SQL Injection）。</li>
+<li><strong>控（执行控制 Execution Control）</strong>：保安盯着——超时（Timeout）、重试上限、并发限制、沙箱（Sandbox）执行。</li>
+<li><strong>审（分级审批）</strong>：大额取款要柜员复核——高风险操作人工确认（Human-in-the-loop）、资金/删除类二次确认。</li>
+<li><strong>记（幂等与审计）</strong>：全程监控录像——操作幂等（Idempotency）防重复扣款 + 全量审计日志（Audit Log）。</li>
+</ol>
+<p>再加一句<strong>护身符口诀</strong>："权限在代码，不在提示词（Permissions in code, not in prompt）。"五个字加一句口诀，整道题的骨架就立住了。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p>工具调用安全控制（Tool Call Security Control）指的是：在 Agent 执行 LLM 生成的 tool_call（工具调用）之前，由后端平台对每一次调用做<strong>认证授权、输入校验、执行限制、分级审批与全量审计</strong>的全链路防护，而不是把安全寄托在 LLM 的"自觉"上。</p>
+<p>三个关键前提：<br />
+- <strong>最小权限（Least Privilege）</strong>：Agent 能看到的工具集合本身就是裁剪过的，未注册的工具根本不可被调用。<br />
+- <strong>纵深防御（Defense in Depth）</strong>：多道独立防线叠加——即使 LLM 被 Prompt 注入（与第 30 题联动）或幻觉（Hallucination）生成了恶意调用，后续每一道确定性的代码防线仍能拦截。<br />
+- <strong>代码层强制（Enforcement at Code Level）</strong>：LLM 输出只是"请求"而不是"授权"。权限校验发生在执行器（Executor）代码里，与模型无关。</p>
+<h3 id="2">2. 底层原理</h3>
+<p><strong>一次工具调用的完整生命周期</strong>：LLM 输出结构化 tool_call → 协议层解析（OpenAI Function Calling / MCP 协议）→ <strong>安全网关（Security Gateway）</strong>：鉴权 → 参数校验 → 风险评级 →（必要时）审批门 → 执行 → 结果脱敏回传 → 审计落库。任何一步失败即短路（Fail-Closed，失败即拒绝执行），而不是"尽力而为"。</p>
+<p><strong>认证与授权</strong>：<br />
+- 工具注册表（Tool Registry）中每个工具声明所需权限（Scope），机制类似 OAuth 的 scope；调用前用"当前主体 × 工具 × 动作"三元组做策略检查。<br />
+- 用户身份传递（Identity Propagation）：从请求上下文（如 JWT JSON Web Token）取真实用户 ID 传入工具执行层，<strong>不信任 LLM 在对话里自称的身份</strong>。<br />
+- 租户隔离（Tenant Isolation）：数据类工具强制注入 tenantId 过滤条件，防止 Agent 跨租户读取数据。</p>
+<p><strong>输入校验</strong>：<br />
+- 基于工具声明的 JSON Schema（如 MCP 的 inputSchema）做结构化校验：类型、取值范围、正则、枚举白名单（Enum Whitelist）。用 zod、jsonschema 等校验库<strong>强校验</strong>，而不是"提示 LLM 遵守参数描述"。<br />
+- 注入过滤：文件类参数先做路径规范化（Canonical Path）再校验前缀，挡 <code>../../etc/passwd</code>；SQL 类一律参数化（Prepared Statement）；命令类禁止拼接 shell 字符串。</p>
+<p><strong>执行控制</strong>：<br />
+- 超时（Timeout）：每类工具配置最大耗时（如搜索工具 10 秒），防止 Agent 循环调用拖垮系统。<br />
+- 重试上限（Max Retries）+ 幂等键（Idempotency Key）：防止失败重试引发重复扣款、重复下单。<br />
+- 并发限制（Concurrency Limit）：信号量/令牌桶控制同时执行的工具数量。<br />
+- 沙箱执行（Sandbox）：不可信工具放进子进程 + 资源限制（rlimit）、轻量容器（gVisor、Firecracker）或独立网络命名空间，限制文件系统与网络访问。</p>
+<p><strong>敏感操作防护</strong>：<br />
+- 工具按风险分级（只读 read-only / 写 write / 破坏性 destructive），高风险操作（转账、删除、发消息）进入<strong>人工确认队列（Human-in-the-loop）</strong>，确认请求必须携带原始 tool_call ID，防止前端伪造审批。<br />
+- 全量审计：每次调用的入参、执行者、结果、耗时、审批人全部落库；敏感参数（密码、Token）先打码（Masking）再记录。</p>
+<h3 id="3">3. 实践应用</h3>
+<p>工程实现的三条主线：<br />
+- <strong>Spring Security / 自定义拦截器</strong>：在 Filter/Interceptor 层拦截 <code>/agent/tools/**</code> 请求，前置做鉴权与参数校验；或用 AOP 注解（如 <code>@RequiresToolPermission("file:delete")</code>）标注工具方法，由切面统一执行策略。<br />
+- <strong>MCP 工具注册时声明权限注解</strong>：MCP Server 的工具 JSON 描述中携带 <code>permissions</code>、<code>dangerLevel</code> 等元数据，服务端在执行入口统一解析校验——注册即声明，声明即策略。<br />
+- <strong>Agent 平台的 Guard Layer（守护层）</strong>：在工具执行器外包一层校验链（鉴权 → 校验 → 风险评级 → 审批门 → 脱敏 → 审计），所有工具强制走同一管道，不允许旁路（Bypass）。</p>
+<p><strong>越权与数据泄漏防护</strong>：工具返回数据过脱敏层（Response Sanitization）再拼回上下文，手机号、密钥用与模型无关的规则打码；查询工具自动拼接租户条件，行级权限（Row-Level Security）兜底。</p>
+<p><strong>常见坑（务必主动说出）</strong>：<br />
+1. <strong>只靠 Prompt 约束</strong>："告诉 LLM 别调用危险工具"——可被注入一句话直接绕过，权限必须在代码层强制。<br />
+2. <strong>参数未校验直接执行</strong>：path 传 <code>../../etc/passwd</code>、SQL 拼接注入，LLM 生成什么就执行什么。<br />
+3. <strong>日志泄露敏感参数</strong>：审计日志记录完整密钥/SQL 明文，被日志系统或运维侧泄露。<br />
+4. <strong>重试无幂等</strong>：一次超时重试导致重复扣款。<br />
+5. <strong>审批只做前端</strong>：绕过前端直接调后端 API 即失效——后端必须再次强制校验。</p>
+<h3 id="4-agent">4. 深入思考：如何设计一个通用的 Agent 工具安全框架</h3>
+<p>一个可复用的框架应具备五个要素：<br />
+1. <strong>声明式安全（Declarative Security）</strong>：工具开发者只声明 metadata（权限、危险等级、资源范围、Schema），框架自动生成校验器与策略，避免"每个工具各写一套校验"。<br />
+2. <strong>策略引擎（Policy Engine）</strong>：引入 OPA（Open Policy Agent，开放策略代理）/ Rego 或自研规则引擎，把授权策略与业务代码解耦，策略可热更新、可审计。<br />
+3. <strong>上下文感知校验（Context-Aware Validation）</strong>：参数校验结合用户上下文实现对象级权限（Object-level ACL），如"只能查询 userId 等于自己的订单"，根治越权查询他人数据。<br />
+4. <strong>治理闭环（Governance Loop）</strong>：审批、审计、可观测性（Observability）、熔断（Circuit Breaker）四位一体，形成"调用—监控—阻断—追溯"闭环。<br />
+5. <strong>与 Prompt 注入防御联动</strong>：工具安全层是注入攻击的"最后一公里"防线——即使 LLM 被注入诱导生成恶意工具调用，授权、校验、审批三道代码层防线仍能拦截。可对齐 OWASP Top 10 for LLM Applications 做体系化评估（提示注入、敏感信息泄露、过度授权 Excessive Agency、资源无限消耗 Unbounded Consumption 等条目都直接对应工具安全）。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<h3 id="_6">答题逻辑框架（总分总）</h3>
+<ol>
+<li><strong>总</strong>：一句话定义 + 三个核心原则（最小权限、纵深防御、代码层强制）。</li>
+<li><strong>分</strong>：按"认→验→控"三层展开，每层各给一个具体例子；再补"审与记"（分级审批、幂等、审计日志）。</li>
+<li><strong>合</strong>：落到工程实现（Spring Security / MCP 注解 / Guard Layer）→ 讲 2~3 个坑 → 抛出通用框架设计（声明式 + 策略引擎 + 治理闭环）。</li>
+</ol>
+<h3 id="_7">重点得分点</h3>
+<ul>
+<li>说出"权限在代码，不在提示词"并解释原因（LLM 可被注入/幻觉，不可信）。</li>
+<li>展示全链路视角：从 tool_call 生成到审计落库，而不只是单点校验。</li>
+<li>主动提到幂等、二次确认、结果脱敏这些"非显性但高价值"的点。</li>
+<li>主动联动第 30 题 Prompt 注入防御（工具安全层是注入的最后一公里）。</li>
+<li>抛出 OWASP Top 10 for LLM、OPA、MCP、gVisor 等关键词，证明有实战视野。</li>
+</ul>
+<h3 id="_8">常见误区</h3>
+<ul>
+<li>只谈"让 LLM 别乱调工具"，不谈代码层强制——这是最致命的扣分点。</li>
+<li>把认证（Authentication，你是谁）和授权（Authorization，你能干什么）混为一谈。</li>
+<li>只讲输入校验，漏掉执行控制（超时/沙箱）与审计治理。</li>
+<li>答成纯八股背诵，没有生命周期或工程落地的描述。</li>
+</ul>
+<h3 id="23">时间分配建议（总时长 2~3 分钟）</h3>
+<ul>
+<li>0~30 秒：定义 + 五字诀（认验控审记）+ 一句口诀。</li>
+<li>30~90 秒：三层安全模型展开，每层 20 秒，各带一个例子。</li>
+<li>90~120 秒：敏感操作防护 + 工程实现（Spring Security / MCP 注解 / Guard Layer）。</li>
+<li>120~150 秒：2 个坑 + 通用框架设计（声明式 + 策略引擎 + 治理闭环）。</li>
+</ul>
+<h3 id="_9">过渡话术</h3>
+<ul>
+<li>开场："工具调用安全可以拆成三个层面来理解：认证授权管'谁能用'，输入校验管'参数对不对'，执行控制管'怎么跑得安全'。"</li>
+<li>三层切敏感操作："光有这三层还不够——对高风险的敏感操作，还需要额外的审批与审计机制，类似银行的柜员双人复核。"</li>
+<li>原理切实践："落地到工程上，我们不是去约束 LLM，而是在执行器外面包一层强制校验的 Guard Layer，所有工具统一走这条管道。"</li>
+<li>收尾升华："更进一步，如果要把这套能力做成通用的 Agent 工具安全框架，核心就是声明式安全加策略引擎，把权限治理从业务代码中解耦出来。"</li>
+</ul>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0185')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0185')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

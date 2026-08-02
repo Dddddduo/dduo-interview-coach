@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大模型应用上线前你最关心哪些工程指标？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0208</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>大模型应用上线前你最关心哪些工程指标？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">大模型应用上线前你最关心哪些工程指标？</h1>
+<h1 id="_2">大模型应用上线前你最关心哪些工程指标？</h1>
+<h2 id="_3">🧠 联想记忆法（必须最前）</h2>
+<p><strong>口诀：质、效、本，稳、安、体——六维把关，门禁+监控串成闭环。</strong></p>
+<p>用"一次用户提问的完整旅程"串起六类指标:</p>
+<ul>
+<li>用户发出问题 → 系统要<strong>快</strong>(性能:TTFT 首 token 延迟、P95 尾延迟)</li>
+<li>系统要答得<strong>对</strong>(质量:准确率、忠实度、badcase 密度)</li>
+<li>系统要<strong>贵得起</strong>(成本:单次调用成本、token 消耗结构)</li>
+<li>服务要<strong>不挂</strong>(稳定性:可用性、错误率、上游 API 故障率)</li>
+<li>内容要<strong>不出事</strong>(安全:注入拦截率、敏感信息泄漏)</li>
+<li>用户要<strong>愿意用</strong>(体验:采纳率、追问率、流失率)</li>
+</ul>
+<p>英文侧记三组:"<strong>首尾吞</strong>"= TTFT + 尾延迟(P95/P99) + 吞吐(QPS);"<strong>一可用二错误三超时</strong>"= 稳定性三件套;"<strong>上游四二九</strong>"= 依赖 API 的 429 限流/5xx 故障是常见事故源。</p>
+<p>再记一句答题主骨架:<strong>"质量是上线第一关,性能是体感,成本是盈亏,稳定是底线,安全是红线,体验是终局"</strong>——这句话本身就是回答的提纲。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="1">1. 核心概念:一套"六维指标 + 门禁 + 监控"的度量体系</h3>
+<p>上线前最关心的不是某一个指标,而是一整套<strong>可量化、可门禁、可观测</strong>的体系。我把它分成六类:</p>
+<p><strong>a) 质量指标 (Quality)</strong>——上线第一关,答不对一切归零:<br />
+- <strong>离线评测集准确率 (offline eval accuracy)</strong>:固定评测集(如 500-1000 条带标注问题)上的正确率;<br />
+- <strong>忠实度 (faithfulness)</strong>:RAG(Retrieval-Augmented Generation,检索增强生成)场景下,生成内容与检索引用是否一致,是<strong>幻觉 (hallucination)</strong> 的代理指标;<br />
+- <strong>拒答率 (refusal rate)</strong>:超出能力范围的问题是否诚实拒绝,而不是硬编;<br />
+- <strong>badcase 密度 (badcase density)</strong>:每百条回答中错误/无关/有害用例占比,比单点准确率更贴近真实质量。</p>
+<p><strong>b) 性能指标 (Performance)</strong>:<br />
+- <strong>TTFT (Time To First Token,首 token 延迟)</strong>:用户看到第一个字的等待时间,决定"打字感";<br />
+- <strong>端到端延迟 (end-to-end latency) 的 P50/P95/P99</strong>:P50 是常态体验,P95/P99 是长尾体验;<br />
+- <strong>吞吐 QPS (Queries Per Second) 与并发上限 (max concurrency)</strong>:撑住多大流量而不劣化。</p>
+<p><strong>c) 成本指标 (Cost)</strong>:<br />
+- <strong>单次调用成本 (cost per call)</strong>:按 token 计费的单次平均成本;<br />
+- <strong>token 消耗结构</strong>:输入输出配比、prompt 缓存 (prompt caching) 命中率;<br />
+- <strong>成本/质量比</strong>:单位成本换来的质量分,防止"为 1% 质量多花 3 倍钱"。</p>
+<p><strong>d) 稳定性指标 (Stability)</strong>:可用性 (availability)、错误率 (error rate)、超时率 (timeout rate)、限流触发率 (rate limit trigger rate)、<strong>依赖的 LLM API 故障率 (upstream failure rate)</strong>。</p>
+<p><strong>e) 安全指标 (Security)</strong>:注入攻击拦截率 (prompt injection interception rate)、敏感信息泄漏检出率、内容安全审核命中率 (content moderation hit rate)。</p>
+<p><strong>f) 体验指标 (Experience)</strong>:用户满意度 (CSAT)、采纳率 (adoption rate,用户是否复制/点赞/采纳回答)、追问率 (follow-up rate)、流失率 (churn rate)。</p>
+<h3 id="2">2. 底层原理:为什么是这六类、为什么这么拆</h3>
+<ul>
+<li><strong>生成式+流式 (streaming) 输出</strong>决定了延迟必须拆成 TTFT 和首字之后的输出速度 (TPOT, time per output token)。排队、上游 API 抖动、上下文过长都会拉长尾延迟,而尾延迟正是用户喊"卡"的来源——所以只看平均值是自欺欺人,必须看 P95/P99。</li>
+<li><strong>非确定性 (non-deterministic)</strong>:LLM 采样 (sampling) 使同一问题多次回答不同,单条用例无法评估,必须"评测集 + 统计口径 + badcase 人工回归"。忠实度之所以关键,是因为幻觉是"语言上自信、事实上错误",普通准确率测不出来。</li>
+<li><strong>按量计费 (usage-based pricing)</strong>:输出 token 通常比输入贵数倍,重试、注入检索片段、上下文堆叠都直接抬价,所以 token 消耗结构决定成本曲线,必须看成本/质量比这个复合指标。</li>
+<li><strong>依赖链传导</strong>:自建服务 → LLM API 供应商,上游一次 429/5xx 故障会逐级放大,所以稳定性指标必须覆盖上游故障率,并配套重试 (retry)、熔断 (circuit breaker)、降级 (degradation) 三层防御。</li>
+<li><strong>指令跟随 (instruction following) 的安全悖论</strong>:模型越听话越易被注入攻击操纵,内容安全必须"输入侧拦截 + 输出侧审核"双向守护,故安全单列一维。</li>
+<li><strong>体验是结果指标</strong>:前五类都是过程指标,体验才是最终裁判;但它依赖真实用户流量,天然属于上线后阶段——这正好引出第 4 层的取舍逻辑。</li>
+</ul>
+<h3 id="3">3. 实践应用:门禁、灰度、监控、压测、伸缩熔断</h3>
+<p><strong>设定上线门禁 (release gate)</strong>:把指标翻译成 <strong>SLO (Service Level Objective,服务目标)</strong> 与 <strong>SLA (Service Level Agreement,服务协议)</strong>——SLO 是内部承诺,SLA 是对外契约(含赔偿条款),门禁引用 SLO。举例:质量上"离线准确率 ≥ 90%、忠实度 ≥ 85%、badcase 密度 ≤ 2% 且 P0 级为 0";性能上"TTFT P95 ≤ 2s、端到端 P95 ≤ 5s";稳定上"可用性 ≥ 99.9%、错误率 ≤ 0.5%、超时率 ≤ 1%";成本上"单次调用成本 ≤ 阈值"。任一项不达标即<strong>阻断上线</strong>。</p>
+<p><strong>灰度放量 (canary release)</strong>:5% → 20% → 50% → 100% 逐档放量,每档停留观察 1-2 小时以上,盯六类指标与 badcase 密度,否决项亮红灯立即回滚 (rollback),期间保留旧流量做对照组。</p>
+<p><strong>A/B 实验</strong>:同一流量对比模型版本、提示词 (prompt) 策略、检索 TopK,以体验与业务指标为准做显著性检验,样本覆盖至少一周流量周期。</p>
+<p><strong>监控体系</strong>:<br />
+- <strong>全链路可观测 (observability)</strong>:用 OpenTelemetry 打通 trace,<strong>贯穿"query → 检索 (embedding + retrieval) → prompt 组装 → LLM 调用 → 后处理"每一段</strong>,每段埋耗时、token 数、重试次数,按 request_id 串联日志与指标——出问题一键定位是检索慢还是模型慢;<br />
+- <strong>告警分级</strong>:P0(可用性掉线、敏感信息泄漏)即时电话/IM 告警;P1(错误率、P95 超阈值)5 分钟内响应;P2(成本环比激增、性能劣化趋势)日级跟进;<br />
+- <strong>成本看板</strong>:按业务线/功能/模型维度拆日成本,设预算与环比告警,异常涨点(如某 prompt 把日志全量塞进上下文)当日暴露。</p>
+<p><strong>工程实践</strong>:<br />
+- <strong>压测方法</strong>:真实流量回放 (traffic replay) 或 k6/Locust 构造混合负载(长问答+短问答+高并发),压出延迟/错误率拐点以测定并发上限,并特意模拟上游 429/5xx 验证熔断是否生效;<br />
+- <strong>弹性伸缩 (elastic scaling)</strong>:自建推理层(如 vLLM)按请求队列长度做 HPA (Horizontal Pod Autoscaling,水平伸缩);依赖第三方 API 时做连接池与排队控制;<br />
+- <strong>熔断降级</strong>:上游错误率超阈值(如 30%)或持续超时 → 熔断,降级到"缓存命中回答/小模型/预设话术",可用性优先——这就是<strong>第 55 题"限流、熔断、降级三件套"</strong>在 LLM 场景的落地。</p>
+<h3 id="4-vs">4. 深入思考:否决项 vs 可后置优化</h3>
+<p><strong>上线否决项 (veto items)</strong>——四类红线,不达标坚决不上线:<br />
+- <strong>P95 延迟超 SLA</strong>:尾延迟是体感灾难,上线后口碑难以挽回;<br />
+- <strong>幻觉率/忠实度超标</strong>:直接摧毁信任,可能带来事实性法务风险;<br />
+- <strong>成本失控</strong>:算不过账的功能注定被下线;<br />
+- <strong>敏感信息泄漏、可用性低于目标</strong>:合规红线与事故底线。</p>
+<p><strong>可上线后优化</strong>:体验类指标(采纳率、追问率)必须靠真实用户统计,天然后置;长尾 badcase 打磨、提示词精调、模型路由 (model routing,简单问题走小模型省钱)、缓存策略、检索调参,在灰度期逐步迭代,形成"上线 → 监控 → 迭代"闭环。</p>
+<p><strong>更深一层</strong>:警惕指标间的<strong>联动与冲突</strong>——提质量常拉高成本,压成本可能伤质量,所以要盯"成本/质量比";还要警惕<strong>古德哈特定律 (Goodhart's law)</strong>:指标一旦成为考核目标就失去意义——拒答率压得过低会逼模型硬编,所以质量评测要设"拒答率上限 + 准确率下限"双向约束。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架(总分总)</strong>:开场一句话给框架——"我把上线前指标分成六类:质量、性能、成本、稳定、安全、体验;再用门禁 + 灰度 + 监控把它们串成闭环"。中间按"六类速览 → 门禁放量 → 监控压测 → 否决项收尾"展开,结尾回到主骨架句收束。</p>
+<p><strong>重点得分点</strong>:<br />
+1. <strong>框架完整</strong>:六类全覆盖,比只答"延迟和 QPS"高一个段位;<br />
+2. <strong>有具体数值</strong>:能报出 SLO 例子(如 P95 ≤ 5s、可用性 99.9%),证明真做过;<br />
+3. <strong>有工程细节</strong>:trace 贯穿检索-生成、灰度比例、真实流量回放压测;<br />
+4. <strong>有取舍判断</strong>:分清否决项与可后置优化,体现工程判断力;<br />
+5. <strong>有闭环</strong>:门禁 → 灰度 → A/B → 监控 → 迭代,不是罗列指标而是呈现体系。</p>
+<p><strong>常见误区</strong>:<br />
+- 只答性能指标,漏掉质量与成本(面试官必追问"答错了怎么办""钱谁出");<br />
+- 拿离线准确率当唯一质量指标,漏了忠实度、拒答率、badcase 密度;<br />
+- 只报平均延迟,不分 P50/P95/P99;<br />
+- 说不清 SLO 与 SLA 区别(内部目标 vs 对外契约);<br />
+- 没有回滚预案;完全不谈成本,显得缺乏商业 sense。</p>
+<p><strong>时间分配建议</strong>(按 3-5 分钟作答):0.5 分钟框架总述 → 2 分钟六类指标速览(每类一句话定义 + 挑 1-2 个关键指标展开)→ 1 分钟门禁 + 灰度 + A/B → 1 分钟监控与压测/熔断降级 → 0.5 分钟"否决项 vs 可后置优化"收尾。</p>
+<p><strong>过渡话术</strong>:<br />
+- 「指标分层的价值在于:不同角色关心不同指标,而我要保证每一层都有数字兜底。」<br />
+- 「质量是上线第一关——答得不对,速度再快、成本再低也没有意义,所以我先看评测集准确率和忠实度。」<br />
+- 「指标不是上线那天才看的,我把它拆成两个清单:上线前必须达标的否决项,和上线后用数据持续迭代的优化项。」</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0208')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0208')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

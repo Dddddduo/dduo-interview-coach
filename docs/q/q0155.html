@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对消息队列有什么了解？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0155</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>对消息队列有什么了解？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">对消息队列有什么了解？</h1>
+<h1 id="_2">对消息队列有什么了解？</h1>
+<hr />
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>1. 生活场景记忆：快递驿站模型</strong><br />
+把消息队列想成"快递驿站"：生产者（Producer）是寄件人，驿站是队列（Queue），消费者（Consumer）是收件人。寄件人寄完就走（<strong>异步</strong>），不用等收件人在家；双十一爆仓时驿站先存着慢慢送（<strong>削峰</strong>）；寄件人和收件人互不认识、不互相等待（<strong>解耦</strong>）。一句话：<strong>"寄件不等人、爆仓先囤货、双方不认识"</strong>，三大作用就记住了。</p>
+<p><strong>2. 谐音口诀：解耦、削峰、异步 → "戒熬夜"</strong><br />
+取三个词首字"解、削、异"，谐音记成"<strong>戒熬夜</strong>"——用了消息队列，系统之间不用同步死等对方（熬夜加班），还能扛住流量高峰。面试开口第一句就能背出来。</p>
+<p><strong>3. 四不原则：不丢、不重、不乱、不积</strong><br />
+面试官最爱的追问全在这四个字里：<strong>消息丢失（不丢）、重复消费（不重）、顺序错乱（不乱）、消息堆积（不积）</strong>。答题时主动把这"四不"讲一遍，再配各自的解决套路，就能覆盖 80% 的追问。</p>
+<p><strong>4. 三商对比记忆：K快、R事务、兔路由</strong><br />
+- Kafka 的 K → 吞吐最 <strong>快</strong>（Kuaì），日志/大数据场景；<br />
+- RocketMQ 的 R → <strong>事务</strong>可靠（Reliable），火箭名字像阿里巴巴内部场景，电商交易用；<br />
+- RabbitMQ 的兔子 → 小巧灵活，<strong>路由</strong>（Routing）能力最强，中小企业首选。</p>
+<hr />
+<h2 id="_4">📖 深度解答</h2>
+<h3 id="1">1. 核心概念</h3>
+<p><strong>定义</strong>：消息队列（Message Queue，MQ）是分布式系统中的异步通信中间件，本质是一个"先进先出"的暂存容器，负责在发送方和接收方之间传递数据，实现二者在生产时间上的解耦。</p>
+<p><strong>核心模型</strong>（高频考点，务必画图）：</p>
+<div class="highlight"><pre><span></span><code>生产者<span class="w"> </span><span class="nv">Producer</span><span class="w"> </span>──<span class="k">send</span>──▶<span class="w"> </span><span class="nv">Broker</span>（<span class="nv">MQ</span><span class="w"> </span>服务端）
+<span class="w">                           </span>└──<span class="w"> </span><span class="nv">Topic</span>（主题，逻辑分类，如<span class="w"> </span><span class="nv">order</span><span class="o">-</span><span class="nv">topic</span>）
+<span class="w">                                </span>├──<span class="w"> </span><span class="nv">Partition</span><span class="o">-</span><span class="mi">0</span><span class="w"> </span>──<span class="w"> </span>消息<span class="mi">1</span>、<span class="mi">4</span>、<span class="mi">7</span>…（分区内有序）
+<span class="w">                                </span>├──<span class="w"> </span><span class="nv">Partition</span><span class="o">-</span><span class="mi">1</span><span class="w"> </span>──<span class="w"> </span>消息<span class="mi">2</span>、<span class="mi">5</span>、<span class="mi">8</span>…（分区内有序）
+<span class="w">                                </span>└──<span class="w"> </span><span class="nv">Partition</span><span class="o">-</span><span class="mi">2</span><span class="w"> </span>──<span class="w"> </span>消息<span class="mi">3</span>、<span class="mi">6</span>、<span class="mi">9</span>…（分区内有序）
+<span class="w">                                     </span>│<span class="w">  </span>分区<span class="ss">(</span><span class="nv">Partition</span><span class="ss">)</span>是并行度和存储的基本单元
+<span class="w">                                     </span>▼<span class="w"> </span><span class="nv">pull</span>（消费者主动拉取）
+<span class="w">                       </span>消费者组<span class="w"> </span><span class="nv">Consumer</span><span class="w"> </span><span class="nv">Group</span>
+<span class="w">                       </span>组内消费者并行消费；一个分区同一时刻只被组内一个消费者消费
+</code></pre></div>
+
+<p>关键术语（首次出现中英对照）：<br />
+- <strong>生产者</strong>（Producer）：发消息的一方；<br />
+- <strong>消费者</strong>（Consumer）：收消息的一方；<strong>消费者组</strong>（Consumer Group）：多个消费者组成的消费集群；<br />
+- <strong>Broker</strong>：MQ 服务端进程/节点；<br />
+- <strong>主题</strong>（Topic）：消息的逻辑分类，一个 Topic 可被多组消费者订阅；<br />
+- <strong>分区</strong>（Partition）：Topic 的物理分片，是并行度和有序性的关键；<br />
+- <strong>偏移量</strong>（Offset）：消息在分区中的序号，记录消费进度；<br />
+- <strong>ACK</strong>：确认（Acknowledgment），消费者处理成功后告诉 Broker 可以删/续传。</p>
+<p><strong>两大消费模型</strong>：<strong>点对点</strong>（Point-to-Point，Queue 模型，一条消息只被一个消费者消费）与<strong>发布订阅</strong>（Publish/Subscribe，Topic 模型，一条消息被多个消费者组各消费一次）。</p>
+<p><strong>三大作用</strong>：解耦（Decoupling）、削峰（Peak Shaving）、异步（Asynchronization）。</p>
+<h3 id="2">2. 底层原理</h3>
+<p><strong>存储原理</strong>：以 Kafka 为例，吞吐的秘密是<strong>顺序写盘 + 页缓存 + 零拷贝</strong>。<br />
+- <strong>顺序追加写</strong>（Sequential Append）：消息只追加到分区文件末尾，磁盘顺序写速度接近内存随机写（约 600MB/s 级），避免随机 I/O 的寻道开销；<br />
+- <strong>页缓存</strong>（PageCache）：写入先进 OS 页缓存，后台统一刷盘（flush），读写都命中内存；<br />
+- <strong>零拷贝</strong>（Zero Copy）：消费端读取时用 <code>sendfile</code> 系统调用，数据从磁盘页缓存直接到网卡，绕过"内核态→用户态→内核态"两次拷贝，节省 CPU。</p>
+<p><strong>ACK 与投递语义</strong>（必考）：三个级别——<br />
+- <strong>至多一次</strong>（At Most Once）：发完即确认，可能丢，不重；<br />
+- <strong>至少一次</strong>（At Least Once）：失败重发/重试，不丢，可能重——<strong>业界默认选这个，由此引出幂等</strong>；<br />
+- <strong>恰好一次</strong>（Exactly Once）：配合幂等 + 事务，最严格、成本最高。</p>
+<p><strong>持久化</strong>（Persistence）：消息落盘策略，Kafka 靠副本数（<code>replication.factor &gt;= 3</code>）+ ISR（In-Sync Replicas，同步副本集合）+ 刷盘参数保证；RocketMQ 支持同步刷盘/异步刷盘。</p>
+<p><strong>顺序性</strong>（Ordering）：分区内有序、分区间无序——要全局有序就单分区单消费者；局部有序（同一订单的消息有序）用 key 哈希路由到同一分区。</p>
+<p><strong>幂等</strong>（Idempotency）：同一业务操作执行多次与一次结果相同，靠业务唯一键 + 去重表（数据库唯一索引 / Redis <code>SETNX</code>）实现。</p>
+<p><strong>消息堆积</strong>（Backlog）：消费速度跟不上生产速度时消息积压，用消费组 lag 指标监控。</p>
+<p><strong>代码示例</strong>（Kafka Java 伪代码）：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 生产者：保证不丢消息的最小配置</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;acks&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;all&quot;</span><span class="p">);</span><span class="w">               </span><span class="c1">// 所有副本确认成功才返回，防 Leader 切换丢消息</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;retries&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span><span class="w">                </span><span class="c1">// 网络抖动自动重试</span>
+<span class="n">props</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;enable.idempotence&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;true&quot;</span><span class="p">);</span><span class="c1">// 幂等生产者，重试不产生重复</span>
+
+<span class="c1">// 消费者：消费成功后才提交 offset（手动 ACK），并做幂等去重</span>
+<span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ConsumerRecords</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">records</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">consumer</span><span class="p">.</span><span class="na">poll</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMillis</span><span class="p">(</span><span class="mi">1000</span><span class="p">));</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">ConsumerRecord</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">records</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">boolean</span><span class="w"> </span><span class="n">first</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">redis</span><span class="p">.</span><span class="na">setnx</span><span class="p">(</span><span class="s">&quot;consumed:&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">record</span><span class="p">.</span><span class="na">key</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="n">TimeUnit</span><span class="p">.</span><span class="na">SECONDS</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">first</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">orderService</span><span class="p">.</span><span class="na">process</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">());</span><span class="w">   </span><span class="c1">// 业务处理</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">consumer</span><span class="p">.</span><span class="na">commitSync</span><span class="p">();</span><span class="w">   </span><span class="c1">// 处理成功再提交偏移量 → 不丢</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>消息生命周期</strong>：发送 → 顺序追加写入分区文件 → 副本同步 + ACK → 消费者拉取（pull）→ 提交 Offset → 按保留策略过期删除。</p>
+<h3 id="3">3. 实践应用</h3>
+<p><strong>典型场景</strong>：订单/交易链路解耦（下单后发消息触发库存、积分、短信）；秒杀削峰（请求先入队，后端按速率消费）；日志采集与流计算（Kafka 事实标准）；分布式事务最终一致性（RocketMQ 事务消息）；异步通知与事件驱动架构。</p>
+<p><strong>主流产品对比</strong>（必答表格，别只报名字）：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Kafka</th>
+<th>RocketMQ</th>
+<th>RabbitMQ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定位</td>
+<td>分布式消息流平台</td>
+<td>分布式消息中间件（阿里开源）</td>
+<td>传统 AMQP 消息队列</td>
+</tr>
+<tr>
+<td>模型</td>
+<td>Topic + Partition</td>
+<td>Topic + 队列，支持顺序消息、事务消息</td>
+<td>Exchange + Queue，路由模式最灵活</td>
+</tr>
+<tr>
+<td>延迟</td>
+<td>较高（端到端几十 ms 量级）</td>
+<td>低（毫秒级）</td>
+<td>低（毫秒级，路由复杂也稳定）</td>
+</tr>
+<tr>
+<td>吞吐</td>
+<td>极高（百万级 msg/s）</td>
+<td>高（十万级 msg/s）</td>
+<td>中等（万级 msg/s）</td>
+</tr>
+<tr>
+<td>事务消息</td>
+<td>弱（事务 API 复杂）</td>
+<td><strong>原生事务消息/半消息，最强</strong></td>
+<td>无</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>日志、大数据、流计算</td>
+<td>电商交易、金融</td>
+<td>中小规模、复杂路由</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型逻辑</strong>：大数据/日志/流计算 → <strong>Kafka</strong>；电商交易、要事务消息和强顺序 → <strong>RocketMQ</strong>；系统规模小、路由需求灵活、团队运维能力一般 → <strong>RabbitMQ</strong>。</p>
+<p><strong>三大常见问题及解决套路</strong>（重点中的重点）：<br />
+1. <strong>重复消费</strong> → 根源是 At Least Once + 网络重试/消费者重启。套路：<strong>幂等</strong>——业务唯一键 + 数据库唯一索引（insert ignore / upsert）或 Redis <code>SETNX</code>，处理前先查重；<br />
+2. <strong>消息丢失</strong> → 三段防御：<strong>生产端</strong>（<code>acks=all</code> + <code>retries</code>）、<strong>Broker 端</strong>（副本数 ≥ 3 + 刷盘 + ISR 机制）、<strong>消费端</strong>（业务成功后才手动提交 Offset，禁止自动提交）；<br />
+3. <strong>顺序错乱</strong> → 套路：同一业务键（如订单 ID）哈希路由到<strong>同一分区</strong> + <strong>单消费者</strong>处理 + 消费失败<strong>局部阻塞重试</strong>（不要跳过错的再去处理后面的消息）。</p>
+<p><strong>消息堆积的处理套路</strong>：查 lag 定位 → 紧急扩容（消费速度上限 = 分区数 × 单消费者速率，需先临时增加分区）→ 新建高分区 Topic，把积压消息<strong>重定向</strong>快速消费，与新消息隔离 → 兜底：非核心消息延迟消费或丢弃。</p>
+<h3 id="4">4. 深入思考（拉开差距的部分）</h3>
+<ul>
+<li><strong>为什么 Kafka 吞吐高</strong>：顺序写盘、零拷贝、批量发送（batch）与压缩、分区并行、消费无状态（靠 Offset 不靠 Broker 记账）。</li>
+<li><strong>RocketMQ 事务消息原理</strong>：两阶段提交——先发<strong>半消息</strong>（Half Message，消费者不可见），本地事务成功后再 commit 让消息可见；Broker 回查（check）机制兜底，实现分布式事务最终一致性。</li>
+<li><strong>延迟消息/死信队列</strong>：RocketMQ 的延迟级别（Delay Level）；RabbitMQ 用 TTL + 死信队列（Dead Letter Queue）实现延迟队列与重试兜底。</li>
+<li><strong>反向思考：什么时候不该用 MQ</strong>：链路短且需要强一致（本地事务即可）；无流量峰值、无解耦诉求；团队没有运维能力——MQ 引入的是高可用复杂度（可用性降低一个 9）。</li>
+<li><strong>加分项——如果让你设计一个 MQ</strong>：存储选型（内存 vs 顺序写盘 vs 页缓存）、副本一致性协议（Kafka ISR / Raft）、消费模型（pull 好控速还是 push 快）、顺序与积压监控。说出"存储和副本协议是核心难点"即可打动面试官。</li>
+</ul>
+<hr />
+<h2 id="_5">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（总分总，四层递进）</strong>：<br />
+1. <strong>总起</strong>：一句话定义 + 三大作用（解耦/削峰/异步，30 秒）；<br />
+2. <strong>核心模型</strong>：画 Producer → Topic/Partition → Consumer 图，点出分区是并行与有序的关键（1 分钟）；<br />
+3. <strong>核心机制</strong>：ACK 语义 → 持久化 → 幂等 → 顺序性，衔接"四不问题"的解决套路（2 分钟）；<br />
+4. <strong>产品对比与选型</strong>：表格对比 + 按场景给结论（1 分钟）；<br />
+5. <strong>收尾升华</strong>：事务消息、延迟队列、什么时候不该用 MQ，体现深度（30 秒）。</p>
+<p><strong>重点得分点</strong>：<br />
+- 会画"生产者—Broker—分区—消费者组"架构图，并解释分区的作用；<br />
+- 主动讲清楚"至少一次"语义下<strong>重复消费必然存在</strong>，所以必须幂等——这比背结论高级；<br />
+- 对比三款产品时给出<strong>场景化的选型结论</strong>，而不是报参数；<br />
+- 能说出 Kafka 高吞吐的三个原因（顺序写、零拷贝、批量）。</p>
+<p><strong>常见误区（务必避免）</strong>：<br />
+- 只背概念不画图、不举场景——面试官最反感"背书式"回答；<br />
+- 把"消息队列能解决所有问题"当答案——要主动提"什么时候不该用"，反而加分；<br />
+- 混淆消费模型：<strong>同一消费者组内是竞争关系（点对点），不同消费者组之间是广播（发布订阅）</strong>；<br />
+- 顺序性答错：说"消息队列保证全局有序"是错的，正确表述是<strong>分区内有序</strong>；<br />
+- 只说产品名不讲选型依据。</p>
+<p><strong>时间分配建议</strong>（总时长约 5 分钟）：记忆点/定义 30s → 模型与图 1min → 机制与"四不"套路 2min → 产品对比选型 1min → 深入思考 30s。</p>
+<p><strong>过渡话术</strong>（可直接背）：<br />
+- 开场："消息队列本质是解决<strong>生产与消费在时间和速度上不匹配</strong>的问题，我把它总结为解耦、削峰、异步三件事，下面从模型、机制、选型三个层面展开。"<br />
+- 转入机制："讲完模型，我想重点说说保证消息<strong>不丢、不重、不乱、不积</strong>这四件事，这四点是消息队列设计和使用的核心。"<br />
+- 转入对比："不同场景选型完全不同，我习惯按'日志流、交易、中小系统'三类场景分别对应 Kafka、RocketMQ、RabbitMQ。"<br />
+- 收尾："最后补充一个反直觉的点：如果链路短、一致性要求高、没有峰值流量，我建议<strong>不要</strong>引入消息队列，它引入的运维和可用性成本往往被低估。"</p>
+<hr />
+<p><strong>总结</strong>：消息队列 = 一个模型（Producer/Broker/Topic/Partition/Consumer）+ 三个作用（解耦/削峰/异步）+ 四不保障（不丢/不重/不乱/不积）+ 三款产品对比选型。按"记忆法 → 概念 → 原理 → 实践 → 思考"的顺序输出，配合一张架构图和一段幂等消费代码，即可覆盖该题全部得分点。</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0155')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0155')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,15 +1,15 @@
 {
   "meta": {
     "project": "Interview Coach — 面经题库",
-    "last_updated": "2026-07-29T16:02:37",
-    "total_questions": 150
+    "last_updated": "2026-08-02T09:41:22",
+    "total_questions": 217
   },
   "categories": {
     "java": {
       "name": "Java",
       "icon": "☕",
       "description": "Java 核心、JVM、并发编程",
-      "count": 99
+      "count": 152
     },
     "python": {
       "name": "Python",
@@ -27,13 +27,13 @@
       "name": "MySQL / 数据库",
       "icon": "🗄️",
       "description": "MySQL、索引、事务、SQL 优化",
-      "count": 12
+      "count": 14
     },
     "redis": {
       "name": "Redis / 缓存",
       "icon": "⚡",
       "description": "Redis 数据结构、缓存策略",
-      "count": 5
+      "count": 11
     },
     "spring": {
       "name": "Spring 框架",
@@ -57,7 +57,7 @@
       "name": "计算机网络",
       "icon": "🌍",
       "description": "TCP/IP、HTTP、网络安全",
-      "count": 1
+      "count": 7
     },
     "behavioral": {
       "name": "行为面试",
@@ -2199,6 +2199,743 @@
       "created": "2026-07-29 16:02:37",
       "source": "用户输入",
       "hash": "9dd582dd"
+    },
+    {
+      "id": "q0155",
+      "question": "对消息队列有什么了解？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/对消息队列有什么了解.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "98b04bab"
+    },
+    {
+      "id": "q0156",
+      "question": "实习用的什么消息队列？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/实习用的什么消息队列.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1e0b7aaa"
+    },
+    {
+      "id": "q0157",
+      "question": "Kafka有看过他的源码吗？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Kafka有看过他的源码吗.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "abfddf22"
+    },
+    {
+      "id": "q0158",
+      "question": "工作流两阶段提交是如何想到的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/工作流两阶段提交是如何想到的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1eda3b47"
+    },
+    {
+      "id": "q0159",
+      "question": "下线场景如何处理？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/下线场景如何处理.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "373b8d21"
+    },
+    {
+      "id": "q0160",
+      "question": "有什么其他的方式去替代这种分布式锁避免冲突的场景？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/有什么其他的方式去替代这种分布式锁避免冲突的场景.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "dd011718"
+    },
+    {
+      "id": "q0161",
+      "question": "为什么要使用Redis实现分布式锁，不使用其他的，MySQL或者Zookeeper之类的？",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/为什么要使用Redis实现分布式锁不使用其他的MySQL或者Zookeeper之类的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "a0ad8701"
+    },
+    {
+      "id": "q0162",
+      "question": "有了解访问内存和访问磁盘的速度差距有多少吗？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/有了解访问内存和访问磁盘的速度差距有多少吗.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "e5c9d6e0"
+    },
+    {
+      "id": "q0163",
+      "question": "电商图生视频缓存实现",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/电商图生视频缓存实现.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "2702fd37"
+    },
+    {
+      "id": "q0164",
+      "question": "两阶段缓存是什么？",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/两阶段缓存是什么.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "fd4affe0"
+    },
+    {
+      "id": "q0165",
+      "question": "会不会出现MD5哈希冲突导致不同图片访问的同一个缓存的情况？",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/会不会出现MD5哈希冲突导致不同图片访问的同一个缓存的情况.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "e59bd206"
+    },
+    {
+      "id": "q0166",
+      "question": "如果不同商家可以对同一个商品图进行请求，那么你如何保证不会有两个请求同时去实现缓存的重建？",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/如果不同商家可以对同一个商品图进行请求那么你如何保证不会有两个请求同时去实现缓存的重建.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "ab0a1679"
+    },
+    {
+      "id": "q0167",
+      "question": "手撕——寻找数组中重复两次的数字",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/手撕寻找数组中重复两次的数字.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "6e5ee2ad"
+    },
+    {
+      "id": "q0168",
+      "question": "衍生——如何寻找数组中重复k次的数字？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/衍生如何寻找数组中重复k次的数字.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "cb654846"
+    },
+    {
+      "id": "q0169",
+      "question": "TCP为什么会出现粘包拆包问题？",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/TCP为什么会出现粘包拆包问题.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1f53843a"
+    },
+    {
+      "id": "q0170",
+      "question": "你的RPC项目自定义协议为什么要自己处理粘包拆包？",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/你的RPC项目自定义协议为什么要自己处理粘包拆包.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "85970e31"
+    },
+    {
+      "id": "q0171",
+      "question": "TCP是全双工还是半双工？",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/TCP是全双工还是半双工.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "4f1fb66b"
+    },
+    {
+      "id": "q0172",
+      "question": "什么是全双工，什么是半双工？",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/什么是全双工什么是半双工.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "2fa6abf4"
+    },
+    {
+      "id": "q0173",
+      "question": "写一段死锁的代码，然后想尽可能多的方法解决死锁",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/写一段死锁的代码然后想尽可能多的方法解决死锁.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "a1d52744"
+    },
+    {
+      "id": "q0174",
+      "question": "写一个 HashMap，至少写到拉链法解决哈希冲突",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/写一个-HashMap至少写到拉链法解决哈希冲突.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "8eaa466c"
+    },
+    {
+      "id": "q0175",
+      "question": "手写堆排序",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/手写堆排序.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "4159061f"
+    },
+    {
+      "id": "q0176",
+      "question": "为什么引入父子索引？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/为什么引入父子索引.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "c13ff26a"
+    },
+    {
+      "id": "q0177",
+      "question": "为什么在检索阶段引入 BM25？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/为什么在检索阶段引入-BM25.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "0e9609ab"
+    },
+    {
+      "id": "q0178",
+      "question": "rerank 后一般返回几个块？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/rerank-后一般返回几个块.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1d4e40cc"
+    },
+    {
+      "id": "q0179",
+      "question": "rerank 后的 topK 截断是怎么做的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/rerank-后的-topK-截断是怎么做的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "6f87d9f3"
+    },
+    {
+      "id": "q0180",
+      "question": "讲一下上下文工程是怎么设计的。",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/讲一下上下文工程是怎么设计的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "84d81550"
+    },
+    {
+      "id": "q0181",
+      "question": "记忆机制是怎么做的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/记忆机制是怎么做的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "005affe7"
+    },
+    {
+      "id": "q0182",
+      "question": "Function Calling 是怎么设计的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Function-Calling-是怎么设计的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "c13a6b3b"
+    },
+    {
+      "id": "q0183",
+      "question": "Agent 的任务规划是怎么做的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Agent-的任务规划是怎么做的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "4ae58853"
+    },
+    {
+      "id": "q0184",
+      "question": "Prompt 注入攻击如何防御？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Prompt-注入攻击如何防御.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "3af7aa74"
+    },
+    {
+      "id": "q0185",
+      "question": "工具调用的安全控制是怎么实现的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/工具调用的安全控制是怎么实现的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "9632f1c5"
+    },
+    {
+      "id": "q0186",
+      "question": "讲一下分布式令牌桶限流。",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/讲一下分布式令牌桶限流.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "74530fd7"
+    },
+    {
+      "id": "q0187",
+      "question": "漏桶算法是什么？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/漏桶算法是什么.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "a7e111ba"
+    },
+    {
+      "id": "q0188",
+      "question": "滑动窗口算法是怎么实现的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/滑动窗口算法是怎么实现的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "8fde5b9f"
+    },
+    {
+      "id": "q0189",
+      "question": "滑动窗口和令牌桶相比有什么区别？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/滑动窗口和令牌桶相比有什么区别.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "bdfd01b5"
+    },
+    {
+      "id": "q0190",
+      "question": "布隆过滤器讲一下。",
+      "category": "redis",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/redis/布隆过滤器讲一下.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "b04557b9"
+    },
+    {
+      "id": "q0191",
+      "question": "数据库索引失效的情况有哪些？",
+      "category": "mysql",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/数据库索引失效的情况有哪些.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "7ba767e3"
+    },
+    {
+      "id": "q0192",
+      "question": "like 查询会不会导致索引失效？",
+      "category": "mysql",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/mysql/like-查询会不会导致索引失效.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "f378e1e3"
+    },
+    {
+      "id": "q0193",
+      "question": "RAG 系统如何评测？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/RAG-系统如何评测.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1fa2e049"
+    },
+    {
+      "id": "q0194",
+      "question": "有哪些评测维度？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/有哪些评测维度.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "1d75a832"
+    },
+    {
+      "id": "q0195",
+      "question": "评测数据集一般包括哪些内容？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/评测数据集一般包括哪些内容.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "80b02ba5"
+    },
+    {
+      "id": "q0196",
+      "question": "如果要提升相关度，你会怎么做？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如果要提升相关度你会怎么做.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "9ec7904e"
+    },
+    {
+      "id": "q0197",
+      "question": "如果要优化回答效果，有哪些思路？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如果要优化回答效果有哪些思路.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "80f94cff"
+    },
+    {
+      "id": "q0198",
+      "question": "如果设计一个数据处理场景，比如有一千条数据需要求和，你会如何设计处理流程？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如果设计一个数据处理场景比如有一千条数据需要求和你会如何设计处理流程.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "52722d8a"
+    },
+    {
+      "id": "q0199",
+      "question": "RAG 的性能如何提升？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/RAG-的性能如何提升.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "35077099"
+    },
+    {
+      "id": "q0200",
+      "question": "当前的上下文是如何处理的？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/当前的上下文是如何处理的.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "918de557"
+    },
+    {
+      "id": "q0201",
+      "question": "什么时候该用 Prompt、RAG、微调、Workflow、Agent？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么时候该用-PromptRAG微调WorkflowAgent.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "fc5f3669"
+    },
+    {
+      "id": "q0202",
+      "question": "为什么很多项目不一开始就做微调？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/为什么很多项目不一开始就做微调.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "40bb85dc"
+    },
+    {
+      "id": "q0203",
+      "question": "为什么不是所有复杂任务都适合 Agent？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/为什么不是所有复杂任务都适合-Agent.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "e2d38553"
+    },
+    {
+      "id": "q0204",
+      "question": "Workflow 和 Agent 的分界线是什么？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Workflow-和-Agent-的分界线是什么.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "e879a2c8"
+    },
+    {
+      "id": "q0205",
+      "question": "Token 和上下文窗口是什么？它们在工程上意味着什么？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Token-和上下文窗口是什么它们在工程上意味着什么.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "f245c648"
+    },
+    {
+      "id": "q0206",
+      "question": "1个汉字、1个英文单词大概是多少 token，为什么不能死记一个固定值？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/1个汉字1个英文单词大概是多少-token为什么不能死记一个固定值.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "a8287d32"
+    },
+    {
+      "id": "q0207",
+      "question": "如果上下文被截断了，你会优先怎么处理？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如果上下文被截断了你会优先怎么处理.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "e79230ab"
+    },
+    {
+      "id": "q0208",
+      "question": "大模型应用上线前你最关心哪些工程指标？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/大模型应用上线前你最关心哪些工程指标.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "fe3a2f20"
+    },
+    {
+      "id": "q0209",
+      "question": "你怎么设计降级策略？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/你怎么设计降级策略.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "925c8fe7"
+    },
+    {
+      "id": "q0210",
+      "question": "如果成本超预算，先优化哪一层？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如果成本超预算先优化哪一层.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "7725e557"
+    },
+    {
+      "id": "q0211",
+      "question": "怎么做 Prompt/模型/索引回滚？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/怎么做-Prompt模型索引回滚.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "0268df78"
+    },
+    {
+      "id": "q0212",
+      "question": "什么是 Agentic RAG？它和\"一次检索后直接生成\"有什么区别？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "easy",
+      "file": "questions/database/java/什么是-Agentic-RAG它和一次检索后直接生成有什么区别.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "4184c2ce"
+    },
+    {
+      "id": "q0213",
+      "question": "什么情况下应该坚持固定 RAG，而不是升级成 Agentic RAG？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/什么情况下应该坚持固定-RAG而不是升级成-Agentic-RAG.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "92dfe131"
+    },
+    {
+      "id": "q0214",
+      "question": "Agentic RAG 的收益通常体现在哪些 badcase 上？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Agentic-RAG-的收益通常体现在哪些-badcase-上.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "ed3f7ec9"
+    },
+    {
+      "id": "q0215",
+      "question": "如何防止多轮补检把延迟和成本拉得太高？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/如何防止多轮补检把延迟和成本拉得太高.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "4c3147db"
+    },
+    {
+      "id": "q0216",
+      "question": "升序数组，返回=target的元素下标，不存在返回-1。如果有重复元素，返回它首次出现的下标代码怎么改？",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/升序数组返回target的元素下标不存在返回-1如果有重复元素返回它首次出现的下标代码怎么改.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "d474727c"
+    },
+    {
+      "id": "q0217",
+      "question": "拷打项目（完整项目防御体系）",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/拷打项目完整项目防御体系.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "3d3bc002"
+    },
+    {
+      "id": "q0218",
+      "question": "JVM内存模型",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/JVM内存模型.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "7bc1262a"
+    },
+    {
+      "id": "q0219",
+      "question": "Java垃圾回收机制（回收的源头是哪里）",
+      "category": "java",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/java/Java垃圾回收机制回收的源头是哪里.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "c166d7b5"
+    },
+    {
+      "id": "q0220",
+      "question": "TCP和UDP的区别",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/TCP和UDP的区别.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "651b4ab1"
+    },
+    {
+      "id": "q0221",
+      "question": "TCP怎么确保有序",
+      "category": "network",
+      "tags": [],
+      "difficulty": "medium",
+      "file": "questions/database/network/TCP怎么确保有序.md",
+      "created": "2026-08-02 09:41:22",
+      "source": "用户输入",
+      "hash": "dccc61a1"
     }
   ]
 }

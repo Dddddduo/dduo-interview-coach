@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有了解访问内存和访问磁盘的速度差距有多少吗？ — Interview Coach</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+:root {
+    --bg: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-secondary: #8b949e; --accent: #58a6ff;
+    --accent-green: #3fb950; --accent-orange: #d2991d;
+    --accent-purple: #a371f7; --accent-red: #f85149;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+             'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    line-height: 1.8; font-size: 15px;
+}
+
+/* ===== Layout ===== */
+.q-header {
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    padding: 20px 0; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+}
+.q-header-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.q-header a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.q-header .sep { color: var(--text-secondary); }
+.q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.q-meta-item {
+    padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+}
+.q-meta-cat { background: rgba(88,166,255,0.12); color: var(--accent); }
+.q-meta-diff-easy { color: var(--accent-green); }
+.q-meta-diff-medium { color: var(--accent-orange); }
+.q-meta-diff-hard { color: var(--accent-red); }
+
+.q-container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Typography ===== */
+.q-container h1 {
+    font-size: 1.7rem; color: #f0f6fc; margin: 8px 0 24px;
+    padding-bottom: 16px; border-bottom: 2px solid var(--border); line-height: 1.4;
+}
+.q-container h2 {
+    font-size: 1.3rem; margin: 36px 0 16px; color: #f0f6fc;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.q-container h3 {
+    font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent);
+}
+.q-container h4 { font-size: 1rem; margin: 20px 0 8px; color: #e6edf3; }
+.q-container p { margin: 12px 0; }
+.q-container strong { color: #f0f6fc; font-weight: 600; }
+.q-container em { color: var(--text-secondary); }
+.q-container a { color: var(--accent); text-decoration: none; }
+.q-container a:hover { text-decoration: underline; }
+
+/* ===== Blockquote ===== */
+.q-container blockquote {
+    border-left: 3px solid var(--accent); margin: 16px 0;
+    padding: 12px 20px; background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0; color: var(--text-secondary);
+}
+.q-container blockquote p { margin: 4px 0; }
+
+/* ===== Code ===== */
+.q-container code {
+    background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-orange);
+}
+.q-container pre {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px 20px; overflow-x: auto;
+    margin: 16px 0; line-height: 1.6;
+}
+.q-container pre code {
+    background: none; padding: 0; color: var(--text); font-size: 0.85rem;
+}
+
+/* ===== Tables ===== */
+.q-container table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem;
+}
+.q-container th {
+    background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 600; color: #f0f6fc;
+}
+.q-container td {
+    padding: 8px 14px; border: 1px solid var(--border);
+}
+
+/* ===== Lists ===== */
+.q-container ul, .q-container ol { padding-left: 24px; margin: 10px 0; }
+.q-container li { margin: 6px 0; }
+.q-container li::marker { color: var(--accent); }
+.q-container hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ===== Tags ===== */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.tag-item {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    background: rgba(163,113,247,0.1); color: var(--accent-purple);
+    font-size: 0.78rem; font-weight: 500;
+}
+
+/* ===== Review Button ===== */
+.review-actions { margin: 32px 0; text-align: center; }
+.btn-review {
+    display: inline-block; padding: 12px 32px; border-radius: 8px;
+    background: var(--accent-green); color: #fff; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-review:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-review.reviewed { background: var(--bg-secondary); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Footer ===== */
+.q-footer {
+    text-align: center; padding: 28px; color: var(--text-secondary);
+    font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px;
+}
+.q-footer a { color: var(--accent); text-decoration: none; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    .q-container { padding: 20px 16px; }
+    .q-container h1 { font-size: 1.3rem; }
+    .q-header-inner { flex-direction: column; align-items: flex-start; }
+    .q-meta { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="q-header">
+    <div class="q-header-inner">
+        <a href="index.html">🏠 首页</a>
+        <span class="sep">/</span>
+        <a href="questions.html">📚 题库</a>
+        <span class="sep">/</span>
+        <span style="font-size:0.85rem;">q0162</span>
+        <div class="q-meta">
+            <span class="q-meta-item q-meta-cat">☕ Java</span>
+            <span class="q-meta-item q-meta-diff-medium">● 中级</span>
+            <span class="q-meta-item" style="color:var(--text-secondary);">2026-08-02</span>
+        </div>
+    </div>
+</header>
+
+<div class="q-container">
+    <h1>有了解访问内存和访问磁盘的速度差距有多少吗？</h1>
+    <div class="tag-row"></div>
+    <h1 id="_1">有了解访问内存和访问磁盘的速度差距有多少吗？</h1>
+<h1 id="_2">有了解访问内存和访问磁盘的速度差距有多少吗？</h1>
+<h2 id="_3">🧠 联想记忆法</h2>
+<p><strong>口诀一：一串"10 的幂"——100ns、100μs、10ms</strong><br />
+- 内存（Memory/DRAM）≈ <strong>100ns</strong>（纳秒）<br />
+- 固态硬盘（SSD/NAND Flash）≈ <strong>100μs</strong>（微秒）= 100,000ns<br />
+- 机械硬盘（HDD）≈ <strong>10ms</strong>（毫秒）= 10,000,000ns</p>
+<p>把这串数字背下来：<strong>100 纳秒 → 100 微秒 → 10 毫秒</strong>，内存→SSD 差 <strong>1000 倍（3 个数量级）</strong>、SSD→HDD 差 <strong>100 倍（2 个数量级）</strong>，整体从内存到机械盘差 <strong>100,000 倍（5 个数量级）</strong>。</p>
+<p><strong>口诀二：经典的 1、7、100</strong><br />
+CPU 缓存（Cache）三级的经典延迟是 <strong>L1≈1ns、L2≈7ns、L3≈20ns</strong>（内存 100ns）。记住"<strong>1-7-100</strong>"这条上楼梯的数字，就记住了从寄存器到内存的整条路。</p>
+<p><strong>口诀三：时间放大比喻法</strong><br />
+把 1ns 放大成 1 秒，那么——L1 缓存 ≈ 1 秒，内存 ≈ 1.5 分钟（100 秒），SSD 随机读 ≈ <strong>1.2 天</strong>，机械硬盘寻道 ≈ <strong>116 天</strong>。问自己：你在 100 秒内能拿到的纸，变成要坐 4 个月的船才能拿到，这就是程序等磁盘的感觉。这个比喻面试时说出来，能一下让面试官觉得你真的"有画面感"。</p>
+<h2 id="_4">📖 深度解答</h2>
+<h2 id="1">1. 核心概念：快与慢的数量级到底差多少</h2>
+<p>先给出业界公认的基准数据（源自 Jeff Dean 的经典演讲 <em>Latency Numbers Every Programmer Should Know</em>，被普遍引用为性能工程的口诀表）：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>典型访问延迟</th>
+<th>相对内存的差距</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>寄存器（Register）</td>
+<td>~0.3~1ns（1 个 CPU 周期）</td>
+<td>快 100~300 倍</td>
+</tr>
+<tr>
+<td>L1 缓存（L1 Cache）</td>
+<td>~0.5~1ns</td>
+<td>快约 100~200 倍</td>
+</tr>
+<tr>
+<td>L2 缓存（L2 Cache）</td>
+<td>~7ns</td>
+<td>快约 15 倍</td>
+</tr>
+<tr>
+<td>L3 缓存（L3 Cache）</td>
+<td>~10~20ns</td>
+<td>快约 5~10 倍</td>
+</tr>
+<tr>
+<td>内存（Main Memory, DRAM）</td>
+<td><strong>~100ns</strong></td>
+<td>基准（1 倍）</td>
+</tr>
+<tr>
+<td>SSD（NAND Flash，NVMe 随机读）</td>
+<td><strong>~20~150μs</strong></td>
+<td>慢约 <strong>3 个数量级</strong></td>
+</tr>
+<tr>
+<td>机械硬盘（HDD）寻道</td>
+<td><strong>~10ms</strong></td>
+<td>慢约 <strong>5 个数量级</strong></td>
+</tr>
+</tbody>
+</table>
+<p>结论：<strong>内存访问约 100 纳秒，SSD 随机访问约 100 微秒（慢 3 个数量级），机械硬盘约 10 毫秒（慢 5 个数量级）</strong>。也就是说，一次内存访问的时间里，磁盘能完成的 IO 是 0 次——100 万次内存访问的时间里（约 100ms），机械硬盘最多完成约 10 次寻道（100ms ÷ 10ms/次）。</p>
+<p>更进一步看带宽（Bandwidth）：内存顺序读可达几十 GB/s，NVMe SSD 顺序读约 3~7GB/s（差一个数量级），HDD 顺序读只有 100~200MB/s。<strong>延迟（Latency）差 3~5 个数量级，带宽差 1~2 个数量级</strong>，而随机读性能差异最大。</p>
+<h2 id="2">2. 底层原理：为什么差这么多</h2>
+<p>差距的本质是<strong>物理介质与工作机制</strong>不同：</p>
+<p><strong>(1) DRAM（内存）：电信号寻址，纳秒级</strong><br />
+内存芯片是半导体器件，通过行列地址（Row/Column）用<strong>电信号</strong>直接定位存储单元，电容充放电表示 0/1。电子在芯片内部移动是光速量级，没有任何机械运动，所以延迟是固定的 ~100ns（其中大部分是地址译码和刷新开销，DRAM 需要周期性刷新 Refresh 防止电荷泄漏）。</p>
+<p><strong>(2) 缓存（Cache）为什么比内存还快：SRAM + 局部性</strong><br />
+CPU 里的 L1~L3 缓存用 SRAM 制造——每个 bit 用 6 个晶体管锁存，不需要刷新，速度比靠电容充放电的 DRAM 快一个数量级。缓存能真正降低延迟，靠的是<strong>局部性原理（Locality）</strong>：程序访问数据有<strong>时间局部性（Temporal Locality）</strong>（刚用过的数据很快再用）和<strong>空间局部性（Spatial Locality）</strong>（相邻数据会被连续访问）。所以 CPU 不是等内存，而是把数据"预取"到离自己更近的缓存里，命中（Cache Hit）就走快速通道，未命中（Cache Miss）才落到内存。</p>
+<p><strong>(3) SSD（NAND Flash）：无机械运动，但要擦除、要搬电荷</strong><br />
+SSD 内部没有机械部件，但 NAND Flash 的读操作需要把浮栅晶体管（Floating Gate Transistor）里的电子检出来判读，一次读取要经历页（Page，通常 4~16KB）的地址译码、电荷检测、ECC 纠错，所以单次读是微秒级。更麻烦的是：<strong>写入必须先擦除（Erase）</strong>，而擦除的最小单位是块（Block，几 MB），比写入的最小单位"页"大得多，于是有了写放大（Write Amplification）和垃圾回收（GC）。所以 SSD 随机读 ~100μs，但随机写会因 GC 抖动。</p>
+<p><strong>(4) 机械硬盘（HDD）：物理寻道，一切输在机械运动</strong><br />
+HDD 是旋转盘片 + 悬浮磁头。一次读要经历：<strong>寻道（Seek）</strong>——磁头臂通过音圈电机在微米级精度下移动到目标磁道，约 5~10ms；<strong>旋转延迟（Rotational Latency）</strong>——等盘片转到目标扇区，7200 转/分时平均约 4.2ms。光速在这里毫无意义——<strong>人类能感知的机械动作速度，就是磁盘的速度</strong>。这是物理天花板，无法通过软件绕过。</p>
+<p><strong>(5) 存储器层次结构（Memory Hierarchy）：为什么"快"永远伴随"小和贵"</strong><br />
+从寄存器到硬盘，本质是<strong>速度、容量、成本（$/bit）的三难权衡</strong>：SRAM 最快但每 bit 6 个晶体管最贵，DRAM 次之，NAND 再之，磁盘最便宜。计算机无法只有一种存储器，所以设计成金字塔分层，让 90% 以上的访问命中在顶层。这就是为什么"性能优化"归根结底是"让数据尽量留在更快的那一层"。</p>
+<h2 id="3">3. 实践应用：这些差距如何塑造了整个系统设计</h2>
+<p>面试回答到这里一定要落地——<strong>几乎所有高性能中间件的设计，都是被这 3~5 个数量级差逼出来的</strong>：</p>
+<p><strong>(1) Redis：纯内存数据库</strong><br />
+Redis 把全部数据放内存，换来单线程也能支撑 10 万级 QPS。代价是内存贵、容量小、易失——所以它用 <strong>RDB 快照 + AOF 日志</strong>做持久化，且 AOF 的 <code>fsync</code>（把页缓存强制刷盘的系统调用）策略（always/everysec/no）就是<strong>"要速度还是要安全"</strong>的经典权衡：everysec 就是接受"最多丢 1 秒数据"换取磁盘不拖垮主线程。</p>
+<p><strong>(2) MySQL InnoDB：缓冲池（Buffer Pool）+ B+ 树</strong><br />
+- InnoDB 的 <strong>Buffer Pool</strong> 就是内存中的页缓存，热数据留在内存里，磁盘只承受脏页（Dirty Page）刷盘——配置 <code>innodb_buffer_pool_size</code> 本质就是在"买内存换磁盘 IO"。<br />
+- 为什么索引用 <strong>B+ 树</strong>而不是二叉搜索树？因为 B+ 树<strong>矮胖</strong>：扇出（Fan-out）大，一个 16KB 的页能存上千个 key，2000 万行的表树高也只有 3~4 层——<strong>每次查询只需 3~4 次磁盘 IO</strong>，而二叉树可能 20+ 次。索引设计的目标就是"把磁盘 IO 次数压缩到个位数"。</p>
+<p><strong>(3) Kafka：顺序写 + 页缓存 + 零拷贝</strong><br />
+Kafka 敢把消息"写入磁盘"还能扛百万级吞吐，靠三招，全是对着差距打的：<br />
+- <strong>顺序写（Sequential Write）</strong>：磁盘顺序写带宽是随机写的几十倍（机械盘 100MB/s+ vs 几 MB/s），所以 Kafka 只用 append-only 追加日志，不做随机更新；<br />
+- <strong>页缓存（Page Cache）</strong>：不自己管理缓存，直接借用操作系统页缓存，热数据命中就走内存，读和写都被内存兜底；<br />
+- <strong>零拷贝（Zero-Copy）</strong>：用 <code>sendfile</code> 系统调用让数据从页缓存直接进网卡，跳过"内核态→用户态→内核态"的两次拷贝，省掉内存拷贝的同时减少 CPU 开销——因为内存带宽虽然大，但经不起低效路径浪费。</p>
+<p><strong>(4) 操作系统：页缓存与脏页回写（Writeback）</strong><br />
+OS 不会让每次写立刻落盘，而是写进 <strong>Page Cache</strong>，由后台线程（Linux 的 flusher 线程）按 <strong>writeback 机制（脏页比例/老化策略）</strong>批量回写，把"100 次随机小写"合并成"1 次顺序大批写"——把 5 个数量级的代价通过批量化摊薄。代价是断电丢数据的窗口，所以数据库还要靠 <code>fsync</code>/<code>O_DIRECT</code> 主动控制落盘时机。</p>
+<p>一句话总结：<strong>所有分布式系统、数据库、消息队列的性能优化，本质上都是"让更多访问停在更快的层级"（缓存）、"把慢的访问变成顺序的"（批处理与顺序写）、"消灭不必要的慢访问"（索引与零拷贝）。</strong></p>
+<h2 id="4">4. 深入思考：面试追问如何应对</h2>
+<p><strong>(1) 追问"CPU 内部还有哪些隐藏的慢"</strong><br />
+- <strong>分支预测（Branch Prediction）</strong>：CPU 流水线会猜 if 跳不跳，猜错一次要冲刷流水线，代价约 5ns（比 L1 慢 10 倍），所以高频分支代码要注意可预测性。<br />
+- <strong>TLB（Translation Lookaside Buffer，页表缓存）</strong>：虚拟地址转物理地址要查页表（Page Table），TLB 就是页表的缓存；TLB Miss 会去内存多次查页表，所以大页（Huge Page）能减少页表项数量、提升命中率。<br />
+- <strong>NUMA（Non-Uniform Memory Access，非均匀内存访问）</strong>：多路 CPU 下，访问"本地内存"和"远端内存"延迟不同（本地约 100ns，跨节点可能翻倍到 200ns+），所以要 CPU 亲和性绑定 + 内存就近分配。</p>
+<p><strong>(2) 追问"为什么不直接用内存当存储"</strong><br />
+答：成本与易失性。内存 $/GB 是 SSD 的几十倍，且断电即失。所以演进方向是<strong>存储级内存（SCM, Storage-Class Memory）</strong>——如 Intel Optane（傲腾，利用 3D XPoint，延迟比 NAND 低一个数量级，虽已停产）——以及 <strong>CXL（Compute Express Link）内存扩展</strong>，让服务器能远程挂载内存池。持久化介质在从"机械→闪存→字节可寻址非易失"演进，每演进一代，计算机体系的"快慢鸿沟"就缩小一档。</p>
+<p><strong>(3) 追问"这些数字会过时吗"</strong><br />
+诚实回答：绝对值会变（NVMe SSD 已从 150μs 降到 ~20μs，DDR5 延迟仍在 80~100ns 量级），但<strong>相对数量级关系十几年来基本稳定</strong>——内存和磁盘差 3~5 个数量级这个"鸿沟"依然成立，这也是为什么缓存架构、B+ 树、顺序写的设计原则至今不过时。</p>
+<h2 id="_5">🗺️ 回答思路</h2>
+<p><strong>答题逻辑框架（建议 2~3 分钟讲完，四步走）</strong><br />
+1. <strong>直接亮数字</strong>（30 秒）：先给结论——内存 ~100ns，SSD ~100μs，机械盘 ~10ms，差 3~5 个数量级。背诵 1/7/100 或 100/100μs/10ms 口诀，第一时间展示"背过基准数据"。<br />
+2. <strong>讲为什么</strong>（40 秒）：从物理机制讲——DRAM 电信号寻址 vs NAND 电荷检测+擦除 vs HDD 机械寻道+旋转延迟，点出"机械运动是物理天花板"，顺带提 SRAM/局部性。<br />
+3. <strong>落到设计</strong>（60 秒）：按"缓存类→索引类→顺序写类"三组举例：Redis、MySQL Buffer Pool + B+ 树、Kafka 顺序写/页缓存/零拷贝、OS 脏页回写。每个例子一句话点出"它把哪层慢给避开了"。<br />
+4. <strong>升华收尾</strong>（20 秒）：总结通用规律——"所有性能优化本质是让访问停留在更快层级 / 把随机变顺序 / 消除无效访问"，为追问留口子。</p>
+<p><strong>重点得分点</strong><br />
+- 数字准确且成体系（寄存器→L1→L2→L3→内存→SSD→HDD 全链条），这是加分最多的部分；<br />
+- 能说出"延迟差 3~5 个数量级、带宽差 1~2 个数量级、随机读差异最大"这种区分度；<br />
+- 每个系统设计案例都绑定到"为什么"上（B+ 树因为矮胖、Kafka 因为顺序写带宽高），而不是背名词；<br />
+- 主动提到 Jeff Dean 的延迟表，显得有工程修养。</p>
+<p><strong>常见误区（务必避开）</strong><br />
+- ❌ 只背"内存比磁盘快 10 万倍"，说不出机制 → 一定要补一句"SSD 没有机械运动，但 NAND 写入要擦除、有写放大"；<br />
+- ❌ 混淆延迟和带宽，说"SSD 和内存一样快" → NVMe 顺序读带宽只差一个数量级，但随机读延迟仍差 3 个数量级，这是本质区别；<br />
+- ❌ 只谈 Redis/MySQL 的缓存，漏掉操作系统页缓存 → 页缓存是几乎所有系统共用的隐形层，提它是高级表现；<br />
+- ❌ 追问时慌，说"数字过时了" → 要区分"绝对值演进、数量级关系稳定"。</p>
+<p><strong>时间分配建议</strong><br />
+- 总量 2~3 分钟：数字 30s + 原理 40s + 设计 60s + 收尾 20s；<br />
+- 如果面试官中途打断追问某一点（比如"说说零拷贝"），立即切换成"这个问题的单点展开"模式，讲完 1~2 句再拉回主线；<br />
+- 面试官若表示"时间有限"，优先砍"为什么"的细节，保留数字表和设计案例。</p>
+<p><strong>过渡话术</strong><br />
+- 从数字过渡到原理："数字背后是物理机制决定的，内存是电信号寻址，而磁盘要么在搬电子、要么在转盘子。"<br />
+- 从原理过渡到设计："这几个数量级的差距，直接塑造了所有数据库和中间件的架构——我举三个例子。"<br />
+- 收尾留白："这些差距决定了'缓存 + 顺序 + 批量'永远是性能优化的三板斧，您想听我展开哪一块？"</p>
+<hr />
+<blockquote>
+<p>📋 <strong>分类</strong>: Java<br />
+🏷️ <strong>标签</strong>: <br />
+📊 <strong>难度</strong>: 中级<br />
+📅 <strong>归档时间</strong>: 2026-08-02 09:41:22</p>
+</blockquote>
+    <div class="review-actions">
+        <button class="btn-review" id="review-btn" onclick="toggleReview('q0162')">
+            ✅ Mark as Reviewed Today
+        </button>
+        <p id="review-status" style="margin-top:8px;font-size:0.82rem;color:var(--text-secondary);"></p>
+    </div>
+</div>
+
+<footer class="q-footer">
+    <p>
+        <a href="questions.html">📚 题库浏览器</a> ·
+        <a href="daily.html">📅 每日复习</a> ·
+        <a href="https://github.com/Dddddduo/dduo-interview-coach">GitHub</a>
+    </p>
+    <p style="margin-top:6px;">Interview Coach — Harness Engineering Architecture</p>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+// 复习打卡
+function toggleReview(qid) {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    let reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    const btn = document.getElementById('review-btn');
+    const status = document.getElementById('review-status');
+
+    if (reviewed.includes(qid)) {
+        reviewed = reviewed.filter(id => id !== qid);
+        btn.textContent = '✅ Mark as Reviewed Today';
+        btn.classList.remove('reviewed');
+        status.textContent = '';
+    } else {
+        reviewed.push(qid);
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+        status.textContent = '🎉 Great job! Keep up the momentum!';
+    }
+    localStorage.setItem(key, JSON.stringify(reviewed));
+}
+
+// 初始化打卡状态
+(function() {
+    const key = 'reviewed_' + new Date().toISOString().slice(0,10);
+    const reviewed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (reviewed.includes('q0162')) {
+        const btn = document.getElementById('review-btn');
+        btn.textContent = '✓ Reviewed Today!';
+        btn.classList.add('reviewed');
+    }
+})();
+</script>
+</body>
+</html>
